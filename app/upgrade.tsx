@@ -140,10 +140,14 @@ export default function UpgradeScreen() {
 
   useEffect(() => {
     if (!uid) return;
+    let cancelled = false;
     getPendingRewards(uid).then(({ pendingDiscount, freeMonthGranted }) => {
-      setPendingDiscount(pendingDiscount);
-      setFreeMonthGranted(freeMonthGranted);
+      if (!cancelled) {
+        setPendingDiscount(pendingDiscount);
+        setFreeMonthGranted(freeMonthGranted);
+      }
     }).catch(() => {});
+    return () => { cancelled = true; };
   }, [uid]);
 
   const handlePurchase = useCallback(async () => {
