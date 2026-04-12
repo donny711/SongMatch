@@ -103,6 +103,11 @@ export async function recordReferralInstall(
     const data = snap.data() as ReferralRecord;
     if (data.installedUids.includes(newUid)) return; // already counted
 
+    // Guard: skip if user was already referred under a different code
+    const newUserRef = doc(db, 'users', newUid);
+    const newUserSnap = await tx.get(newUserRef);
+    if (newUserSnap.exists() && (newUserSnap.data() as { referredBy?: string }).referredBy) return;
+
     const newCount = data.installCount + 1;
     const updates: Record<string, unknown> = {
       installedUids: arrayUnion(newUid),
@@ -113,7 +118,6 @@ export async function recordReferralInstall(
     tx.update(codeRef, updates);
 
     // Mark referred user so we can show their status
-    const newUserRef = doc(db, 'users', newUid);
     tx.update(newUserRef, { referredBy: referralCode });
 
     // Apply 30% discount to the new install (friend discount)
