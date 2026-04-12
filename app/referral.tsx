@@ -7,6 +7,7 @@ import {
   Share,
   ActivityIndicator,
   TextInput,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -178,7 +179,7 @@ export default function ReferralScreen() {
           <ActivityIndicator color={COLORS.purple} />
         </View>
       ) : (
-        <View style={styles.content}>
+        <ScrollView style={styles.content} contentContainerStyle={styles.contentInner} showsVerticalScrollIndicator={false}>
           {/* Hero */}
           <View style={styles.hero}>
             <LinearGradient
@@ -277,7 +278,7 @@ export default function ReferralScreen() {
               )}
             </View>
           )}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -311,6 +312,8 @@ const styles = StyleSheet.create({
 
   content: {
     flex: 1,
+  },
+  contentInner: {
     paddingHorizontal: SPACING.lg,
     paddingTop: SPACING.xl,
     paddingBottom: SPACING.xxl,
