@@ -185,7 +185,7 @@ export async function getPendingRewards(uid: string): Promise<{
   const ref = doc(db, 'subscriptions', uid);
   const snap = await getDoc(ref);
   if (!snap.exists()) return { pendingDiscount: null, freeMonthGranted: false };
-  const data = snap.data();
+  const data = snap.data() as { pendingDiscount?: unknown; freeMonthGranted?: unknown };
   return {
     pendingDiscount: typeof data.pendingDiscount === 'number' ? data.pendingDiscount : null,
     freeMonthGranted: data.freeMonthGranted === true,
