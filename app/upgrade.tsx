@@ -88,12 +88,12 @@ function PlanCard({
 
 // ── RewardBanner ──────────────────────────────────────────────────────────────
 
-function RewardBanner({ discount, freeMonth }: { discount: number | null; freeMonth: boolean }) {
+function RewardBanner({ discount, discountMonths, freeMonth }: { discount: number | null; discountMonths: number | null; freeMonth: boolean }) {
   if (!discount && !freeMonth) return null;
 
   const label = freeMonth
     ? '🎁 You\'ve earned 1 free month — referral reward'
-    : `🎁 You have ${Math.round((discount ?? 0) * 100)}% off — referral reward`;
+    : `🎁 You have ${Math.round((discount ?? 0) * 100)}% off for ${discountMonths ?? 1} month${(discountMonths ?? 1) > 1 ? 's' : ''} — referral reward`;
 
   return (
     <View style={rewardBannerStyles.wrap}>
@@ -133,6 +133,7 @@ export default function UpgradeScreen() {
   const [purchasing, setPurchasing] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [pendingDiscount, setPendingDiscount] = useState<number | null>(null);
+  const [pendingDiscountMonths, setPendingDiscountMonths] = useState<number | null>(null);
   const [freeMonthGranted, setFreeMonthGranted] = useState(false);
 
   const { purchase, restore, isPro } = useSubscriptionStore();
@@ -141,9 +142,10 @@ export default function UpgradeScreen() {
   useEffect(() => {
     if (!uid) return;
     let cancelled = false;
-    getPendingRewards(uid).then(({ pendingDiscount, freeMonthGranted }) => {
+    getPendingRewards(uid).then(({ pendingDiscount, pendingDiscountMonths, freeMonthGranted }) => {
       if (!cancelled) {
         setPendingDiscount(pendingDiscount);
+        setPendingDiscountMonths(pendingDiscountMonths);
         setFreeMonthGranted(freeMonthGranted);
       }
     }).catch(() => {});
@@ -213,7 +215,7 @@ export default function UpgradeScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── Reward banner ── */}
-        <RewardBanner discount={pendingDiscount} freeMonth={freeMonthGranted} />
+        <RewardBanner discount={pendingDiscount} discountMonths={pendingDiscountMonths} freeMonth={freeMonthGranted} />
 
         {/* ── Hero ── */}
         <View style={styles.hero}>

@@ -120,24 +120,28 @@ export async function recordReferralInstall(
     // Mark referred user so we can show their status
     tx.update(newUserRef, { referredBy: referralCode });
 
-    // Apply 30% discount to the new install (friend discount)
-    // Stored on the user's subscription doc — applied at next billing
-    const subRef = doc(db, 'subscriptions', newUid);
-    tx.set(subRef, {
-      pendingDiscount: 0.30,
-      pendingDiscountReason: 'referral_friend',
-      updatedAt: serverTimestamp(),
-    }, { merge: true });
-
     // Check tier thresholds for referrer
     if (!data.tier1Rewarded && newCount >= TIER1_THRESHOLD) {
       updates.tier1Rewarded = true;
+      // Reward referrer
       const referrerSubRef = doc(db, 'subscriptions', data.referrerId);
       tx.set(referrerSubRef, {
         pendingDiscount: 0.30,
+        pendingDiscountMonths: 3,
         pendingDiscountReason: 'referral_tier1',
         updatedAt: serverTimestamp(),
       }, { merge: true });
+      // Reward all 3 friends (previous installedUids + current newUid)
+      const allFriendUids = [...data.installedUids, newUid];
+      for (const friendUid of allFriendUids) {
+        const friendSubRef = doc(db, 'subscriptions', friendUid);
+        tx.set(friendSubRef, {
+          pendingDiscount: 0.30,
+          pendingDiscountMonths: 3,
+          pendingDiscountReason: 'referral_friend_tier1',
+          updatedAt: serverTimestamp(),
+        }, { merge: true });
+      }
     }
 
     if (!data.tier2Rewarded && newCount >= TIER2_THRESHOLD) {
@@ -184,14 +188,16 @@ export async function getReferralStats(uid: string): Promise<{
 
 export async function getPendingRewards(uid: string): Promise<{
   pendingDiscount: number | null;
+  pendingDiscountMonths: number | null;
   freeMonthGranted: boolean;
 }> {
   const ref = doc(db, 'subscriptions', uid);
   const snap = await getDoc(ref);
-  if (!snap.exists()) return { pendingDiscount: null, freeMonthGranted: false };
-  const data = snap.data() as { pendingDiscount?: unknown; freeMonthGranted?: unknown };
+  if (!snap.exists()) return { pendingDiscount: null, pendingDiscountMonths: null, freeMonthGranted: false };
+  const data = snap.data() as { pendingDiscount?: unknown; freeMonthGranted?: unknown; pendingDiscountMonths?: unknown };
   return {
     pendingDiscount: typeof data.pendingDiscount === 'number' ? data.pendingDiscount : null,
+    pendingDiscountMonths: typeof data.pendingDiscountMonths === 'number' ? data.pendingDiscountMonths : null,
     freeMonthGranted: data.freeMonthGranted === true,
   };
 }

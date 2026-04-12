@@ -244,7 +244,7 @@ export default function ReferralScreen() {
               {redeemSuccess ? (
                 <View style={styles.redeemSuccess}>
                   <Ionicons name="checkmark-circle" size={18} color={COLORS.green} />
-                  <Text style={styles.redeemSuccessText}>Code applied — 30% off your next purchase</Text>
+                  <Text style={styles.redeemSuccessText}>Code applied — 30% off for 3 months when your referrer hits 3 installs</Text>
                 </View>
               ) : (
                 <>
