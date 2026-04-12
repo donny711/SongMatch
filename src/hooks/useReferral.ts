@@ -48,7 +48,8 @@ export function useReferral(): void {
       try {
         // Guard: skip if user was already referred
         const userSnap = await getDoc(doc(db, 'users', uid));
-        if (userSnap.exists() && userSnap.data().referredBy) return;
+        const userData = userSnap.data() as { referredBy?: string };
+        if (userSnap.exists() && userData.referredBy) return;
 
         const code = await AsyncStorage.getItem(PENDING_REFERRAL_KEY);
         if (!code) return;
