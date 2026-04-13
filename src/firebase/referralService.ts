@@ -1,12 +1,17 @@
 import {
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
   arrayUnion,
   increment,
   serverTimestamp,
   runTransaction,
+  query,
+  collection,
+  orderBy,
+  limit,
 } from 'firebase/firestore';
 import { db } from './config';
 import { saveSubscriptionToFirestore } from './subscriptionService';
@@ -213,4 +218,141 @@ export async function markDiscountRedeemed(uid: string): Promise<void> {
     freeMonthReason: null,
     updatedAt: serverTimestamp(),
   }, { merge: true });
+}
+
+// ── Squad types ────────────────────────────────────────────────────────────────────────────
+
+export interface SquadMember {
+  uid: string;
+  displayName: string;
+  avatarUrl: string | null;
+  username: string | null;
+  isReferrer: boolean;
+}
+
+export interface SquadData {
+  members: SquadMember[];
+  isReferrer: boolean;
+  installCount: number;
+  tier1Rewarded: boolean;
+  tier2Rewarded: boolean;
+}
+
+export interface ReferralLeaderboardEntry {
+  uid: string;
+  displayName: string;
+  avatarUrl: string | null;
+  username: string | null;
+  installCount: number;
+  tier1Rewarded: boolean;
+  tier2Rewarded: boolean;
+}
+
+const SQUAD_EMPTY: SquadData = {
+  members: [],
+  isReferrer: false,
+  installCount: 0,
+  tier1Rewarded: false,
+  tier2Rewarded: false,
+};
+
+// ── Internal helper ───────────────────────────────────────────────────────────────────────
+
+async function fetchSquadFromReferralDoc(
+  currentUid: string,
+  data: ReferralRecord
+): Promise<SquadData> {
+  const allUids = [...new Set([data.referrerId, ...data.installedUids])];
+  const profiles = await Promise.all(
+    allUids.map(async (memberUid) => {
+      try {
+        const snap = await getDoc(doc(db, 'users', memberUid));
+        if (!snap.exists()) return null;
+        const u = snap.data() as { displayName?: string; avatarUrl?: string; username?: string };
+        const member: SquadMember = {
+          uid: memberUid,
+          displayName: u.displayName ?? 'SoundMatch User',
+          avatarUrl: u.avatarUrl ?? null,
+          username: u.username ?? null,
+          isReferrer: memberUid === data.referrerId,
+        };
+        return member;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return {
+    members: profiles.filter((m): m is SquadMember => m !== null),
+    isReferrer: currentUid === data.referrerId,
+    installCount: data.installCount,
+    tier1Rewarded: data.tier1Rewarded,
+    tier2Rewarded: data.tier2Rewarded,
+  };
+}
+
+// ── Get squad members ───────────────────────────────────────────────────────────────
+
+export async function getSquadMembers(uid: string): Promise<SquadData> {
+  const userSnap = await getDoc(doc(db, 'users', uid));
+  if (!userSnap.exists()) return SQUAD_EMPTY;
+  const userData = userSnap.data() as { referralCode?: string; referredBy?: string };
+
+  if (userData.referralCode) {
+    const codeSnap = await getDoc(doc(db, 'referrals', userData.referralCode));
+    if (codeSnap.exists()) {
+      const data = codeSnap.data() as ReferralRecord;
+      if (data.installCount > 0) {
+        return fetchSquadFromReferralDoc(uid, data);
+      }
+    }
+  }
+
+  if (userData.referredBy) {
+    const codeSnap = await getDoc(doc(db, 'referrals', userData.referredBy));
+    if (codeSnap.exists()) {
+      return fetchSquadFromReferralDoc(uid, codeSnap.data() as ReferralRecord);
+    }
+  }
+
+  return SQUAD_EMPTY;
+}
+
+// ── Referral leaderboard ──────────────────────────────────────────────────────────────────
+
+export async function getReferralLeaderboard(
+  limitCount: number
+): Promise<ReferralLeaderboardEntry[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, 'referrals'),
+      orderBy('installCount', 'desc'),
+      limit(limitCount)
+    )
+  );
+  const entries = await Promise.all(
+    snap.docs
+      .filter((d) => (d.data() as ReferralRecord).installCount > 0)
+      .map(async (d) => {
+        const data = d.data() as ReferralRecord;
+        try {
+          const userSnap = await getDoc(doc(db, 'users', data.referrerId));
+          if (!userSnap.exists()) return null;
+          const u = userSnap.data() as { displayName?: string; avatarUrl?: string; username?: string };
+          const entry: ReferralLeaderboardEntry = {
+            uid: data.referrerId,
+            displayName: u.displayName ?? 'SoundMatch User',
+            avatarUrl: u.avatarUrl ?? null,
+            username: u.username ?? null,
+            installCount: data.installCount,
+            tier1Rewarded: data.tier1Rewarded,
+            tier2Rewarded: data.tier2Rewarded,
+          };
+          return entry;
+        } catch {
+          return null;
+        }
+      })
+  );
+  return entries.filter((e): e is ReferralLeaderboardEntry => e !== null);
 }
