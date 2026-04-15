@@ -83,18 +83,11 @@ export function FeedSegment() {
 
   if (items.length === 0) {
     return (
-      <View style={styles.center}>
-        <Ionicons name="radio-outline" size={40} color={COLORS.textMuted} />
-        <Text style={styles.emptyTitle}>Nothing here yet</Text>
-        <Text style={styles.emptySub}>Follow people to see what they're liking</Text>
-        <TouchableOpacity
-          style={styles.discoverBtn}
-          onPress={() => {}}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.discoverBtnText}>Discover people</Text>
-        </TouchableOpacity>
-      </View>
+      <LottieEmptyState
+        animationSource={emptyPeopleAnim}
+        title="Nothing here yet"
+        subtitle="Follow people to see what they are liking"
+      />
     );
   }
 
@@ -142,11 +135,11 @@ function FriendsSegment() {
 
   if (following.length === 0) {
     return (
-      <View style={styles.center}>
-        <Ionicons name="people-outline" size={40} color={COLORS.textMuted} />
-        <Text style={styles.emptyTitle}>Not following anyone yet</Text>
-        <Text style={styles.emptySub}>Head to Discover to find people with your taste</Text>
-      </View>
+      <LottieEmptyState
+        animationSource={emptyPeopleAnim}
+        title="Not following anyone yet"
+        subtitle="Head to Discover to find people with your taste"
+      />
     );
   }
 
