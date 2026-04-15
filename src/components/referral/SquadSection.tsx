@@ -40,11 +40,11 @@ export function SquadSection({ uid, viewerUid, isOwnProfile }: Props) {
   }, [uid]);
 
   useEffect(() => {
-    if (!isOwnProfile || !squad || squad.members.length > 0) return;
+    if (!isOwnProfile) return;
     let active = true;
     getOrCreateReferralCode(uid).then((c) => { if (active) setCode(c); }).catch(() => {});
     return () => { active = false; };
-  }, [isOwnProfile, squad, uid]);
+  }, [isOwnProfile, uid]);
 
   if (loading) {
     return (
@@ -63,9 +63,13 @@ export function SquadSection({ uid, viewerUid, isOwnProfile }: Props) {
   }
 
   const handleShare = async () => {
-    if (!code) return;
     try {
-      await Share.share({ message: `Join me on SoundMatch! Use code: ${code}` });
+      let shareCode = code;
+      if (!shareCode) {
+        shareCode = await getOrCreateReferralCode(uid);
+        setCode(shareCode);
+      }
+      await Share.share({ message: `Join me on SoundMatch! Use code: ${shareCode}` });
     } catch {}
   };
 
