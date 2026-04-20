@@ -55,10 +55,14 @@ service cloud.firestore {
     }
 
     // Affiliate CRM -- authenticated read for onboarding code verification.
-    // Writes only via Cloud Functions (admin SDK bypasses these rules).
+    // Clients may update install-tracking fields only; create/delete blocked.
     match /affiliates/{code} {
       allow read: if request.auth != null;
-      allow write: if false;
+      allow create: if false;
+      allow delete: if false;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['installedUids', 'installCount', 'updatedAt']);
     }
   }
 }
