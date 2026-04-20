@@ -57,7 +57,7 @@ service cloud.firestore {
     // Affiliate CRM -- authenticated read for onboarding code verification.
     // Clients may update install-tracking fields only; create/delete blocked.
     match /affiliates/{code} {
-      allow read: if request.auth != null;
+      allow read: if true;
       allow create: if false;
       allow delete: if false;
       allow update: if request.auth != null
