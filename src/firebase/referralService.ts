@@ -106,6 +106,7 @@ export async function recordReferralInstall(
     if (!snap.exists()) return;
 
     const data = snap.data() as ReferralRecord;
+    if (data.referrerId === newUid) return; // self-referral guard
     if (data.installedUids.includes(newUid)) return; // already counted
 
     // Guard: skip if user was already referred under a different code
@@ -355,4 +356,53 @@ export async function getReferralLeaderboard(
       })
   );
   return entries.filter((e): e is ReferralLeaderboardEntry => e !== null);
+}
+
+// -- Affiliate types --
+
+export interface AffiliateRecord {
+  code: string;
+  creatorName: string;
+  creatorEmail: string;
+  platform: string;
+  profileUrl: string;
+  status: 'active' | 'suspended';
+  tier: 'starter' | 'rising' | 'partner' | 'elite';
+  installedUids: string[];
+  installCount: number;
+  createdAt: unknown;
+  updatedAt: unknown;
+}
+
+// -- Record a new install via affiliate link --
+// Tracking only -- no discount or free-month rewards.
+
+export async function recordAffiliateInstall(
+  newUid: string,
+  affiliateCode: string
+): Promise<void> {
+  const codeRef = doc(db, 'affiliates', affiliateCode);
+  const newUserRef = doc(db, 'users', newUid);
+
+  await runTransaction(db, async (tx) => {
+    const codeSnap = await tx.get(codeRef);
+    if (!codeSnap.exists()) return;
+    const data = codeSnap.data() as AffiliateRecord;
+    if (data.status !== 'active') return;
+    if (data.installedUids.includes(newUid)) return;
+    const userSnap = await tx.get(newUserRef);
+    if (userSnap.exists()) {
+      const userData = userSnap.data() as { affiliateReferredBy?: string };
+      if (userData.affiliateReferredBy) return;
+    }
+    tx.update(codeRef, {
+      installedUids: arrayUnion(newUid),
+      installCount: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+    tx.update(newUserRef, {
+      affiliateReferredBy: affiliateCode,
+      updatedAt: serverTimestamp(),
+    });
+  });
 }
