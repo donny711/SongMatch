@@ -409,16 +409,26 @@ export default function ProfileScreen() {
               onPress={() => router.push('/upgrade')}
               activeOpacity={0.85}
             >
-              <LinearGradient
-                colors={[rankCardColor, rankCardColor, '#ffffff']}
-                locations={[0, 0.55, 1]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.upgradeBtnGrad}
-              >
-                <Ionicons name="flash" size={13} color="#fff" />
-                <Text style={styles.upgradeBtnText}>Go Pro</Text>
-              </LinearGradient>
+              {themeItem && themeItem.animationType !== 'static' ? (
+                <View style={styles.upgradeBtnGrad}>
+                  <View style={StyleSheet.absoluteFill}>
+                    <ProfileBackground backgroundId={equippedItems.cardTheme} height={36} />
+                  </View>
+                  <Ionicons name="flash" size={13} color="#fff" />
+                  <Text style={styles.upgradeBtnText}>Go Pro</Text>
+                </View>
+              ) : (
+                <LinearGradient
+                  colors={[rankCardColor, rankCardColor, '#ffffff']}
+                  locations={[0, 0.55, 1]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={styles.upgradeBtnGrad}
+                >
+                  <Ionicons name="flash" size={13} color="#fff" />
+                  <Text style={styles.upgradeBtnText}>Go Pro</Text>
+                </LinearGradient>
+              )}
             </TouchableOpacity>
           )}
         </View>
@@ -428,6 +438,11 @@ export default function ProfileScreen() {
       <View style={styles.sections}>
         {/* ── Stats ── */}
         <View style={[styles.statsRow, { borderColor: `${accentColor}30` }]}>
+          {themeItem && themeItem.animationType !== 'static' && (
+            <View style={[StyleSheet.absoluteFill, { opacity: 0.55 }]}>
+              <ProfileBackground backgroundId={equippedItems.cardTheme} height={96} />
+            </View>
+          )}
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: COLORS.green }]}>{likedTracks.length}</Text>
             <View style={styles.statMeta}>
@@ -624,6 +639,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
+    overflow: 'hidden',
     padding: SPACING.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
