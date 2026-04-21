@@ -26,6 +26,7 @@ export function CardThemeAccentBar({ themeId }: Props) {
 
   const item = themeId ? SHOP_ITEMS_BY_ID[themeId] : null;
   const isAnimated = !!item && item.animationType !== 'static';
+  const isSweep = !!item && (item.animationType === 'sweep' || item.animationType === 'combo');
 
   useFocusEffect(
     React.useCallback(() => {
@@ -73,20 +74,19 @@ export function CardThemeAccentBar({ themeId }: Props) {
     }, [isAnimated, item?.id]),
   );
 
+  // useAnimatedStyle must be called unconditionally — before any early return
+  const animStyle = useAnimatedStyle(() => ({
+    transform: isSweep ? [{ translateX: tx.value }] : [],
+    opacity: opacity.value,
+  }));
+
   if (!isAnimated || !item) return null;
 
   const colors = (
     item.colors.length >= 2 ? item.colors : [item.colors[0], item.colors[0]]
   ) as [string, string, ...string[]];
 
-  // For sweep/combo, use a wider strip that slides; for wave, full width static + opacity pulse
-  const isSweep = item.animationType === 'sweep' || item.animationType === 'combo';
   const gradientWidth = isSweep ? SCREEN_WIDTH * 1.5 : SCREEN_WIDTH;
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: isSweep ? [{ translateX: tx.value }] : [],
-    opacity: opacity.value,
-  }));
 
   return (
     <View style={{ width: SCREEN_WIDTH, height: BAR_HEIGHT, overflow: 'hidden' }}>
