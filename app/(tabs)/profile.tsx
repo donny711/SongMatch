@@ -33,6 +33,7 @@ import { SHOP_ITEMS_BY_ID } from '../../src/data/shopCatalog';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
 import { RankBadge } from '../../src/components/profile/RankBadge';
 import { getRankForLikes, getNextRank, getProgressToNext } from '../../src/data/ranks';
+import { CardThemeAccentBar } from '../../src/components/profile/CardThemeAccentBar';
 
 const BANNER_HEIGHT = 180;
 const ADS_AVAILABLE = !!NativeModules.RNGoogleMobileAdsModule;
@@ -63,8 +64,8 @@ function ProfileBanner() {
 function ShareCard() {
   const handleShare = async () => {
     await Share.share({
-      message: 'Check out SongMatch — the best music discovery app! https://songmatch.app',
-      url: 'https://songmatch.app',
+      message: 'Check out SongMatch — the best music discovery app! https://songmatch.net',
+      url: 'https://songmatch.net',
     });
   };
   return (
@@ -423,6 +424,8 @@ export default function ProfileScreen() {
           )}
         </View>
       </View>
+
+      <CardThemeAccentBar themeId={equippedItems.cardTheme} />
 
       <View style={styles.sections}>
         {/* ── Stats ── */}
