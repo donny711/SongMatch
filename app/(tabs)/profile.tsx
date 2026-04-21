@@ -383,6 +383,11 @@ export default function ProfileScreen() {
             onPress={() => router.push('/edit-profile')}
             activeOpacity={0.85}
           >
+            {themeItem && themeItem.animationType !== 'static' && (
+              <View style={[StyleSheet.absoluteFill, { opacity: 0.35, borderRadius: RADIUS.full, overflow: 'hidden' }]}>
+                <ProfileBackground backgroundId={equippedItems.cardTheme} height={60} />
+              </View>
+            )}
             <Ionicons name="pencil" size={14} color={accentColor} />
             <Text style={[styles.actionBtnText, { color: accentColor }]}>Edit Profile</Text>
           </TouchableOpacity>
@@ -412,7 +417,7 @@ export default function ProfileScreen() {
               {themeItem && themeItem.animationType !== 'static' ? (
                 <View style={styles.upgradeBtnGrad}>
                   <View style={StyleSheet.absoluteFill}>
-                    <ProfileBackground backgroundId={equippedItems.cardTheme} height={36} />
+                    <ProfileBackground backgroundId={equippedItems.cardTheme} height={60} />
                   </View>
                   <Ionicons name="flash" size={13} color="#fff" />
                   <Text style={styles.upgradeBtnText}>Go Pro</Text>
@@ -437,7 +442,7 @@ export default function ProfileScreen() {
 
       <View style={styles.sections}>
         {/* ── Stats ── */}
-        <View style={[styles.statsRow, { borderColor: `${accentColor}30` }]}>
+        <View style={[styles.statsRow, { borderColor: `${accentColor}30` }, themeItem && themeItem.animationType !== 'static' ? { backgroundColor: 'transparent' } : {}]}>
           {themeItem && themeItem.animationType !== 'static' && (
             <View style={[StyleSheet.absoluteFill, { opacity: 0.55 }]}>
               <ProfileBackground backgroundId={equippedItems.cardTheme} height={96} />

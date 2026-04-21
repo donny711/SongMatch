@@ -28,7 +28,7 @@ const CATEGORIES: { key: ActiveTab; label: string }[] = [
   { key: 'avatarFrame', label: 'Frames' },
   { key: 'profileBackground', label: 'Backgrounds' },
   { key: 'badge', label: 'Badges' },
-  { key: 'cardTheme', label: 'Themes' },
+  { key: 'cardTheme', label: 'Accents' },
   { key: 'ranks', label: 'Ranks' },
 ];
 
