@@ -268,8 +268,7 @@ export default function HomeScreen() {
 
       {/* TikTok-style tab switcher */}
       <View style={styles.tabSwitcher}>
-        {/* DEV */}
-        {!isPro && <TouchableOpacity onPress={() => { stopAudio(); setGateVisible(true); }} style={{ position: 'absolute', right: 16, backgroundColor: 'rgba(255,0,0,0.15)', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}><Text style={{ color: 'red', fontSize: 11, fontWeight: '700' }}>TEST GATE</Text></TouchableOpacity>}
+
         {(['foryou', 'friends'] as Tab[]).map((tab) => {
           const isActive = activeTab === tab;
           const label = tab === 'foryou' ? 'For You' : 'Friends';

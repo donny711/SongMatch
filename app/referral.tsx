@@ -110,7 +110,7 @@ export default function ReferralScreen() {
     })();
   }, [uid]);
 
-  const shareLink = `https://songmatch.app/invite/${stats?.code ?? ''}`;
+  const shareLink = `https://songmatch.net/invite/${stats?.code ?? ''}`;
 
   const handleCopy = async () => {
     if (!stats?.code) return;
@@ -256,7 +256,7 @@ export default function ReferralScreen() {
                       placeholder="Enter code"
                       placeholderTextColor={COLORS.textMuted}
                       autoCapitalize="characters"
-                      maxLength={10}
+                      maxLength={8}
                       keyboardAppearance="dark"
                     />
                     <TouchableOpacity

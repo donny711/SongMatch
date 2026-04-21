@@ -1,0 +1,251 @@
+import { spotifyFetch } from './spotifyClient';
+import { getSimilarTracks, getArtistSimilar, getArtistTopTracks, getTrackTags, getTagTopTracks } from './lastfmClient';
+import { searchDeezer } from './deezerClient';
+import type {
+  SpotifyUser,
+  SpotifyPaginated,
+  SpotifyPlaylist,
+  SpotifyPlaylistTrackItem,
+  SpotifyTrack,
+  DeezerTrack,
+  RecommendationCard,
+} from './types';
+
+// ── Spotify endpoints ─────────────────────────────────────────────────────────
+
+export const getMe = () => spotifyFetch<SpotifyUser>('/me');
+
+export const getMyPlaylists = (offset = 0) =>
+  spotifyFetch<SpotifyPaginated<SpotifyPlaylist>>(
+    `/me/playlists?limit=50&offset=${offset}`
+  );
+
+export const getPlaylistTracks = (playlistId: string, offset = 0) =>
+  spotifyFetch<SpotifyPaginated<SpotifyPlaylistTrackItem>>(
+    `/playlists/${playlistId}/tracks?limit=100&offset=${offset}`
+  );
+
+export const getMyTopTracks = () =>
+  spotifyFetch<SpotifyPaginated<SpotifyTrack>>(
+    '/me/top/tracks?limit=5&time_range=medium_term'
+  );
+
+export const searchTracks = (query: string) =>
+  spotifyFetch<{ tracks: SpotifyPaginated<SpotifyTrack> }>(
+    `/search?q=${encodeURIComponent(query)}&type=track&limit=5`
+  );
+
+export const addTrackToPlaylist = (playlistId: string, trackUri: string) =>
+  spotifyFetch<void>(`/playlists/${playlistId}/tracks`, {
+    method: 'POST',
+    body: JSON.stringify({ uris: [trackUri] }),
+  });
+
+export const saveTrackToLiked = (trackId: string) =>
+  spotifyFetch<void>(`/me/tracks?ids=${encodeURIComponent(trackId)}`, {
+    method: 'PUT',
+  });
+
+export const createPlaylist = (userId: string, name: string) =>
+  spotifyFetch<SpotifyPlaylist>(`/users/${userId}/playlists`, {
+    method: 'POST',
+    body: JSON.stringify({ name, public: true }),
+  });
+
+/** Search Spotify for a track and return its URI for saving to a playlist. */
+export async function findSpotifyTrackUri(title: string, artist: string): Promise<string | null> {
+  try {
+    const res = await searchTracks(`${title} ${artist}`);
+    return res.tracks.items[0]?.uri ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Recommendation engine (Last.fm → Deezer) ─────────────────────────────────
+
+export async function getRecommendationsForSeeds(
+  seeds: Array<{ name: string; artist: string }>,
+  limit = 20,
+  seenIds: Set<number> = new Set(),
+  likedArtistKeys: Set<string> = new Set()
+): Promise<RecommendationCard[]> {
+  const perSeed = Math.ceil(limit / seeds.length) + 8;
+  const similarArrays = await Promise.all(
+    seeds.map(async (s) => {
+      const similar = await getSimilarTracks(s.artist, s.name, perSeed);
+      if (similar.length > 0) {
+        // Sort by match score descending so best matches come first per seed
+        return similar.sort((a, b) => b.match - a.match);
+      }
+      // Fallback top tracks have no match score — use 0.5 as neutral
+      const tops = await getArtistTopTracks(s.artist, perSeed);
+      return tops.map((t) => ({ ...t, match: 0.5 }));
+    })
+  );
+
+  // Round-robin interleave: take one from each seed array in turn.
+  // Since each array is sorted by match score, every seed contributes
+  // proportionally and its best matches surface before weaker ones.
+  const seenKeys = new Set<string>();
+  const candidates: Array<{ name: string; artist: string; match: number }> = [];
+  const maxLen = Math.max(...similarArrays.map((a) => a.length));
+  for (let i = 0; i < maxLen; i++) {
+    for (const arr of similarArrays) {
+      if (i >= arr.length) continue;
+      const t = arr[i];
+      const key = `${t.artist.toLowerCase()}|${t.name.toLowerCase()}`;
+      if (!seenKeys.has(key)) {
+        seenKeys.add(key);
+        candidates.push(t);
+      }
+    }
+  }
+
+  // Preserve interleaved order (quality-ordered per seed, diverse across seeds).
+  // Buffer at 4× the desired limit — many Last.fm tracks aren't on Deezer.
+  const fetchBatch = candidates.slice(0, Math.min(candidates.length, limit * 4));
+
+  const deezerResults = await Promise.all(
+    fetchBatch.map(async (t) => {
+      try {
+        const tracks = await searchDeezer(`${t.name} ${t.artist}`, 1);
+        return tracks[0] ?? null;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  // Post-process: filter seen/liked tracks, enforce artist diversity window.
+  // Use a sliding Set for O(1) window membership — rebuilds when it exceeds 9.
+  const output: DeezerTrack[] = [];
+  const windowArtists: string[] = [];
+  const windowSet = new Set<string>();
+
+  for (const track of deezerResults) {
+    if (!track) continue;
+    if (output.length >= limit) break;
+
+    if (seenIds.has(track.id)) continue;
+
+    const artistKey = track.artist.name.toLowerCase();
+
+    // Skip artists the user already knows — keep it a discovery feed
+    if (likedArtistKeys.has(artistKey)) continue;
+
+    // Enforce max 1 appearance per artist in a 9-track output window
+    if (windowSet.has(artistKey)) continue;
+
+    output.push(track);
+    windowArtists.push(artistKey);
+    windowSet.add(artistKey);
+    // Evict the oldest entry once the window grows past 9
+    if (windowArtists.length > 9) {
+      const evicted = windowArtists.shift()!;
+      windowSet.delete(evicted);
+    }
+  }
+
+  return output.map((track) => ({ type: 'track' as const, track }));
+}
+
+/**
+ * Recommendation engine specifically for "Hear a Song" mode.
+ *
+ * Uses three layered similarity signals so results stay musically coherent
+ * even when Last.fm's track-level data is sparse:
+ *
+ *   1. track.getSimilar   — highest fidelity; direct song-to-song similarity
+ *   2. artist.getSimilar  — artist-level graph; broader but still relevant
+ *   3. tag.getTopTracks   — genre/mood tags of the seed; broadest fallback
+ *
+ * Candidates are scored and merged before Deezer lookup so the best matches
+ * always surface first regardless of which signal produced them.
+ */
+export async function getSongSimilarRecs(
+  seedArtist: string,
+  seedTitle: string,
+  limit = 15,
+  seenIds: Set<number> = new Set(),
+  likedArtistKeys: Set<string> = new Set()
+): Promise<RecommendationCard[]> {
+  type Candidate = { name: string; artist: string; score: number };
+  const seen = new Map<string, Candidate>();
+
+  const add = (name: string, artist: string, score: number) => {
+    const key = `${artist.toLowerCase()}|${name.toLowerCase()}`;
+    const existing = seen.get(key);
+    if (!existing || score > existing.score) seen.set(key, { name, artist, score });
+  };
+
+  // ── Signal 1: track-level similarity (score = Last.fm match, 0–1) ─────────
+  const [trackSimilar, tags] = await Promise.all([
+    getSimilarTracks(seedArtist, seedTitle, 50),
+    getTrackTags(seedArtist, seedTitle),
+  ]);
+  trackSimilar.forEach((t) => add(t.name, t.artist, 0.4 + t.match * 0.6)); // 0.4–1.0
+
+  // ── Signal 2: similar artists → their top tracks (score = 0.25–0.4) ──────
+  const similarArtists = await getArtistSimilar(seedArtist, 8);
+  const seedArtistKey = seedArtist.toLowerCase();
+  const artistCandidates = await Promise.all(
+    similarArtists.slice(0, 6).map((a) => getArtistTopTracks(a, 5))
+  );
+  similarArtists.slice(0, 6).forEach((artist, i) => {
+    // Rank-decay: artists at position 0 score higher than position 5
+    const artistScore = 0.4 - i * 0.025;
+    artistCandidates[i].forEach((t, j) => {
+      add(t.name, t.artist, artistScore - j * 0.01);
+    });
+  });
+
+  // ── Signal 3: genre tag top tracks — always run, not just as fill ───────
+  if (tags.length > 0) {
+    const tagTracks = await Promise.all(
+      tags.slice(0, 3).map((tag) => getTagTopTracks(tag, 25))
+    );
+    tagTracks.flat().forEach((t, i) => {
+      add(t.name, t.artist, 0.22 - i * 0.001);
+    });
+  }
+
+  // ── Rank, filter seed artist, deduplicate ─────────────────────────────────
+  const ranked = [...seen.values()]
+    .filter((c) => c.artist.toLowerCase() !== seedArtistKey)
+    .sort((a, b) => b.score - a.score);
+
+  // ── Deezer lookup — large buffer to survive null hits ────────────────────
+  // Many Last.fm tracks aren't on Deezer; try up to 6× the desired count.
+  const fetchBatch = ranked.slice(0, limit * 6);
+  const deezerResults = await Promise.all(
+    fetchBatch.map(async (c) => {
+      try {
+        const tracks = await searchDeezer(`${c.name} ${c.artist}`, 1);
+        return tracks[0] ?? null;
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  const output: DeezerTrack[] = [];
+  const recentArtists: string[] = [];
+
+  for (const track of deezerResults) {
+    if (!track) continue;
+    if (output.length >= limit) break;
+    if (seenIds.has(track.id)) continue;
+
+    const artistKey = track.artist.name.toLowerCase();
+    if (likedArtistKeys.has(artistKey)) continue;
+    // Looser diversity window (5 instead of 9) — single-seed context has
+    // fewer distinct artists so a tight window kills too many results.
+    if (recentArtists.slice(-5).includes(artistKey)) continue;
+
+    output.push(track);
+    recentArtists.push(artistKey);
+  }
+
+  return output.map((track) => ({ type: 'track' as const, track }));
+}

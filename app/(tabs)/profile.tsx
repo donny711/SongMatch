@@ -33,7 +33,6 @@ import { SHOP_ITEMS_BY_ID } from '../../src/data/shopCatalog';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
 import { RankBadge } from '../../src/components/profile/RankBadge';
 import { getRankForLikes, getNextRank, getProgressToNext } from '../../src/data/ranks';
-import { CardThemeAccentBar } from '../../src/components/profile/CardThemeAccentBar';
 
 const BANNER_HEIGHT = 180;
 const ADS_AVAILABLE = !!NativeModules.RNGoogleMobileAdsModule;
@@ -425,7 +424,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      <CardThemeAccentBar themeId={equippedItems.cardTheme} />
 
       <View style={styles.sections}>
         {/* ── Stats ── */}
@@ -448,7 +446,12 @@ export default function ProfileScreen() {
         </View>
 
         {/* ── Rank ── */}
-        <View style={[styles.rankCard, { backgroundColor: rankCardBg }]}>
+        <View style={[styles.rankCard, !themeItem || themeItem.animationType === 'static' ? { backgroundColor: rankCardBg } : {}]}>
+          {themeItem && themeItem.animationType !== 'static' && (
+            <View style={StyleSheet.absoluteFill}>
+              <ProfileBackground backgroundId={equippedItems.cardTheme} height={88} />
+            </View>
+          )}
           <RankBadge rankId={currentRank.id} size={56} />
           <View style={styles.rankInfo}>
             <Text style={[styles.rankLabel, { color: currentRank.labelColor }]}>{currentRank.label}</Text>
@@ -641,6 +644,7 @@ const styles = StyleSheet.create({
     padding: SPACING.md,
     borderWidth: 1,
     borderColor: COLORS.border,
+    overflow: 'hidden',
   },
   rankInfo: { flex: 1, gap: 7 },
   rankLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 1.8 },

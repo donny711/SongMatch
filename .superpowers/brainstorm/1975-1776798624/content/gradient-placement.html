@@ -1,0 +1,86 @@
+<h2>Where does the animated gradient appear?</h2>
+<p class="subtitle">New card themes will have animated gradients (sweep, wave, float). Where in the profile does this show up?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d0d0d;border-radius:12px;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:6px;">
+      <!-- Profile mockup: animated strip behind identity zone -->
+      <div style="height:38px;border-radius:8px;background:linear-gradient(90deg,#7c3aed,#a855f7,#e879f9,#7c3aed);background-size:200%;animation:none;opacity:0.85;display:flex;align-items:center;padding:0 10px;">
+        <div style="width:28px;height:28px;border-radius:14px;background:#1a1a2e;border:2px solid #a855f7;margin-right:8px;"></div>
+        <div>
+          <div style="color:#fff;font-size:10px;font-weight:800;">Username</div>
+          <div style="color:#c4b5fd;font-size:8px;">Edit Profile · Shop</div>
+        </div>
+      </div>
+      <div style="height:32px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(167,139,250,0.2);display:flex;align-items:center;justify-content:space-around;padding:0 8px;">
+        <span style="color:#a78bfa;font-size:9px;font-weight:700;">42 Liked</span>
+        <div style="width:1px;height:16px;background:rgba(167,139,250,0.2);"></div>
+        <span style="color:#6b7280;font-size:9px;">18 Skipped</span>
+      </div>
+      <div style="height:24px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(167,139,250,0.15);"></div>
+    </div>
+    <div class="card-body">
+      <h3>A — Identity strip</h3>
+      <p>Animated gradient behind the name / avatar / action buttons zone. Profile banner area glows with the theme.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d0d0d;border-radius:12px;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:6px;">
+      <!-- Profile mockup: animated stats row -->
+      <div style="height:38px;border-radius:8px;background:#1a1a2e;display:flex;align-items:center;padding:0 10px;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:14px;background:#2a2a3e;"></div>
+        <div style="color:#fff;font-size:10px;font-weight:800;">Username</div>
+      </div>
+      <div style="height:32px;border-radius:6px;background:linear-gradient(90deg,rgba(124,58,237,0.3),rgba(232,121,249,0.3),rgba(124,58,237,0.3));border:1px solid rgba(167,139,250,0.35);display:flex;align-items:center;justify-content:space-around;padding:0 8px;">
+        <span style="color:#a78bfa;font-size:9px;font-weight:700;">42 Liked</span>
+        <div style="width:1px;height:16px;background:rgba(167,139,250,0.3);"></div>
+        <span style="color:#c4b5fd;font-size:9px;">18 Skipped</span>
+      </div>
+      <div style="height:24px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(167,139,250,0.15);"></div>
+    </div>
+    <div class="card-body">
+      <h3>B — Stats row</h3>
+      <p>Animated gradient inside the liked/skipped stats card. The numbers float on a living background.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d0d0d;border-radius:12px;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:6px;">
+      <!-- Thin accent bar -->
+      <div style="height:38px;border-radius:8px;background:#1a1a2e;display:flex;align-items:center;padding:0 10px;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:14px;background:#2a2a3e;"></div>
+        <div style="color:#fff;font-size:10px;font-weight:800;">Username</div>
+      </div>
+      <!-- Thin animated bar between sections -->
+      <div style="height:3px;border-radius:2px;background:linear-gradient(90deg,#7c3aed,#a855f7,#e879f9,#06b6d4,#7c3aed);"></div>
+      <div style="height:32px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(167,139,250,0.2);"></div>
+      <div style="height:24px;border-radius:6px;background:#1a1a2e;border:1px solid rgba(167,139,250,0.15);"></div>
+    </div>
+    <div class="card-body">
+      <h3>C — Thin separator bar</h3>
+      <p>A slim animated gradient divider between the banner zone and profile content. Subtle, doesn't compete with background cosmetics.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="d" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d0d0d;border-radius:12px;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:6px;">
+      <!-- Multiple accents -->
+      <div style="height:38px;border-radius:8px;background:#1a1a2e;border-left:3px solid #a855f7;display:flex;align-items:center;padding:0 10px;gap:8px;">
+        <div style="width:28px;height:28px;border-radius:14px;background:#2a2a3e;"></div>
+        <div style="color:#fff;font-size:10px;font-weight:800;">Username</div>
+      </div>
+      <div style="height:32px;border-radius:6px;background:#1a1a2e;border-left:3px solid #e879f9;display:flex;align-items:center;padding-left:8px;">
+        <span style="color:#a78bfa;font-size:9px;">42 Liked · 18 Skipped</span>
+      </div>
+      <div style="height:24px;border-radius:6px;background:#1a1a2e;border-left:3px solid #06b6d4;"></div>
+    </div>
+    <div class="card-body">
+      <h3>D — Left accent borders</h3>
+      <p>Cards and sections get an animated gradient left-border. Low footprint, consistent with existing border-based theming.</p>
+    </div>
+  </div>
+
+</div>
+<p class="subtitle" style="margin-top:12px;">All use Aurora theme (purple→fuchsia→cyan) as example. Click to select.</p>

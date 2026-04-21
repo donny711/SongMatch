@@ -1,0 +1,51 @@
+<h2>Skip button — themed or neutral?</h2>
+<p class="subtitle">Using the <strong>Fire</strong> theme (orange/red) as an example. The like button definitely takes theme colours. What about skip?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d0d0d;border-radius:12px;padding:28px 0;display:flex;align-items:center;justify-content:center;gap:24px;">
+      <!-- Skip neutral, Like themed -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="width:72px;height:72px;border-radius:36px;background:#EDEDF2;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);">
+          <span style="font-size:28px;">✕</span>
+        </div>
+        <span style="color:#6b7280;font-size:11px;">skip</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="width:72px;height:72px;border-radius:36px;background:#fb923c;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(251,146,60,0.55);">
+          <span style="font-size:26px;">♥</span>
+        </div>
+        <span style="color:#fb923c;font-size:11px;">like</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Like only</h3>
+      <p>Skip stays neutral gray. Like button + its glow take theme colour. Clean contrast between yes/no.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0d0d0d;border-radius:12px;padding:28px 0;display:flex;align-items:center;justify-content:center;gap:24px;">
+      <!-- Both themed -->
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="width:72px;height:72px;border-radius:36px;background:#f43f5e;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(244,63,94,0.45);">
+          <span style="font-size:28px;color:#000;">✕</span>
+        </div>
+        <span style="color:#f43f5e;font-size:11px;">skip</span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+        <div style="width:72px;height:72px;border-radius:36px;background:#fb923c;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 18px rgba(251,146,60,0.55);">
+          <span style="font-size:26px;color:#000;">♥</span>
+        </div>
+        <span style="color:#fb923c;font-size:11px;">like</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Both buttons themed</h3>
+      <p>Skip gets <code>colors[1]</code>, like gets <code>colors[0]</code>. Full theme expression — both buttons match the pack.</p>
+    </div>
+  </div>
+
+</div>
+<p class="subtitle" style="margin-top:16px;">Click to pick, or just tell me in the terminal.</p>

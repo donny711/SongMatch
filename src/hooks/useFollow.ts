@@ -1,0 +1,44 @@
+import { useState, useEffect, useCallback } from 'react';
+import { checkIsFollowing, callFollowUser, callUnfollowUser } from '../firebase/socialService';
+import { useProfileStore } from '../store/profileStore';
+import { useToastStore } from '../store/toastStore';
+
+export function useFollow(theirUid: string) {
+  const myUid = useProfileStore((s) => s.uid);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!myUid || !theirUid || myUid === theirUid) {
+      setLoading(false);
+      return;
+    }
+    checkIsFollowing(myUid, theirUid)
+      .then(setIsFollowing)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [myUid, theirUid]);
+
+  const follow = useCallback(async () => {
+    if (!myUid) return;
+    setIsFollowing(true);
+    try {
+      await callFollowUser(myUid, theirUid);
+      useProfileStore.getState().grantMilestone('ms_first_follow').catch(() => {});
+    } catch {
+      setIsFollowing(false);
+    }
+  }, [myUid, theirUid]);
+
+  const unfollow = useCallback(async () => {
+    if (!myUid) return;
+    setIsFollowing(false);
+    try {
+      await callUnfollowUser(myUid, theirUid);
+    } catch {
+      setIsFollowing(true);
+    }
+  }, [myUid, theirUid]);
+
+  return { isFollowing, loading, follow, unfollow, isOwnProfile: myUid === theirUid };
+}

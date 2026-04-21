@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py \"music discovery entertainment swipe dark vibrant\" --design-system -p \"SoundMatch\")",
+      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py \"music swipe cards animation interaction\" --stack react-native)",
+      "Bash(python3 .claude/skills/ui-ux-pro-max/scripts/search.py \"bottom navigation tab bar ios safe area\" --domain ux -n 8)",
+      "Bash(node -e \"require\\(''''@expo/vector-icons''''\\); console.log\\(''''available''''\\)\")",
+      "Bash(node -e \"require\\(''''expo-linear-gradient''''\\); console.log\\(''''available''''\\)\")",
+      "Bash(find '/c/Users/Radu si Vlad Popa/SoundMatch/node_modules/expo' -name ExpoMetroConfig* -maxdepth 5)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const fs = require\\(''./node_modules/expo-file-system''\\); console.log\\(Object.keys\\(fs\\).filter\\(k => k.includes\\(''Upload''\\) || k.includes\\(''Type''\\)\\)\\)\")",
+      "Bash(npm uninstall:*)",
+      "Bash(ls:*)",
+      "Bash(npx expo:*)",
+      "Bash(mv \"C:\\\\Users\\\\Radu si Vlad Popa\\\\SoundMatch\\\\.claude\\\\skills\\\\web-animation-design\\\\web-animation-design\\\\SKILL.md\" \"C:\\\\Users\\\\Radu si Vlad Popa\\\\SoundMatch\\\\.claude\\\\skills\\\\web-animation-design\\\\SKILL.md\")",
+      "Bash(mv \"C:\\\\Users\\\\Radu si Vlad Popa\\\\SoundMatch\\\\.claude\\\\skills\\\\web-animation-design\\\\web-animation-design\\\\PRACTICAL-TIPS.md\" \"C:\\\\Users\\\\Radu si Vlad Popa\\\\SoundMatch\\\\.claude\\\\skills\\\\web-animation-design\\\\PRACTICAL-TIPS.md\")",
+      "Bash(rmdir \"C:\\\\Users\\\\Radu si Vlad Popa\\\\SoundMatch\\\\.claude\\\\skills\\\\web-animation-design\\\\web-animation-design\")",
+      "Bash(find 'C:\\\\Users\\\\Radu si Vlad Popa\\\\SoundMatch' -type f -name *rank* -o -name *tier* -o -name *badge* -o -name *league*)",
+      "Bash(grep -l \"getRankForLikes\\\\|getNextRank\\\\|getProgressToNext\" /c/Users/Radu si Vlad Popa/SoundMatch/src/**/*.ts* /c/Users/Radu si Vlad Popa/SoundMatch/app/**/*.ts*)",
+      "Bash(grep -r RankBadge /c/Users/Radu si Vlad Popa/SoundMatch/app --include=*.tsx --include=*.ts)",
+      "Bash(npx tsc:*)",
+      "Bash(cmd.exe /c \"explorer \\\\\"C:\\\\Users\\\\Radu si Vlad Popa\\\\SoundMatch\\\\docs\\\\superpowers\\\\specs\\\\\"\")",
+      "Bash(python3:*)",
+      "Bash(C:/Python314/python.exe -c \"print\\('hello'\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(node:*)",
+      "Bash(npx jest:*)",
+      "WebFetch(domain:songmatch.net)"
+    ]
+  }
+}
