@@ -87,7 +87,7 @@ const profileAccent = profileThemeItem?.colors[0] ?? null;
 ```
 
 ### Below-banner background
-Render `<ProfileThemeBackground themeId={equippedItems.profileTheme ?? null} height={contentHeight} />` as an absolute-fill layer inside the profile content area (below the banner), at z-index below all content. Opacity 0.85 keeps text readable.
+Render `<ProfileThemeBackground themeId={equippedItems.profileTheme ?? null} height={contentHeight} />` as an absolute-fill layer inside the profile content area (below the banner), at z-index below all content. Opacity 0.85 keeps text readable. `contentHeight` is the height of the content container below the banner, measured via `onLayout` on that container — the same pattern already used by `ProfileBackground` for the banner height.
 
 ### Accent color priority
 Profile UI elements that currently use `accentColor` (derived from `cardTheme`) switch to:
