@@ -36,7 +36,7 @@ import { useProfileStore } from '../../src/store/profileStore';
 import { useDeckStore } from '../../src/store/deckStore';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
 import GradientText from '../../src/components/GradientText';
-import { LottieEmptyState } from '../../src/components/LottieEmptyState';
+import LottieEmptyState from '../../src/components/LottieEmptyState';
 import emptyPeopleAnim from '../../assets/lottie/empty-people.json';
 
 type Segment = 'friends' | 'discover' | 'leaderboard';
