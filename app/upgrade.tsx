@@ -28,8 +28,8 @@ const PLANS: {
   badge?: string;
 }[] = [
   { tier: 'monthly',   label: 'Monthly',   price: '€3.99/mo',         perMonth: '€3.99' },
-  { tier: 'quarterly', label: 'Quarterly', price: '€9.99 / 3 months', perMonth: '€3.33', badge: 'SAVE 33%' },
-  { tier: 'annual',    label: 'Annual',    price: '€39.99/year',       perMonth: '€3.33', badge: 'BEST VALUE' },
+  { tier: 'quarterly', label: 'Quarterly', price: '€9.99 / 3 months', perMonth: '€3.33', badge: 'SAVE 17%' },
+  { tier: 'annual',    label: 'Annual',    price: '€29.99/year',       perMonth: '€2.50', badge: 'BEST VALUE' },
 ];
 
 const PRO_PERKS = [
