@@ -89,6 +89,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     badge2: null,
     badge3: null,
     cardTheme: 'theme_default',
+    equippedRank: null,
+    profileTheme: null,
   },
   showcaseTracks: [],
   showcaseArtists: [],

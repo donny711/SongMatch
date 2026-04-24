@@ -1,4 +1,4 @@
-export type ShopItemType = 'avatarFrame' | 'profileBackground' | 'badge' | 'cardTheme';
+export type ShopItemType = 'avatarFrame' | 'profileBackground' | 'badge' | 'cardTheme' | 'profileTheme';
 export type ItemRarity = 'common' | 'rare' | 'legendary';
 export type AnimationType =
   | 'static'
@@ -8,7 +8,17 @@ export type AnimationType =
   | 'sweep'
   | 'wave'
   | 'float'
-  | 'combo';
+  | 'combo'
+  | 'shimmer'
+  | 'comet'
+  | 'tide'
+  | 'plasma'
+  | 'glitch'
+  | 'inferno'
+  | 'frost'
+  | 'molten'
+  | 'nebula'
+  | 'vortex';
 
 export interface ShopItem {
   id: string;
@@ -578,7 +588,7 @@ export const SHOP_CATALOG: ShopItem[] = [
     description: 'Heat shimmer — amber to red, never quite cooling.',
     cost: 900,
     rarity: 'rare',
-    animationType: 'sweep',
+    animationType: 'molten',
     colors: ['#92400E', '#DC2626', '#F97316'],
   },
   {
@@ -588,7 +598,7 @@ export const SHOP_CATALOG: ShopItem[] = [
     description: 'Cold light drifting beneath the ice.',
     cost: 900,
     rarity: 'rare',
-    animationType: 'sweep',
+    animationType: 'frost',
     colors: ['#0E7490', '#06B6D4', '#A5F3FC'],
   },
   {
@@ -598,7 +608,7 @@ export const SHOP_CATALOG: ShopItem[] = [
     description: 'A slow cosmic sweep through deep space.',
     cost: 1800,
     rarity: 'legendary',
-    animationType: 'sweep',
+    animationType: 'comet',
     colors: ['#4C1D95', '#7C3AED', '#C084FC', '#E879F9'],
   },
   {
@@ -608,7 +618,7 @@ export const SHOP_CATALOG: ShopItem[] = [
     description: 'Northern lights — green and violet in slow motion.',
     cost: 2200,
     rarity: 'legendary',
-    animationType: 'combo',
+    animationType: 'tide',
     colors: ['#065F46', '#059669', '#34D399', '#A78BFA'],
   },
   {
@@ -618,24 +628,57 @@ export const SHOP_CATALOG: ShopItem[] = [
     description: 'Every colour, alive and pulsing.',
     cost: 2500,
     rarity: 'legendary',
-    animationType: 'wave',
+    animationType: 'glitch',
     colors: ['#FF0080', '#FF8C00', '#00FF80', '#00BFFF', '#BF00FF'],
   },
+  {
+    id: 'theme_plasma',
+    type: 'cardTheme',
+    name: 'Plasma',
+    description: 'Glowing colour blobs morph on a near-black canvas.',
+    cost: 1600,
+    rarity: 'legendary',
+    animationType: 'plasma',
+    colors: ['#0D0D1A', '#7C3AED', '#EC4899', '#06B6D4'],
+  },
+  // ── Profile Themes ────────────────────────────────────────────────────────────────────────────
+
+  // Common — static gradients (200–400 MP)
+  { id: 'pt_void', type: 'profileTheme', name: 'Void', description: 'Deep violet void beneath the banner.', cost: 200, rarity: 'common', animationType: 'static', colors: ['#A78BFA', '#0D0D1A', '#06030F'] },
+  { id: 'pt_carbon', type: 'profileTheme', name: 'Carbon', description: 'Cold slate grey, industrial and clean.', cost: 200, rarity: 'common', animationType: 'static', colors: ['#94A3B8', '#1C1C1E', '#0D0D0D'] },
+  { id: 'pt_ember', type: 'profileTheme', name: 'Ember', description: 'A smouldering dark red that never cools.', cost: 300, rarity: 'common', animationType: 'static', colors: ['#FB923C', '#1A0505', '#0D0D0D'] },
+  { id: 'pt_abyss', type: 'profileTheme', name: 'Abyss', description: 'Cold deep navy, still and silent.', cost: 300, rarity: 'common', animationType: 'static', colors: ['#38BDF8', '#020B18', '#030712'] },
+
+  // Rare — richer gradients (600–1000 MP)
+  { id: 'pt_sapphire', type: 'profileTheme', name: 'Sapphire', description: 'Rich layered blue, deep as the ocean floor.', cost: 600, rarity: 'rare', animationType: 'static', colors: ['#22D3EE', '#0A1628', '#0E3A6B', '#030B18'] },
+  { id: 'pt_amethyst', type: 'profileTheme', name: 'Amethyst', description: 'Deep violet seeping through dark crystal.', cost: 700, rarity: 'rare', animationType: 'static', colors: ['#C084FC', '#1A0A2E', '#2D1580', '#06030F'] },
+  { id: 'pt_jade', type: 'profileTheme', name: 'Jade', description: 'Ancient forest green, dense and alive.', cost: 800, rarity: 'rare', animationType: 'static', colors: ['#34D399', '#042B2B', '#065F46', '#030F06'] },
+  { id: 'pt_crimson', type: 'profileTheme', name: 'Crimson', description: 'Blood-dark red with a pulse beneath.', cost: 1000, rarity: 'rare', animationType: 'static', colors: ['#F43F5E', '#1A0510', '#4C0020', '#0D0205'] },
+
+  // Legendary — animated (1800–2500 MP)
+  { id: 'pt_nebula', type: 'profileTheme', name: 'Nebula', description: 'Twinkling starfield with soft gas clouds drifting through deep space.', cost: 1800, rarity: 'legendary', animationType: 'nebula', colors: ['#C084FC', '#0D0D1A', '#7C3AED', '#EC4899', '#06B6D4'] },
+  { id: 'pt_inferno', type: 'profileTheme', name: 'Inferno', description: 'Dark fire breathes beneath your profile.', cost: 2000, rarity: 'legendary', animationType: 'molten', colors: ['#FB923C', '#110300', '#DC2626', '#F97316'] },
+  { id: 'pt_aurora', type: 'profileTheme', name: 'Aurora', description: 'Northern lights drift in slow motion.', cost: 2200, rarity: 'legendary', animationType: 'tide', colors: ['#34D399', '#065F46', '#A78BFA'] },
+  { id: 'pt_vortex', type: 'profileTheme', name: 'Vortex', description: 'Concentric arcs spinning in opposite directions — a pulse of pure energy.', cost: 2500, rarity: 'legendary', animationType: 'vortex', colors: ['#A855F7', '#030311', '#818CF8', '#C026D3', '#22D3EE', '#F43F5E'] },
 ];
 
+// Lookup map for quick item access by ID
 export const SHOP_ITEMS_BY_ID: Record<string, ShopItem> = Object.fromEntries(
-  SHOP_CATALOG.map((i) => [i.id, i])
+  SHOP_CATALOG.map(item => [item.id, item])
 );
 
-export const CATALOG_BY_TYPE = {
-  avatarFrame: SHOP_CATALOG.filter((i) => i.type === 'avatarFrame'),
-  profileBackground: SHOP_CATALOG.filter((i) => i.type === 'profileBackground'),
-  badge: SHOP_CATALOG.filter((i) => i.type === 'badge' && !i.milestoneGranted),
-  cardTheme: SHOP_CATALOG.filter((i) => i.type === 'cardTheme'),
+// Catalog grouped by item type for tabbed browsing
+export const CATALOG_BY_TYPE: Record<ShopItemType, ShopItem[]> = {
+  avatarFrame: SHOP_CATALOG.filter(item => item.type === "avatarFrame"),
+  profileBackground: SHOP_CATALOG.filter(item => item.type === "profileBackground"),
+  badge: SHOP_CATALOG.filter(item => item.type === "badge"),
+  cardTheme: SHOP_CATALOG.filter(item => item.type === "cardTheme"),
+  profileTheme: SHOP_CATALOG.filter(item => item.type === "profileTheme"),
 };
 
+// Rarity color mapping for UI indicators
 export const RARITY_COLORS: Record<ItemRarity, string> = {
   common: '#94A3B8',
-  rare: '#A855F7',
+  rare: '#6366F1',
   legendary: '#F59E0B',
 };

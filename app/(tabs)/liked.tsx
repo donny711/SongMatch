@@ -6,6 +6,9 @@ import {
   FlatList,
   Image,
   TouchableOpacity,
+  Modal,
+  ActivityIndicator,
+  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,12 +17,15 @@ import { useDeckStore } from '../../src/store/deckStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { openTrackOnPlatform } from '../../src/utils/platformLinks';
 import { getSongLikerCount } from '../../src/firebase/socialService';
+import { resolveTracksToSpotifyUris } from '../../src/api/endpoints';
 import GradientText from '../../src/components/GradientText';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
 import type { DeezerTrack } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
 import LottieEmptyState from '../../src/components/LottieEmptyState';
 const emptyLikedAnim = require('../../assets/lottie/empty-liked.json');
+
+type ExportStep = 'exporting' | 'done';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -89,10 +95,55 @@ export default function LikedScreen() {
   const { likedTracks, removeLikedTrack } = useDeckStore();
   const insets = useSafeAreaInsets();
 
+  const [modalVisible, setModalVisible] = useState(false);
+  const [exportStep, setExportStep] = useState<ExportStep>('exporting');
+  const [exportProgress, setExportProgress] = useState({ done: 0, total: 0 });
+  const [exportResult, setExportResult] = useState<{ copied: number; notFound: number } | null>(null);
+
+  async function openExport() {
+    lightTap();
+    setExportResult(null);
+    setExportStep('exporting');
+    setExportProgress({ done: 0, total: likedTracks.length });
+    setModalVisible(true);
+    try {
+      const tracks = likedTracks.map(t => ({ title: t.title, artist: t.artist.name }));
+      const { uris, notFound } = await resolveTracksToSpotifyUris(
+        tracks,
+        (done, total) => setExportProgress({ done, total }),
+      );
+      const trackLines = likedTracks.map(t => t.title + ' - ' + t.artist.name).join('\n');
+      await Share.share({ message: trackLines, title: 'My Liked Songs' });
+      setExportResult({ copied: uris.length, notFound });
+      setExportStep('done');
+    } catch {
+      closeModal();
+    }
+  }
+
+  function closeModal() {
+    setModalVisible(false);
+  }
+
   return (
     <View style={[styles.container, { paddingTop: insets.top + SPACING.md }]}>
       <View style={styles.header}>
         <GradientText fontSize={34} hPad={16}>Liked Songs</GradientText>
+        {likedTracks.length > 0 && (
+          <TouchableOpacity
+            style={styles.saveBtn}
+            onPress={openExport}
+            accessibilityLabel="Export to Spotify playlist"
+            accessibilityRole="button"
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name="arrow-up-circle-outline"
+              size={28}
+              color={COLORS.green}
+            />
+          </TouchableOpacity>
+        )}
         <View style={styles.countPill}>
           <Ionicons name="heart" size={12} color={COLORS.green} />
           <Text style={styles.countText}>
@@ -122,6 +173,63 @@ export default function LikedScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={closeModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.md }]}>
+            <View style={styles.sheetHandle} />
+
+            {exportStep === 'exporting' && (
+              <View style={styles.exportingContainer}>
+                <ActivityIndicator color={COLORS.green} size="large" />
+                <Text style={styles.exportingLabel}>
+                  Finding on Spotify… {exportProgress.done} / {exportProgress.total}
+                </Text>
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: exportProgress.total > 0
+                          ? `${(exportProgress.done / exportProgress.total) * 100}%`
+                          : '0%',
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+            )}
+
+            {exportStep === 'done' && exportResult && (
+              <View style={styles.doneContainer}>
+                <View style={styles.checkCircle}>
+                  <Ionicons name="checkmark" size={36} color="#000" />
+                </View>
+                <Text style={styles.doneTitle}>{exportResult.copied} tracks found on Spotify</Text>
+                {exportResult.notFound > 0 && (
+                  <Text style={styles.doneNotFound2}>
+                    {exportResult.notFound} {exportResult.notFound === 1 ? 'track' : 'tracks'} not found
+                  </Text>
+                )}
+                <TouchableOpacity
+                  style={styles.doneBtn}
+                  onPress={closeModal}
+                  accessibilityLabel="Done"
+                  accessibilityRole="button"
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.doneBtnText}>Done</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -133,6 +241,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingBottom: SPACING.md,
     gap: 8,
+  },
+  saveBtn: {
+    position: 'absolute',
+    top: 0,
+    right: SPACING.md,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
   },
   countPill: {
     flexDirection: 'row',
@@ -205,4 +323,75 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
 
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  sheet: {
+    backgroundColor: '#111',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingHorizontal: SPACING.md,
+    maxHeight: '80%',
+    borderTopWidth: 1,
+    borderColor: 'rgba(167,139,250,0.18)',
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignSelf: 'center',
+    marginBottom: SPACING.md,
+  },
+
+
+
+  exportingContainer: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl,
+    gap: SPACING.md,
+  },
+  exportingLabel: { color: COLORS.textSub, fontSize: 14, fontWeight: '500' },
+  progressTrack: {
+    width: '100%',
+    height: 4,
+    backgroundColor: COLORS.surface,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: COLORS.green,
+    borderRadius: 2,
+  },
+
+  doneContainer: {
+    alignItems: 'center',
+    paddingVertical: SPACING.xxl,
+    gap: SPACING.md,
+  },
+  checkCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.green,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  doneTitle: { color: COLORS.text, fontSize: 20, fontWeight: '700' },
+  doneNotFound: { color: COLORS.textSub, fontSize: 12, textAlign: 'center', paddingHorizontal: SPACING.md },
+  doneNotFound2: { color: COLORS.textMuted, fontSize: 12, textAlign: 'center' },
+  doneBtn: {
+    marginTop: SPACING.sm,
+    backgroundColor: COLORS.surface,
+    paddingVertical: 13,
+    paddingHorizontal: SPACING.xxl,
+    borderRadius: RADIUS.full,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  doneBtnText: { color: COLORS.text, fontSize: 15, fontWeight: '600' },
 });

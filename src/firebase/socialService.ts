@@ -30,6 +30,7 @@ export interface PublicUser {
   followingCount: number;
   isPrivate: boolean;
   artistIds: number[];
+  isPro: boolean;
 }
 
 export interface FeedItem {
@@ -44,6 +45,7 @@ export interface FeedItem {
   coverUrl: string;
   previewUrl: string | null;
   likedAt: { seconds: number; nanoseconds: number };
+  isPro?: boolean;
 }
 
 export interface SongLikerUser {
@@ -163,6 +165,7 @@ function snapToPublicUser(uid: string, data: UserProfile): PublicUser {
     followingCount: data.followingCount ?? 0,
     isPrivate: data.isPrivate ?? false,
     artistIds: data.artistIds ?? [],
+    isPro: data.isPro ?? false,
   };
 }
 
@@ -287,6 +290,7 @@ export async function getFeedItems(
         displayName: profile.displayName,
         avatarUrl: profile.avatarUrl,
         equippedItems: profile.equippedItems,
+        isPro: profile.isPro,
         trackId: data.trackId as number,
         title: data.title as string,
         artistId: (data.artistId as number) ?? 0,

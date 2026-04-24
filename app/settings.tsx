@@ -226,6 +226,27 @@ export default function SettingsScreen() {
           </SectionCard>
         </View>
 
+
+        {/* ── Appearance ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Appearance</Text>
+          <SectionCard>
+            <SettingRow
+              icon="apps-outline"
+              iconColor={COLORS.purple}
+              label="App Icon"
+              sublabel="22 icons — Pro exclusive"
+              right={isPro ? undefined : (
+                <View style={styles.proBadge}>
+                  <Ionicons name="crown" size={10} color="#ffd700" />
+                  <Text style={styles.proBadgeText}>PRO</Text>
+                </View>
+              )}
+              onPress={() => isPro ? router.push('/app-icons') : router.push('/upgrade')}
+            />
+          </SectionCard>
+        </View>
+
         {/* ── Taste Profile ── */}
         {onboardingGenres.length > 0 && (
           <View style={styles.section}>
@@ -529,4 +550,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(167,139,250,0.08)',
   },
   manageBtnText: { color: COLORS.purple, fontSize: 12, fontWeight: '700' },
+
+  proBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: 'rgba(255,215,0,0.12)', borderRadius: 8,
+    paddingHorizontal: 7, paddingVertical: 3,
+    borderWidth: 1, borderColor: 'rgba(255,215,0,0.3)',
+  },
+  proBadgeText: { color: '#ffd700', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
 });

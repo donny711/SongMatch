@@ -32,4 +32,7 @@ export async function saveSubscriptionToFirestore(
     expiresAt: data.expiresAt?.toISOString() ?? null,
     updatedAt: serverTimestamp(),
   }, { merge: true });
+  // Mirror onto the public profile doc so leaderboard / social can read it
+  const profileRef = doc(db, 'users', uid);
+  await setDoc(profileRef, { isPro: data.isPro }, { merge: true });
 }

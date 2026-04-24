@@ -58,6 +58,33 @@ function ItemPreview({ item }: { item: ShopItem }) {
     );
   }
 
+
+  if (item.type === 'profileTheme') {
+    const gradStops = item.colors.slice(1);
+    const gradColors = (gradStops.length >= 2 ? gradStops : [gradStops[0] ?? color, color]) as [string, string, ...string[]];
+    return (
+      <View style={[styles.previewRect, { borderColor: `${color}55`, overflow: 'hidden' }]}>
+        <LinearGradient
+          colors={gradColors}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ flex: 1 }}
+        />
+        <View style={{
+          position: 'absolute',
+          top: 4,
+          right: 4,
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          backgroundColor: color,
+          borderWidth: 1,
+          borderColor: 'rgba(0,0,0,0.35)',
+        }} />
+      </View>
+    );
+  }
+
   // profileBackground
   return (
     <View style={[styles.previewRect, { backgroundColor: `${color}22`, borderColor: `${color}44`, overflow: 'hidden' }]}>

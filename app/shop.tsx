@@ -27,6 +27,7 @@ type ActiveTab = ShopItemType | 'ranks';
 const CATEGORIES: { key: ActiveTab; label: string }[] = [
   { key: 'avatarFrame', label: 'Frames' },
   { key: 'profileBackground', label: 'Backgrounds' },
+  { key: 'profileTheme', label: 'Themes' },
   { key: 'badge', label: 'Badges' },
   { key: 'cardTheme', label: 'Accents' },
   { key: 'ranks', label: 'Ranks' },
@@ -37,6 +38,7 @@ const SLOT_FOR_TYPE: Record<ShopItemType, EquipSlot | null> = {
   profileBackground: 'profileBackground',
   cardTheme: 'cardTheme',
   badge: null, // badge slot selection handled separately
+  profileTheme: 'profileTheme',
 };
 
 export default function ShopScreen() {
