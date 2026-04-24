@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "LCK94DWT4L.com.songmatch.app",
+        "paths": ["/invite/*"]
+      }
+    ]
+  }
+}
