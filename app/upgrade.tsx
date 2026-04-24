@@ -27,18 +27,17 @@ const PLANS: {
   perMonth: string;
   badge?: string;
 }[] = [
-  { tier: 'monthly',   label: 'Monthly',   price: '€4.99/mo',         perMonth: '€4.99' },
+  { tier: 'monthly',   label: 'Monthly',   price: '€3.99/mo',         perMonth: '€3.99' },
   { tier: 'quarterly', label: 'Quarterly', price: '€9.99 / 3 months', perMonth: '€3.33', badge: 'SAVE 33%' },
   { tier: 'annual',    label: 'Annual',    price: '€39.99/year',       perMonth: '€3.33', badge: 'BEST VALUE' },
 ];
 
 const PRO_PERKS = [
   { icon: 'infinite',           label: 'Unlimited searches',               sub: 'No daily limit ever' },
-  { icon: 'sparkles',           label: 'Advanced AI matching',             sub: 'BPM, energy, key, mood & more' },
-  { icon: 'musical-notes',      label: 'Spotify playlist export',          sub: 'Save liked songs to Spotify' },
-  { icon: 'color-palette',      label: 'All 38 alternate icons',           sub: 'Exclusive app icons included' },
+  { icon: 'color-palette',      label: '22 exclusive app icons',           sub: 'Swap your home screen icon anytime' },
   { icon: 'ban',                label: 'Zero ads',                         sub: 'Everywhere in the app' },
-  { icon: 'trophy',             label: 'Leaderboard rank perks',           sub: 'Exclusive Pro badge & rewards' },
+  { icon: 'trophy',             label: 'Pro badge',                        sub: 'Gold crown on leaderboards & profiles' },
+  { icon: 'storefront',         label: 'Full shop access',                 sub: 'All cosmetics, frames & badges' },
   { icon: 'flash',              label: 'Early access',                     sub: 'New features before everyone else' },
 ];
 
