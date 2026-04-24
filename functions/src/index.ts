@@ -61,7 +61,9 @@ function yesterdayISO(): string {
 // ── grantMilestonePoints ───────────────────────────────────────────────────
 
 export const grantMilestonePoints = region.https.onCall(
-  async (data: { uid: string; milestoneId: string }) => {
+  async (data: { uid: string; milestoneId: string }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid) throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, milestoneId } = data;
     const reward = MILESTONE_REWARDS[milestoneId];
     if (!reward) throw new functions.https.HttpsError('not-found', 'Unknown milestone');
@@ -102,7 +104,9 @@ export const grantMilestonePoints = region.https.onCall(
 // ── purchaseItem ────────────────────────────────────────────────────────────
 
 export const purchaseItem = region.https.onCall(
-  async (data: { uid: string; itemId: string }) => {
+  async (data: { uid: string; itemId: string }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid) throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, itemId } = data;
     const cost = ITEM_COSTS[itemId];
     if (cost === undefined) throw new functions.https.HttpsError('not-found', 'Unknown item');
@@ -139,7 +143,9 @@ export const purchaseItem = region.https.onCall(
 const VALID_SLOTS = ['avatarFrame', 'profileBackground', 'badge1', 'badge2', 'badge3', 'cardTheme'];
 
 export const equipItem = region.https.onCall(
-  async (data: { uid: string; slot: string; itemId: string | null }) => {
+  async (data: { uid: string; slot: string; itemId: string | null }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid) throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, slot, itemId } = data;
     if (!VALID_SLOTS.includes(slot)) {
       throw new functions.https.HttpsError('invalid-argument', 'Invalid slot');
@@ -168,7 +174,9 @@ export const equipItem = region.https.onCall(
 // ── updateStreak ────────────────────────────────────────────────────────────
 
 export const updateStreak = region.https.onCall(
-  async (data: { uid: string }) => {
+  async (data: { uid: string }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid) throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid } = data;
     const today = todayISO();
     const yesterday = yesterdayISO();
@@ -239,7 +247,9 @@ export const updateStreak = region.https.onCall(
 // then updates Firestore. The client deletes from Supabase if rejected.
 
 export const moderateImage = region.https.onCall(
-  async (data: { uid: string; imageUrl: string; type: 'avatar' | 'banner' }) => {
+  async (data: { uid: string; imageUrl: string; type: 'avatar' | 'banner' }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid) throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, imageUrl, type } = data;
     const isAvatar = type === 'avatar';
     const urlKey = isAvatar ? 'avatarUrl' : 'bannerUrl';
@@ -299,8 +309,10 @@ export const moderateImage = region.https.onCall(
 // ── followUser ─────────────────────────────────────────────────────────────
 
 export const followUser = region.https.onCall(
-  async (data: { followerId: string; followingId: string }) => {
-    const { followerId, followingId } = data;
+  async (data: { followingId: string }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    const followerId = context.auth.uid; // always use auth UID, not data.followerId
+    const { followingId } = data;
     if (!followerId || !followingId) {
       throw new functions.https.HttpsError('invalid-argument', 'Missing UIDs');
     }
@@ -334,8 +346,10 @@ export const followUser = region.https.onCall(
 // ── unfollowUser ───────────────────────────────────────────────────────────
 
 export const unfollowUser = region.https.onCall(
-  async (data: { followerId: string; followingId: string }) => {
-    const { followerId, followingId } = data;
+  async (data: { followingId: string }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    const followerId = context.auth.uid; // always use auth UID, not data.followerId
+    const { followingId } = data;
     if (!followerId || !followingId) {
       throw new functions.https.HttpsError('invalid-argument', 'Missing UIDs');
     }
@@ -393,7 +407,8 @@ const LASTFM_TTL: Record<string, number> = {
 };
 
 export const lastfmProxy = region.https.onCall(
-  async (data: { method: string; params: Record<string, string | number> }) => {
+  async (data: { method: string; params: Record<string, string | number> }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
     const { method, params } = data;
     if (!method) throw new functions.https.HttpsError('invalid-argument', 'method required');
 
@@ -422,8 +437,10 @@ export const lastfmProxy = region.https.onCall(
 // ── deezerProxy ────────────────────────────────────────────────────────────
 
 export const deezerProxy = region.https.onCall(
-  async (data: { action: 'search' | 'track' | 'chart'; query?: string; id?: number; limit?: number }) => {
-    const { action, query, id, limit = 20 } = data;
+  async (data: { action: 'search' | 'track' | 'chart'; query?: string; id?: number; limit?: number }, context) => {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    const { action, query, id } = data;
+    const limit = Math.min(data.limit ?? 20, 50);
     if (!action) throw new functions.https.HttpsError('invalid-argument', 'action required');
 
     let url: string;

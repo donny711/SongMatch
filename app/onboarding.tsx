@@ -39,6 +39,7 @@ export default function OnboardingScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResult, setSearchResult] = useState<DeezerTrack | null>(null);
   const [searching, setSearching] = useState(false);
+  const [searchEmpty, setSearchEmpty] = useState(false);
   const [selectedSong, setSelectedSong] = useState<DeezerTrack | null>(null);
   const [referralInput, setReferralInput] = useState('');
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
@@ -53,11 +54,19 @@ export default function OnboardingScreen() {
     if (!searchQuery.trim()) return;
     setSearching(true);
     setSearchResult(null);
+    setSearchEmpty(false);
     try {
       const tracks = await searchDeezer(searchQuery, 1);
-      setSearchResult(tracks[0] ?? null);
+      if (tracks.length > 0) {
+        setSearchResult(tracks[0]);
+        setSearchEmpty(false);
+      } else {
+        setSearchResult(null);
+        setSearchEmpty(true);
+      }
     } catch {
       setSearchResult(null);
+      setSearchEmpty(false);
     } finally {
       setSearching(false);
     }
@@ -247,6 +256,10 @@ export default function OnboardingScreen() {
 
         {searching && (
           <ActivityIndicator color={COLORS.purple} style={{ marginTop: SPACING.lg }} />
+        )}
+
+        {searchEmpty && !searching && (
+          <Text style={styles.noResultsText}>No results — try another track name</Text>
         )}
 
         {searchResult && !searching && (
@@ -564,5 +577,12 @@ const styles = StyleSheet.create({
   loadingSub: {
     color: COLORS.textMuted,
     fontSize: 14,
+  },
+  noResultsText: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: SPACING.md,
+    marginBottom: SPACING.sm,
   },
 });

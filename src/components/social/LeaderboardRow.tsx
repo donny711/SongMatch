@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { AvatarWithFrame } from '../profile/AvatarWithFrame';
 import type { PublicUser, LeaderboardField } from '../../firebase/socialService';
@@ -39,9 +40,12 @@ export function LeaderboardRow({ user, rank, field }: Props) {
       <Text style={[styles.rank, { color: rankColor }]}>{rank}</Text>
       <AvatarWithFrame uri={user.avatarUrl} frameId={user.equippedItems?.avatarFrame ?? null} size={40} />
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
-          {user.displayName ?? 'SoundMatch User'}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>
+            {user.displayName ?? 'SongMatch User'}
+          </Text>
+          {user.isPro && <Ionicons name="crown" size={11} color="#ffd700" />}
+        </View>
         <Text style={styles.score}>
           {value.toLocaleString()} {FIELD_LABELS[field]}
         </Text>
@@ -72,6 +76,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   info: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   name: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   score: { color: COLORS.textMuted, fontSize: 12 },
 });

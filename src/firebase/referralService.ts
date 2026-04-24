@@ -115,20 +115,12 @@ export async function recordReferralInstall(
     if (newUserSnap.exists() && (newUserSnap.data() as { referredBy?: string }).referredBy) return;
 
     const newCount = data.installCount + 1;
-    const updates: Record<string, unknown> = {
-      installedUids: arrayUnion(newUid),
-      installCount: increment(1),
-      updatedAt: serverTimestamp(),
-    };
+    // Determine which tier rewards are newly unlocked BEFORE building the update object
+    let grantTier1 = false;
+    let grantTier2 = false;
 
-    tx.update(codeRef, updates);
-
-    // Mark referred user so we can show their status
-    tx.update(newUserRef, { referredBy: referralCode });
-
-    // Check tier thresholds for referrer
     if (!data.tier1Rewarded && newCount >= TIER1_THRESHOLD) {
-      updates.tier1Rewarded = true;
+      grantTier1 = true;
       // Reward referrer
       const referrerSubRef = doc(db, 'subscriptions', data.referrerId);
       tx.set(referrerSubRef, {
@@ -137,7 +129,7 @@ export async function recordReferralInstall(
         pendingDiscountReason: 'referral_tier1',
         updatedAt: serverTimestamp(),
       }, { merge: true });
-      // Reward all 3 friends (previous installedUids + current newUid)
+      // Reward all friends (previous installedUids + current newUid)
       const allFriendUids = [...data.installedUids, newUid];
       for (const friendUid of allFriendUids) {
         const friendSubRef = doc(db, 'subscriptions', friendUid);
@@ -151,7 +143,7 @@ export async function recordReferralInstall(
     }
 
     if (!data.tier2Rewarded && newCount >= TIER2_THRESHOLD) {
-      updates.tier2Rewarded = true;
+      grantTier2 = true;
       const referrerSubRef = doc(db, 'subscriptions', data.referrerId);
       tx.set(referrerSubRef, {
         freeMonthGranted: true,
@@ -159,6 +151,20 @@ export async function recordReferralInstall(
         updatedAt: serverTimestamp(),
       }, { merge: true });
     }
+
+    // Build the update object with all flags included so tx.update captures them
+    const updates: Record<string, unknown> = {
+      installedUids: arrayUnion(newUid),
+      installCount: increment(1),
+      updatedAt: serverTimestamp(),
+      ...(grantTier1 && { tier1Rewarded: true }),
+      ...(grantTier2 && { tier2Rewarded: true }),
+    };
+
+    tx.update(codeRef, updates);
+
+    // Mark referred user so we can show their status
+    tx.update(newUserRef, { referredBy: referralCode });
   });
 }
 

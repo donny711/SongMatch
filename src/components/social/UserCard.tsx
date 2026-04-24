@@ -27,9 +27,12 @@ export function UserCard({ user, rank, scoreLabel, onPress }: Props) {
       )}
       <AvatarWithFrame uri={user.avatarUrl} frameId={user.equippedItems?.avatarFrame ?? null} size={44} />
       <View style={styles.info}>
-        <Text style={styles.name} numberOfLines={1}>
-          {user.displayName ?? 'SoundMatch User'}
-        </Text>
+        <View style={styles.nameRow}>
+          <Text style={styles.name} numberOfLines={1}>
+            {user.displayName ?? 'SongMatch User'}
+          </Text>
+          {user.isPro && <Ionicons name="crown" size={11} color="#ffd700" />}
+        </View>
         <View style={styles.meta}>
           {scoreLabel ? (
             <Text style={styles.metaText}>{scoreLabel}</Text>
@@ -70,6 +73,7 @@ const styles = StyleSheet.create({
   },
   rankTop: { color: COLORS.purple },
   info: { flex: 1, gap: 2 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   name: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaText: { color: COLORS.textMuted, fontSize: 11 },

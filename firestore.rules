@@ -2,20 +2,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Public read; owner-only write.
+    // Authenticated read; owner-only write.
     match /users/{uid} {
-      allow read: if true;
+      allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Public read (required for social feed); owner-only write.
+    // Authenticated read (required for social feed); owner-only write.
     match /likedTracks/{uid}/tracks/{trackId} {
-      allow read: if true;
+      allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
     // Public read; only the follower can create/delete their own follow doc.
-    // followerId field in the document must match the caller's uid.
     match /follows/{docId} {
       allow read: if true;
       allow create: if request.auth != null
@@ -24,40 +23,47 @@ service cloud.firestore {
                     && resource.data.followerId == request.auth.uid;
     }
 
-    // Public read; any authenticated user can write (like/unlike a song).
+    // Public read; authenticated users may only update the like/unlike fields.
     match /songLikes/{trackId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['likerUids', 'likerCount', 'updatedAt']);
+      allow delete: if false;
     }
 
     // Public read; authenticated user may only register a username pointing to their own uid.
     match /usernames/{username} {
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.resource.data.uid == request.auth.uid;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow update: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      allow delete: if request.auth != null
+                    && resource.data.uid == request.auth.uid;
     }
 
-    // Referral codes — any authenticated user can read (for code-existence checks).
-    // Any authenticated user can create (owner sets referrerId to their own uid).
-    // Any authenticated user can update (new install adds themselves to installedUids).
+    // Referral codes — authenticated read; owner creates; install-tracking fields only for others.
     match /referrals/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
                     && request.resource.data.referrerId == request.auth.uid;
-      allow update: if request.auth != null;
+      allow update: if request.auth != null
+        && (resource.data.referrerId == request.auth.uid
+            || request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['installedUids', 'installCount', 'updatedAt']));
     }
 
     // Subscription records -- owner read/write only.
-    // Cross-uid reward grants (referral tier rewards) must go through a Cloud Function.
     match /subscriptions/{uid} {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Affiliate CRM -- authenticated read for onboarding code verification.
-    // Clients may update install-tracking fields only; create/delete blocked.
+    // Affiliate CRM -- authenticated read; clients update install-tracking only.
     match /affiliates/{code} {
-      allow read: if true;
+      allow read: if request.auth != null;
       allow create: if false;
       allow delete: if false;
       allow update: if request.auth != null

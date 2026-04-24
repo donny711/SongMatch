@@ -34,6 +34,7 @@ export interface EquippedItems {
   badge3: string | null;
   cardTheme: string | null;
   equippedRank: string | null;
+  profileTheme: string | null;
 }
 
 export interface UserProfile {
@@ -63,6 +64,7 @@ export interface UserProfile {
   artistIds: number[];
   username: string | null;
   gifBgUrl?: string | null;
+  isPro?: boolean;
 }
 
 export type ProfileField = Partial<Pick<UserProfile,
@@ -79,6 +81,7 @@ const DEFAULT_EQUIPPED: EquippedItems = {
   badge3: null,
   cardTheme: 'theme_default',
   equippedRank: null,
+  profileTheme: null,
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -345,16 +348,31 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
 }
 
 export async function removeLikedTrackFromFirestore(uid: string, trackId: number): Promise<void> {
-  const batch = writeBatch(db);
+  const uRef = userRef(uid);
+  const songRef = doc(db, 'songLikes', String(trackId));
+  const trackRef = doc(db, 'likedTracks', uid, 'tracks', String(trackId));
 
-  batch.delete(doc(db, 'likedTracks', uid, 'tracks', String(trackId)));
-  batch.update(userRef(uid), { likedCount: increment(-1) });
-  batch.update(doc(db, 'songLikes', String(trackId)), {
-    likerUids: arrayRemove(uid),
-    likerCount: increment(-1),
+  await runTransaction(db, async (tx) => {
+    const [userSnap, songSnap] = await Promise.all([tx.get(uRef), tx.get(songRef)]);
+
+    const currentLikedCount: number = userSnap.exists()
+      ? ((userSnap.data() as UserProfile).likedCount ?? 0)
+      : 0;
+    const currentLikerCount: number = songSnap.exists()
+      ? ((songSnap.data() as { likerCount?: number }).likerCount ?? 0)
+      : 0;
+
+    tx.delete(trackRef);
+    tx.update(uRef, {
+      likedCount: Math.max(0, currentLikedCount - 1),
+    });
+    if (songSnap.exists()) {
+      tx.update(songRef, {
+        likerUids: arrayRemove(uid),
+        likerCount: Math.max(0, currentLikerCount - 1),
+      });
+    }
   });
-
-  await batch.commit();
 }
 
 export async function runLikedTracksMigration(uid: string, likedTracks: DeezerTrack[]): Promise<void> {
@@ -469,6 +487,7 @@ export async function updateStreak(uid: string): Promise<{ currentStreak: number
     const earned: string[] = data.earnedMilestones ?? [];
     const streakMilestones = [3, 7, 14, 30];
 
+    let totalMilestonePoints = 0;
     for (const days of streakMilestones) {
       if (newStreak >= days) {
         const msId = `ms_streak_${days}`;
@@ -476,15 +495,18 @@ export async function updateStreak(uid: string): Promise<{ currentStreak: number
           const milestone = MILESTONE_MAP[msId];
           if (milestone) {
             pointsGranted += milestone.pointsReward;
+            totalMilestonePoints += milestone.pointsReward;
             updates.earnedMilestones = arrayUnion(msId);
-            updates.points = increment(milestone.pointsReward);
-            updates.totalEarned = increment(milestone.pointsReward);
             if (milestone.badgeGrant) {
               updates.ownedItems = arrayUnion(milestone.badgeGrant);
             }
           }
         }
       }
+    }
+    if (totalMilestonePoints > 0) {
+      updates.points = increment(totalMilestonePoints);
+      updates.totalEarned = increment(totalMilestonePoints);
     }
 
     tx.update(ref, updates);

@@ -154,7 +154,7 @@ export default function UserProfileScreen() {
         </View>
         <View style={styles.nameRow}>
           <View style={styles.nameBlock}>
-            <Text style={styles.name}>{profile.displayName ?? 'SoundMatch User'}</Text>
+            <Text style={styles.name}>{profile.displayName ?? 'SongMatch User'}</Text>
             <BadgeRow
               badge1={profile.equippedItems?.badge1 ?? null}
               badge2={profile.equippedItems?.badge2 ?? null}

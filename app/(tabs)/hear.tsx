@@ -203,14 +203,22 @@ export default function HearScreen() {
   const handleSearch = async () => {
     if (!searchQuery.trim() || isBusy) return;
     Keyboard.dismiss();
-    const allowed = await recordSearch();
-    if (!allowed) { setStage('limitReached'); return; }
+    // Check limit before searching (without consuming the credit yet)
+    const { searchesRemaining: remaining, isPro: pro } = useSubscriptionStore.getState();
+    if (!pro && remaining === 0) { setStage('limitReached'); return; }
     recognizedRef.current = null;
     setStage('searching');
     try {
       const tracks = await searchDeezer(searchQuery, 5);
-      if (tracks.length > 0) { setResults(tracks); setStage('result'); }
-      else setStage('error');
+      if (tracks.length > 0) {
+        // Only burn the credit once we have real results
+        const allowed = await recordSearch();
+        if (!allowed) { setStage('limitReached'); return; }
+        setResults(tracks);
+        setStage('result');
+      } else {
+        setStage('error');
+      }
     } catch {
       setStage('error');
     }
@@ -483,7 +491,7 @@ export default function HearScreen() {
       )}
 
       {/* Recommendations modal */}
-      <Modal visible={recsVisible} animationType="slide" statusBarTranslucent>
+      <Modal visible={recsVisible} animationType="slide" statusBarTranslucent onRequestClose={closeRecs}>
         <View style={[styles.modalContainer, { paddingTop: insets.top }]}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle} numberOfLines={1}>

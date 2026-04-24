@@ -9,13 +9,13 @@ import Animated, {
   Extrapolation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { Audio } from 'expo-av';
+
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AvatarWithFrame } from '../profile/AvatarWithFrame';
 import { useDeckStore } from '../../store/deckStore';
-import { getDeezerTrackById } from '../../api/deezerClient';
-import { usePlayerStore } from '../../store/playerStore';
+import { getDeezerTrackById, searchDeezer } from '../../api/deezerClient';
+import { Audio } from 'expo-av';
 import type { FeedItem as FeedItemData } from '../../firebase/socialService';
 import type { DeezerTrack } from '../../api/types';
 import { COLORS, SPACING, RADIUS } from '../../theme';
@@ -36,95 +36,124 @@ function timeAgo(likedAt: { seconds: number; nanoseconds: number } | null | unde
 }
 
 export function FeedItem({ item }: Props) {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(item.previewUrl ?? null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(item.previewUrl || null);
   const [fetchingPreview, setFetchingPreview] = useState(!item.previewUrl && !!item.trackId);
   const [liked, setLiked] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
 
-  const soundRef = useRef<Audio.Sound | null>(null);
   const mountedRef = useRef(true);
-  const previewUrlRef = useRef<string | null>(item.previewUrl ?? null);
 
   const addLikedTrack = useDeckStore((s) => s.addLikedTrack);
   const removeLikedTrack = useDeckStore((s) => s.removeLikedTrack);
   const incrementLiked = useDeckStore((s) => s.incrementLiked);
 
-  // Keep ref in sync so audio callbacks always have latest URL
-  useEffect(() => {
-    previewUrlRef.current = previewUrl;
-  }, [previewUrl]);
+  // Audio state
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [audioError, setAudioError] = useState(false);
+  const progress = duration > 0 ? position / duration : 0;
 
-  // Fetch preview URL from Deezer if not stored
-  useEffect(() => {
-    if (item.previewUrl) return;
-    if (!item.trackId) { setFetchingPreview(false); return; }
+  const toggle = async () => {
+    if (!previewUrl) return;
+    setAudioError(false);
 
-    getDeezerTrackById(item.trackId)
-      .then((track) => {
-        if (!mountedRef.current) return;
-        if (track?.preview) setPreviewUrl(track.preview);
-      })
-      .finally(() => {
-        if (mountedRef.current) setFetchingPreview(false);
-      });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Stop if global player changes to a different track
-  useEffect(() => {
-    const unsub = usePlayerStore.subscribe((state) => {
-      if (state.activePreviewUri !== previewUrlRef.current && isPlaying) {
-        soundRef.current?.pauseAsync().catch(() => {});
-        setIsPlaying(false);
-      }
-    });
-    return () => unsub();
-  }, [isPlaying]);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-      soundRef.current?.unloadAsync().catch(() => {});
-      soundRef.current = null;
-    };
-  }, []);
-
-  const togglePlay = async () => {
-    const url = previewUrlRef.current;
-    if (!url) return;
-
-    if (!soundRef.current) {
-      try {
+    try {
+      if (!soundRef.current) {
         await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
         const { sound } = await Audio.Sound.createAsync(
-          { uri: url },
+          { uri: previewUrl },
           { shouldPlay: true },
           (status) => {
-            if (!status.isLoaded || !mountedRef.current) return;
-            const dur = status.durationMillis ?? 30000;
-            setProgress(status.positionMillis / dur);
+            if (!mountedRef.current || !status.isLoaded) return;
+            setPosition(status.positionMillis);
+            setDuration(status.durationMillis ?? 30000);
             if (status.didJustFinish) {
               setIsPlaying(false);
-              setProgress(0);
+              setPosition(0);
             }
           }
         );
         if (!mountedRef.current) { sound.unloadAsync(); return; }
         soundRef.current = sound;
         setIsPlaying(true);
-        usePlayerStore.getState().setActivePreviewUri(url);
-      } catch {
-        // Audio failed silently
+      } else if (isPlaying) {
+        await soundRef.current.pauseAsync();
+        setIsPlaying(false);
+      } else {
+        await soundRef.current.playAsync();
+        setIsPlaying(true);
       }
-    } else if (isPlaying) {
-      await soundRef.current.pauseAsync();
+    } catch {
+      setAudioError(true);
+    }
+  };
+
+  // Reset sound when URL changes (e.g. after fresh Deezer fetch)
+  useEffect(() => {
+    if (soundRef.current) {
+      soundRef.current.unloadAsync().catch(() => {});
+      soundRef.current = null;
       setIsPlaying(false);
+      setPosition(0);
+    }
+    setAudioError(false);
+  }, [previewUrl]);
+
+  // Fetch fresh preview URL from Deezer. Falls back to search-by-name if
+  // the track ID returns no preview (e.g. old tracks without stored URL).
+  useEffect(() => {
+    if (!item.trackId) { setFetchingPreview(false); return; }
+
+    const fetchPreview = async () => {
+      // Try by track ID first
+      const track = await getDeezerTrackById(item.trackId).catch(() => null);
+      if (!mountedRef.current) return;
+
+      const fresh = track?.preview || null;
+      if (fresh) { setPreviewUrl(fresh); return; }
+
+      // Fallback: search by title + artist name
+      if (item.title && item.artistName) {
+        const results = await searchDeezer(`${item.title} ${item.artistName}`, 1).catch(() => []);
+        if (!mountedRef.current) return;
+        const searchUrl = results[0]?.preview || null;
+        if (searchUrl) { setPreviewUrl(searchUrl); return; }
+      }
+
+      // Last resort: stored URL (may be expired, but let it try)
+      if (item.previewUrl && mountedRef.current) {
+        setPreviewUrl(item.previewUrl);
+      }
+    };
+
+    fetchPreview().finally(() => {
+      if (mountedRef.current) setFetchingPreview(false);
+    });
+
+    return () => {
+      soundRef.current?.unloadAsync().catch(() => {});
+      soundRef.current = null;
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSwipe = () => {
+    if (!liked) {
+      const track: DeezerTrack = {
+        id: item.trackId,
+        title: item.title,
+        artist: { id: item.artistId, name: item.artistName },
+        album: { id: 0, title: '', cover_xl: item.coverUrl },
+        preview: previewUrl ?? '',
+        duration: 0,
+        link: '',
+      };
+      addLikedTrack(track);
+      incrementLiked();
+      setLiked(true);
     } else {
-      await soundRef.current.playAsync();
-      setIsPlaying(true);
-      usePlayerStore.getState().setActivePreviewUri(url);
+      removeLikedTrack(item.trackId);
+      setLiked(false);
     }
   };
 
@@ -147,26 +176,6 @@ export function FeedItem({ item }: Props) {
   const overlayStyle = useAnimatedStyle(() => ({
     opacity: interpolate(translateX.value, [-100, -20], [1, 0], Extrapolation.CLAMP),
   }));
-
-  const handleSwipe = () => {
-    if (!liked) {
-      const track: DeezerTrack = {
-        id: item.trackId,
-        title: item.title,
-        artist: { id: item.artistId, name: item.artistName },
-        album: { id: 0, title: '', cover_xl: item.coverUrl },
-        preview: previewUrlRef.current ?? '',
-        duration: 0,
-        link: '',
-      };
-      addLikedTrack(track);
-      incrementLiked();
-      setLiked(true);
-    } else {
-      removeLikedTrack(item.trackId);
-      setLiked(false);
-    }
-  };
 
   const panGesture = Gesture.Pan()
     .activeOffsetX([-12, 12])
@@ -191,9 +200,9 @@ export function FeedItem({ item }: Props) {
 
         {/* Swipe overlay */}
         <Animated.View style={[styles.swipeOverlay, overlayStyle]} pointerEvents="none">
-          <Ionicons name={liked ? 'heart-dislike' : 'heart'} size={36} color={liked ? COLORS.pink : COLORS.green} />
+          <Ionicons name={liked ? "heart-dislike" : "heart"} size={36} color={liked ? COLORS.pink : COLORS.green} />
           <Text style={[styles.overlayText, { color: liked ? COLORS.pink : COLORS.green }]}>
-            {liked ? 'Unlike' : 'Like!'}
+            {liked ? "Unlike" : "Like!"}
           </Text>
         </Animated.View>
 
@@ -215,9 +224,10 @@ export function FeedItem({ item }: Props) {
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push(`/user/${item.uid}`)} activeOpacity={0.8}>
                 <Text style={styles.name} numberOfLines={1}>
-                  {item.displayName ?? 'SongMatch User'}
+                  {item.displayName ?? "SongMatch User"}
                 </Text>
               </TouchableOpacity>
+              {item.isPro && <Ionicons name="crown" size={10} color="#ffd700" />}
               <View style={styles.likedBadge}>
                 <Ionicons name="heart" size={9} color={COLORS.green} />
                 <Text style={styles.likedText}>liked</Text>
@@ -233,15 +243,19 @@ export function FeedItem({ item }: Props) {
                 <View style={styles.playBtn}>
                   <ActivityIndicator size="small" color={COLORS.purple} />
                 </View>
+              ) : audioError ? (
+                <View style={[styles.playBtn, { opacity: 0.6 }]}>
+                  <Ionicons name="alert-circle" size={13} color={COLORS.pink} />
+                </View>
               ) : (
                 <TouchableOpacity
-                  onPress={togglePlay}
+                  onPress={toggle}
                   activeOpacity={0.75}
                   style={[styles.playBtn, !previewUrl && styles.playBtnDisabled]}
                   disabled={!previewUrl}
                 >
                   <Ionicons
-                    name={isPlaying ? 'pause' : 'play'}
+                    name={isPlaying ? "pause" : "play"}
                     size={13}
                     color={previewUrl ? COLORS.text : COLORS.textMuted}
                   />
@@ -263,7 +277,7 @@ export function FeedItem({ item }: Props) {
         <View style={styles.swipeHint}>
           <Ionicons name="chevron-back" size={11} color={liked ? COLORS.green : COLORS.textMuted} />
           <Text style={[styles.swipeHintText, liked && { color: COLORS.green }]}>
-            {liked ? 'swipe left to unlike' : 'swipe left to like'}
+            {liked ? "swipe left to unlike" : "swipe left to like"}
           </Text>
         </View>
       </Animated.View>

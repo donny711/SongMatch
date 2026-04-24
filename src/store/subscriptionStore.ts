@@ -195,7 +195,11 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     if (!pkg) throw new Error('Product not found');
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     const isPro = !!customerInfo.entitlements.active['pro'];
-    set({ isPro, tier });
+    const firstActive = Object.values(customerInfo.entitlements.active)[0] as any;
+    const expiresAt = isPro && firstActive?.expirationDate
+      ? new Date(firstActive.expirationDate)
+      : null;
+    set({ isPro, tier, expiresAt });
   },
 
   restore: async () => {

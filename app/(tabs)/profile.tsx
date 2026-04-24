@@ -21,7 +21,7 @@ import { useSubscriptionStore } from '../../src/store/subscriptionStore';
 import { TokenStorage } from '../../src/auth/TokenStorage';
 import { useSoundCloudAuth } from '../../src/auth/useSoundCloudAuth';
 import { AvatarWithFrame } from '../../src/components/profile/AvatarWithFrame';
-import { ProfileBackground } from '../../src/components/profile/ProfileBackground';
+import { ProfileBackground, ProfileThemeBackground } from '../../src/components/profile/ProfileBackground';
 import { BadgeRow } from '../../src/components/profile/BadgeRow';
 import { MatchPointsDisplay } from '../../src/components/profile/MatchPointsDisplay';
 import { StreakIndicator } from '../../src/components/profile/StreakIndicator';
@@ -257,6 +257,8 @@ export default function ProfileScreen() {
   const { likedTracks, skippedCount, likedCount } = useDeckStore();
   const insets = useSafeAreaInsets();
   const isPro = useSubscriptionStore((s) => s.isPro);
+  const [statsRowHeight, setStatsRowHeight] = React.useState(96);
+  const [contentHeight, setContentHeight] = React.useState(0);
 
   const profileDisplayName = useProfileStore((s) => s.displayName);
   const profileAvatarUrl = useProfileStore((s) => s.avatarUrl);
@@ -274,14 +276,19 @@ export default function ProfileScreen() {
   const uid = useProfileStore((s) => s.uid);
 
   // Resolve display name: custom → Spotify → fallback
-  const resolvedName = profileDisplayName ?? user?.display_name ?? 'SoundMatch User';
+  const resolvedName = profileDisplayName ?? user?.display_name ?? 'SongMatch User';
 
   // Resolve avatar: custom approved → Spotify avatar → null
   const resolvedAvatarUri = profileAvatarUrl ?? user?.images?.[0]?.url ?? null;
 
-  // Accent color from equipped theme
+  // Accent color from equipped card theme
   const themeItem = equippedItems.cardTheme ? SHOP_ITEMS_BY_ID[equippedItems.cardTheme] : null;
   const accentColor = themeItem?.colors[0] ?? COLORS.purple;
+
+  // Profile theme (below-banner background + accent override)
+  const profileThemeItem = equippedItems.profileTheme ? SHOP_ITEMS_BY_ID[equippedItems.profileTheme] : null;
+  const profileAccent = profileThemeItem?.colors[0] ?? null;
+  const profileUiAccent = profileAccent ?? accentColor;
 
   // Rank
   const currentRank = getRankForLikes(likedTracks.length);
@@ -338,6 +345,15 @@ export default function ProfileScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── Content area below banner (theme background fills this) ── */}
+      <View
+        onLayout={(e) => setContentHeight(e.nativeEvent.layout.height)}
+        style={{ position: 'relative' }}
+      >
+        <View style={[StyleSheet.absoluteFill, { opacity: 0.85 }]} pointerEvents="none">
+          <ProfileThemeBackground themeId={equippedItems.profileTheme ?? null} height={contentHeight} />
+        </View>
+
       {/* ── Identity Zone ────────────────────────────────────────────── */}
       <View style={styles.identityZone}>
         {/* Avatar (overlapping banner) */}
@@ -379,7 +395,7 @@ export default function ProfileScreen() {
         {/* Action buttons */}
         <View style={styles.actionRow}>
           <TouchableOpacity
-            style={[styles.actionBtn, { borderColor: accentColor }]}
+            style={[styles.actionBtn, { borderColor: profileUiAccent }]}
             onPress={() => router.push('/edit-profile')}
             activeOpacity={0.85}
           >
@@ -388,8 +404,8 @@ export default function ProfileScreen() {
                 <ProfileBackground backgroundId={equippedItems.cardTheme} height={60} />
               </View>
             )}
-            <Ionicons name="pencil" size={14} color={accentColor} />
-            <Text style={[styles.actionBtnText, { color: accentColor }]}>Edit Profile</Text>
+            <Ionicons name="pencil" size={14} color={profileUiAccent} />
+            <Text style={[styles.actionBtnText, { color: profileUiAccent }]}>Edit Profile</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionBtn, styles.actionBtnShop]}
@@ -442,17 +458,20 @@ export default function ProfileScreen() {
 
       <View style={styles.sections}>
         {/* ── Stats ── */}
-        <View style={[styles.statsRow, { borderColor: `${accentColor}30` }, themeItem && themeItem.animationType !== 'static' ? { backgroundColor: 'transparent' } : {}]}>
+        <View
+          style={[styles.statsRow, { borderColor: `${profileUiAccent}30` }]}
+          onLayout={(e) => setStatsRowHeight(e.nativeEvent.layout.height)}
+        >
           {themeItem && themeItem.animationType !== 'static' && (
             <View style={[StyleSheet.absoluteFill, { opacity: 0.55 }]}>
-              <ProfileBackground backgroundId={equippedItems.cardTheme} height={96} />
+              <ProfileBackground backgroundId={equippedItems.cardTheme} height={statsRowHeight} />
             </View>
           )}
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: COLORS.green }]}>{likedTracks.length}</Text>
+            <Text style={[styles.statNumber, { color: profileUiAccent }]}>{likedTracks.length}</Text>
             <View style={styles.statMeta}>
-              <Ionicons name="heart" size={13} color={COLORS.green} />
-              <Text style={styles.statLabel}>Liked</Text>
+              <Ionicons name="heart" size={13} color={profileUiAccent} />
+              <Text style={[styles.statLabel, { color: profileUiAccent }]}>Liked</Text>
             </View>
           </View>
           <View style={styles.statDivider} />
@@ -490,7 +509,7 @@ export default function ProfileScreen() {
         <ShowcaseSection
           songs={showcaseTracks}
           artists={showcaseArtists}
-          accentColor={accentColor}
+          accentColor={profileUiAccent}
         />
 
         {/* Squad */}
@@ -498,7 +517,7 @@ export default function ProfileScreen() {
 
         {/* ── Music Platforms ── */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: accentColor }]}>Music Platforms</Text>
+          <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Music Platforms</Text>
           <MusicPlatforms />
         </View>
 
@@ -506,13 +525,14 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           {isPro ? (
             <>
-              <Text style={[styles.sectionTitle, { color: accentColor }]}>Invite</Text>
+              <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Invite</Text>
               <ShareCard />
             </>
           ) : (
             <ProfileBanner />
           )}
         </View>
+      </View>
       </View>
     </ScrollView>
   );
@@ -642,7 +662,6 @@ const styles = StyleSheet.create({
   // Stats
   statsRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
     borderRadius: RADIUS.xl,
     overflow: 'hidden',
     padding: SPACING.lg,

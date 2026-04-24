@@ -62,6 +62,29 @@ export async function findSpotifyTrackUri(title: string, artist: string): Promis
   }
 }
 
+
+/**
+ * Resolve liked tracks to Spotify URIs (read-only search scope only).
+ * Returns the URIs for clipboard/share — no write scope required.
+ */
+export async function resolveTracksToSpotifyUris(
+  tracks: Array<{ title: string; artist: string }>,
+  onProgress: (done: number, total: number) => void,
+): Promise<{ uris: string[]; notFound: number }> {
+  const uris: string[] = [];
+  const BATCH = 5;
+  for (let i = 0; i < tracks.length; i += BATCH) {
+    const results = await Promise.all(
+      tracks.slice(i, i + BATCH).map(t => findSpotifyTrackUri(t.title, t.artist)),
+    );
+    for (const uri of results) {
+      if (uri) uris.push(uri);
+    }
+    onProgress(Math.min(i + BATCH, tracks.length), tracks.length);
+  }
+  return { uris, notFound: tracks.length - uris.length };
+}
+
 // ── Recommendation engine (Last.fm → Deezer) ─────────────────────────────────
 
 export async function getRecommendationsForSeeds(
@@ -106,16 +129,21 @@ export async function getRecommendationsForSeeds(
   // Buffer at 4× the desired limit — many Last.fm tracks aren't on Deezer.
   const fetchBatch = candidates.slice(0, Math.min(candidates.length, limit * 4));
 
-  const deezerResults = await Promise.all(
-    fetchBatch.map(async (t) => {
-      try {
-        const tracks = await searchDeezer(`${t.name} ${t.artist}`, 1);
-        return tracks[0] ?? null;
-      } catch {
-        return null;
-      }
-    })
-  );
+  const deezerResults: (DeezerTrack | null)[] = [];
+  for (let i = 0; i < fetchBatch.length && deezerResults.filter(Boolean).length < limit; i += 8) {
+    const batch = fetchBatch.slice(i, i + 8);
+    const batchResults = await Promise.all(
+      batch.map(async (t) => {
+        try {
+          const tracks = await searchDeezer(`${t.name} ${t.artist}`, 1);
+          return tracks[0] ?? null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    deezerResults.push(...batchResults);
+  }
 
   // Post-process: filter seen/liked tracks, enforce artist diversity window.
   // Use a sliding Set for O(1) window membership — rebuilds when it exceeds 9.
@@ -218,16 +246,21 @@ export async function getSongSimilarRecs(
   // ── Deezer lookup — large buffer to survive null hits ────────────────────
   // Many Last.fm tracks aren't on Deezer; try up to 6× the desired count.
   const fetchBatch = ranked.slice(0, limit * 6);
-  const deezerResults = await Promise.all(
-    fetchBatch.map(async (c) => {
-      try {
-        const tracks = await searchDeezer(`${c.name} ${c.artist}`, 1);
-        return tracks[0] ?? null;
-      } catch {
-        return null;
-      }
-    })
-  );
+  const deezerResults: (DeezerTrack | null)[] = [];
+  for (let i = 0; i < fetchBatch.length && deezerResults.filter(Boolean).length < limit; i += 8) {
+    const batch = fetchBatch.slice(i, i + 8);
+    const batchResults = await Promise.all(
+      batch.map(async (c) => {
+        try {
+          const tracks = await searchDeezer(`${c.name} ${c.artist}`, 1);
+          return tracks[0] ?? null;
+        } catch {
+          return null;
+        }
+      })
+    );
+    deezerResults.push(...batchResults);
+  }
 
   const output: DeezerTrack[] = [];
   const recentArtists: string[] = [];

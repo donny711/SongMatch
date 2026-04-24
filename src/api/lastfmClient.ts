@@ -20,7 +20,7 @@ interface LastFmTopTracksResponse {
 const NON_GENRE_TAGS = new Set([
   'seen live', 'favorites', 'favourite', 'love', 'awesome', 'beautiful',
   'great', 'amazing', 'cool', 'good', 'best', 'favorite', 'all time favorites',
-  'male vocalists', 'female vocalists', 'artists i\'ve seen live',
+  'male vocalists', 'female vocalists', 'artists i've seen live',
   'american', 'british', 'german', 'swedish', 'norwegian', 'french',
   'under 2000 listeners', 'check', 'todo', 'owob', 'spotify', 'youtube',
 ]);
@@ -49,16 +49,26 @@ export async function getSimilarTracks(
     `&api_key=${encodeURIComponent(apiKey())}` +
     `&format=json&limit=${limit}`;
 
-  const res = await fetch(url);
-  const data: LastFmSimilarResponse = await res.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const data: LastFmSimilarResponse = await res.json();
 
-  if (data.error || !data.similartracks) return [];
+    if (data.error || !data.similartracks) return [];
 
-  const tracks = Array.isArray(data.similartracks.track)
-    ? data.similartracks.track
-    : [data.similartracks.track];
+    const tracks = Array.isArray(data.similartracks.track)
+      ? data.similartracks.track
+      : [data.similartracks.track];
 
-  return tracks.map((t) => ({ name: t.name, artist: t.artist.name, match: Number(t.match ?? 0) }));
+    return tracks.map((t) => ({ name: t.name, artist: t.artist.name, match: Number(t.match ?? 0) }));
+  } catch (e: any) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') throw new Error('Request timed out');
+    throw e;
+  }
 }
 
 export async function getArtistTopTracks(
@@ -71,16 +81,26 @@ export async function getArtistTopTracks(
     `&format=json&limit=${limit}` +
     `&api_key=${encodeURIComponent(apiKey())}`;
 
-  const res = await fetch(url);
-  const data: LastFmTopTracksResponse = await res.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const data: LastFmTopTracksResponse = await res.json();
 
-  if (data.error || !data.toptracks) return [];
+    if (data.error || !data.toptracks) return [];
 
-  const tracks = Array.isArray(data.toptracks.track)
-    ? data.toptracks.track
-    : [data.toptracks.track];
+    const tracks = Array.isArray(data.toptracks.track)
+      ? data.toptracks.track
+      : [data.toptracks.track];
 
-  return tracks.map((t) => ({ name: t.name, artist: t.artist.name }));
+    return tracks.map((t) => ({ name: t.name, artist: t.artist.name }));
+  } catch (e: any) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') throw new Error('Request timed out');
+    throw e;
+  }
 }
 
 export async function getArtistSimilar(artist: string, limit = 10): Promise<string[]> {
@@ -90,15 +110,21 @@ export async function getArtistSimilar(artist: string, limit = 10): Promise<stri
     `&api_key=${encodeURIComponent(apiKey())}` +
     `&format=json&limit=${limit}`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
     const data = await res.json();
     if (data.error || !data.similarartists?.artist) return [];
     const artists = Array.isArray(data.similarartists.artist)
       ? data.similarartists.artist
       : [data.similarartists.artist];
     return artists.map((a: { name: string }) => a.name);
-  } catch {
+  } catch (e: any) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') return [];
     return [];
   }
 }
@@ -111,8 +137,12 @@ export async function getTrackTags(artist: string, track: string): Promise<strin
     `&api_key=${encodeURIComponent(apiKey())}` +
     `&format=json`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
     const data = await res.json();
     if (data.error || !data.toptags?.tag) return [];
 
@@ -123,7 +153,9 @@ export async function getTrackTags(artist: string, track: string): Promise<strin
       )
       .slice(0, 5)
       .map((t: { name: string }) => t.name.toLowerCase());
-  } catch {
+  } catch (e: any) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') return [];
     return [];
   }
 }
@@ -138,8 +170,12 @@ export async function getTagTopTracks(
     `&api_key=${encodeURIComponent(apiKey())}` +
     `&format=json&limit=${limit}`;
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
     const data = await res.json();
     if (data.error || !data.tracks?.track) return [];
 
@@ -151,7 +187,9 @@ export async function getTagTopTracks(
       name: t.name,
       artist: t.artist.name,
     }));
-  } catch {
+  } catch (e: any) {
+    clearTimeout(timeoutId);
+    if (e.name === 'AbortError') return [];
     return [];
   }
 }

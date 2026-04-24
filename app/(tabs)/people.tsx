@@ -36,6 +36,8 @@ import { useProfileStore } from '../../src/store/profileStore';
 import { useDeckStore } from '../../src/store/deckStore';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
 import GradientText from '../../src/components/GradientText';
+import { LottieEmptyState } from '../../src/components/LottieEmptyState';
+import emptyPeopleAnim from '../../assets/lottie/empty-people.json';
 
 type Segment = 'friends' | 'discover' | 'leaderboard';
 type LbField = LeaderboardField;
@@ -196,7 +198,7 @@ function FriendsSegment() {
 
 // ── Discover segment ──────────────────────────────────────────────────────────
 
-function DiscoverSegment() {
+function DiscoverSegment({ onSeeAll }: { onSeeAll: () => void }) {
   const [searchText, setSearchText] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -323,7 +325,7 @@ function DiscoverSegment() {
             <View style={styles.discoverSection}>
               <View style={styles.discoverSectionHeader}>
                 <Text style={styles.discoverSectionTitle}>Top listeners</Text>
-                <TouchableOpacity onPress={() => {}}>
+                <TouchableOpacity onPress={onSeeAll}>
                   <Text style={styles.seeAll}>See all</Text>
                 </TouchableOpacity>
               </View>
@@ -485,7 +487,7 @@ export default function PeopleScreen() {
       {/* Content */}
       <View style={styles.content}>
         {segment === 'friends' && <FriendsSegment />}
-        {segment === 'discover' && <DiscoverSegment />}
+        {segment === 'discover' && <DiscoverSegment onSeeAll={() => setSegment('leaderboard')} />}
         {segment === 'leaderboard' && <LeaderboardSegment />}
       </View>
     </View>

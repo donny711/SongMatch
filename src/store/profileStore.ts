@@ -103,7 +103,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   streakAnimFrom: null,
 
   initialize: async (_spotifyUserId?: string) => {
-    if (get().isInitialized) return;
+    // Always allow re-initialization so a second login after logout works.
+    // The previous onSnapshot listener is cleaned up below before creating a new one.
     set({ isLoading: true });
     try {
       // Wait for Firebase Auth SDK to restore any persisted session before

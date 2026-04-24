@@ -156,10 +156,11 @@ export default function UpgradeScreen() {
     try {
       await purchase(selectedTier);
       if (uid) {
+        const { isPro: newIsPro, tier: newTier, expiresAt: newExpiresAt } = useSubscriptionStore.getState();
         await saveSubscriptionToFirestore(uid, {
-          isPro: true,
-          tier: selectedTier,
-          expiresAt: null,
+          isPro: newIsPro,
+          tier: newTier,
+          expiresAt: newExpiresAt,
         });
       }
       if (uid && (pendingDiscount || freeMonthGranted)) {
@@ -181,7 +182,8 @@ export default function UpgradeScreen() {
     setRestoring(true);
     try {
       await restore();
-      if (isPro) {
+      const restored = useSubscriptionStore.getState().isPro;
+      if (restored) {
         Alert.alert('Restored!', 'Your Pro subscription has been restored.', [
           { text: 'Done', onPress: () => router.back() },
         ]);
@@ -193,7 +195,7 @@ export default function UpgradeScreen() {
     } finally {
       setRestoring(false);
     }
-  }, [restore, isPro]);
+  }, [restore]);
 
   return (
     <View style={[styles.root, { paddingBottom: insets.bottom }]}>

@@ -68,7 +68,7 @@ export default function WhoLikedScreen() {
                 size={44}
               />
               <Text style={styles.name} numberOfLines={1}>
-                {item.displayName ?? 'SoundMatch User'}
+                {item.displayName ?? 'SongMatch User'}
               </Text>
               <FollowButton theirUid={item.uid} isPrivate={item.isPrivate} size="sm" />
             </TouchableOpacity>
