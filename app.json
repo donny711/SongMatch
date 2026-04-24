@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.songmatch.app",
+      "bundleIdentifier": "net.songmatch.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
