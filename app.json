@@ -16,7 +16,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.d00nny711.SongMatch",
+      "bundleIdentifier": "com.songmatch.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       },
@@ -24,7 +24,11 @@
         "com.apple.developer.applesignin": [
           "Default"
         ]
-      }
+      },
+      "buildNumber": "1",
+      "associatedDomains": [
+        "applinks:songmatch.app"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -43,6 +47,7 @@
     },
     "plugins": [
       "expo-router",
+      "react-native-purchases",
       "expo-secure-store",
       [
         "expo-av",
@@ -61,6 +66,32 @@
         {
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "iosAppId": "ca-app-pub-5279884722039690~5452090114"
+        }
+      ],
+      [
+        "expo-alternate-app-icons",
+        {
+          "warm_light": "./assets/icons/warm_light.png",
+          "neon_green": "./assets/icons/neon_green.png",
+          "neon_pink": "./assets/icons/neon_pink.png",
+          "neon_cyan": "./assets/icons/neon_cyan.png",
+          "neon_orange": "./assets/icons/neon_orange.png",
+          "indigo_violet": "./assets/icons/indigo_violet.png",
+          "pink_coral": "./assets/icons/pink_coral.png",
+          "ocean_blue": "./assets/icons/ocean_blue.png",
+          "mint_teal": "./assets/icons/mint_teal.png",
+          "stealth_black": "./assets/icons/stealth_black.png",
+          "pure_white": "./assets/icons/pure_white.png",
+          "grape_solid": "./assets/icons/grape_solid.png",
+          "midnight_navy": "./assets/icons/midnight_navy.png",
+          "gold_black": "./assets/icons/gold_black.png",
+          "all_gold": "./assets/icons/all_gold.png",
+          "chrome_silver": "./assets/icons/chrome_silver.png",
+          "black_gold_border": "./assets/icons/black_gold_border.png",
+          "lavender": "./assets/icons/lavender.png",
+          "baby_pink": "./assets/icons/baby_pink.png",
+          "sage_green": "./assets/icons/sage_green.png",
+          "butter_yellow": "./assets/icons/butter_yellow.png"
         }
       ]
     ],
