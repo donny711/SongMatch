@@ -47,7 +47,6 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-purchases",
       "expo-secure-store",
       [
         "expo-av",
