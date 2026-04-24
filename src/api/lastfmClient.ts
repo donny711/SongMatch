@@ -20,7 +20,7 @@ interface LastFmTopTracksResponse {
 const NON_GENRE_TAGS = new Set([
   'seen live', 'favorites', 'favourite', 'love', 'awesome', 'beautiful',
   'great', 'amazing', 'cool', 'good', 'best', 'favorite', 'all time favorites',
-  'male vocalists', 'female vocalists', 'artists i've seen live',
+  'male vocalists', 'female vocalists', "artists i've seen live",
   'american', 'british', 'german', 'swedish', 'norwegian', 'french',
   'under 2000 listeners', 'check', 'todo', 'owob', 'spotify', 'youtube',
 ]);
