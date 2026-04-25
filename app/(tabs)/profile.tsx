@@ -46,9 +46,6 @@ const BANNER_AD_UNIT_ID = Platform.select({
 
 function ProfileBanner() {
   if (!ADS_AVAILABLE) return null;
-  } catch {
-    return null;
-  }
 }
 
 // ── Share SongMatch card (Pro) ─────────────────────────────────────────────────

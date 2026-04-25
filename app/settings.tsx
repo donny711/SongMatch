@@ -34,9 +34,6 @@ const BANNER_AD_UNIT_ID = Platform.select({
 
 function SettingsBanner() {
   if (!ADS_AVAILABLE) return null;
-  } catch {
-    return null;
-  }
 }
 
 // ── Reusable row ───────────────────────────────────────────────────────────────
