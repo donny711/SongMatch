@@ -5,7 +5,7 @@ import { useProfileStore } from '../store/profileStore';
 import { useToastStore } from '../store/toastStore';
 
 // Guard: module only exists in compiled (non-Expo-Go) builds
-const ADS_AVAILABLE = !!NativeModules.RNGoogleMobileAdsModule;
+const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
 
 // Set EXPO_PUBLIC_ADMOB_REWARDED_IOS / EXPO_PUBLIC_ADMOB_REWARDED_ANDROID in .env
 // (and EAS Secrets for production builds) to use real ad unit IDs.

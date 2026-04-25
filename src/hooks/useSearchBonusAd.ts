@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { NativeModules, Platform } from 'react-native';
 import { useSubscriptionStore } from '../store/subscriptionStore';
 
-const ADS_AVAILABLE = !!NativeModules.RNGoogleMobileAdsModule;
+const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
 
 const AD_UNIT_ID = Platform.select({
   ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? 'ca-app-pub-3940256099942544/1712485313',

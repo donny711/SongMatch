@@ -25,7 +25,7 @@ import { GENRE_COLORS } from '../src/utils/genres';
 import { ONBOARDING_KEY, ONBOARDING_GENRES_KEY } from './onboarding';
 import { PRIVACY_POLICY_URL } from '../src/utils/constants';
 
-const ADS_AVAILABLE = !!NativeModules.RNGoogleMobileAdsModule;
+const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
 const BANNER_AD_UNIT_ID = Platform.select({
   ios: process.env.EXPO_PUBLIC_ADMOB_BANNER_IOS ?? 'ca-app-pub-3940256099942544/2934735716',
   android: process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID ?? 'ca-app-pub-3940256099942544/6300978111',
