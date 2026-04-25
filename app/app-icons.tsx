@@ -12,6 +12,14 @@ import { lightTap } from '../src/utils/haptics';
 let AlternateIcons: any = null;
 try { AlternateIcons = require('expo-alternate-app-icons'); } catch {}
 
+function toPascalCase(id: string): string {
+  return id.split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+}
+function toIconId(name: string | null): string {
+  if (!name) return 'dark_purple';
+  return name.replace(/([A-Z])/g, (c, _, i) => (i ? '_' : '') + c.toLowerCase());
+}
+
 const CARD_SIZE = 80;
 const CARD_BR = 18;
 
@@ -76,8 +84,10 @@ export default function AppIconsScreen() {
 
   useEffect(() => {
     if (!AlternateIcons) return;
-    const fn = AlternateIcons.getAlternateAppIcon ?? AlternateIcons.getAppIcon;
-    fn?.().then((name: string | null) => setActiveIcon(name ?? 'dark_purple')).catch(() => {});
+    try {
+      const name = AlternateIcons.getAppIconName?.() ?? null;
+      setActiveIcon(toIconId(name));
+    } catch {}
   }, []);
 
   const handleSelect = useCallback(async (icon: AppIconDef) => {
@@ -89,8 +99,7 @@ export default function AppIconsScreen() {
       return;
     }
     try {
-      const setFn = AlternateIcons.setAlternateAppIcon ?? AlternateIcons.setAppIcon;
-      await setFn(icon.id === 'dark_purple' ? null : icon.id);
+      await AlternateIcons.setAlternateAppIcon(icon.id === 'dark_purple' ? null : toPascalCase(icon.id));
       setActiveIcon(icon.id);
     } catch (e: any) {
       Alert.alert('Could not change icon', e?.message ?? 'Unknown error');

@@ -7,7 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "scheme": "songmatch",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -69,29 +69,92 @@
       ],
       [
         "expo-alternate-app-icons",
-        {
-          "warm_light": "./assets/icons/warm_light.png",
-          "neon_green": "./assets/icons/neon_green.png",
-          "neon_pink": "./assets/icons/neon_pink.png",
-          "neon_cyan": "./assets/icons/neon_cyan.png",
-          "neon_orange": "./assets/icons/neon_orange.png",
-          "indigo_violet": "./assets/icons/indigo_violet.png",
-          "pink_coral": "./assets/icons/pink_coral.png",
-          "ocean_blue": "./assets/icons/ocean_blue.png",
-          "mint_teal": "./assets/icons/mint_teal.png",
-          "stealth_black": "./assets/icons/stealth_black.png",
-          "pure_white": "./assets/icons/pure_white.png",
-          "grape_solid": "./assets/icons/grape_solid.png",
-          "midnight_navy": "./assets/icons/midnight_navy.png",
-          "gold_black": "./assets/icons/gold_black.png",
-          "all_gold": "./assets/icons/all_gold.png",
-          "chrome_silver": "./assets/icons/chrome_silver.png",
-          "black_gold_border": "./assets/icons/black_gold_border.png",
-          "lavender": "./assets/icons/lavender.png",
-          "baby_pink": "./assets/icons/baby_pink.png",
-          "sage_green": "./assets/icons/sage_green.png",
-          "butter_yellow": "./assets/icons/butter_yellow.png"
-        }
+        [
+          {
+            "name": "WarmLight",
+            "ios": "./assets/icons/warm_light.png"
+          },
+          {
+            "name": "NeonGreen",
+            "ios": "./assets/icons/neon_green.png"
+          },
+          {
+            "name": "NeonPink",
+            "ios": "./assets/icons/neon_pink.png"
+          },
+          {
+            "name": "NeonCyan",
+            "ios": "./assets/icons/neon_cyan.png"
+          },
+          {
+            "name": "NeonOrange",
+            "ios": "./assets/icons/neon_orange.png"
+          },
+          {
+            "name": "IndigoViolet",
+            "ios": "./assets/icons/indigo_violet.png"
+          },
+          {
+            "name": "PinkCoral",
+            "ios": "./assets/icons/pink_coral.png"
+          },
+          {
+            "name": "OceanBlue",
+            "ios": "./assets/icons/ocean_blue.png"
+          },
+          {
+            "name": "MintTeal",
+            "ios": "./assets/icons/mint_teal.png"
+          },
+          {
+            "name": "StealthBlack",
+            "ios": "./assets/icons/stealth_black.png"
+          },
+          {
+            "name": "PureWhite",
+            "ios": "./assets/icons/pure_white.png"
+          },
+          {
+            "name": "GrapeSolid",
+            "ios": "./assets/icons/grape_solid.png"
+          },
+          {
+            "name": "MidnightNavy",
+            "ios": "./assets/icons/midnight_navy.png"
+          },
+          {
+            "name": "GoldBlack",
+            "ios": "./assets/icons/gold_black.png"
+          },
+          {
+            "name": "AllGold",
+            "ios": "./assets/icons/all_gold.png"
+          },
+          {
+            "name": "ChromeSilver",
+            "ios": "./assets/icons/chrome_silver.png"
+          },
+          {
+            "name": "BlackGoldBorder",
+            "ios": "./assets/icons/black_gold_border.png"
+          },
+          {
+            "name": "Lavender",
+            "ios": "./assets/icons/lavender.png"
+          },
+          {
+            "name": "BabyPink",
+            "ios": "./assets/icons/baby_pink.png"
+          },
+          {
+            "name": "SageGreen",
+            "ios": "./assets/icons/sage_green.png"
+          },
+          {
+            "name": "ButterYellow",
+            "ios": "./assets/icons/butter_yellow.png"
+          }
+        ]
       ]
     ],
     "extra": {
