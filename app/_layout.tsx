@@ -18,8 +18,6 @@ import { sampleLikedSeeds } from '../src/utils/sampleLikedSeeds';
 import { ONBOARDING_KEY } from './onboarding';
 import { useReferral } from '../src/hooks/useReferral';
 
-}
-
 async function prefetchRecommendations() {
   const { likedTracks, seenTrackIds, artistSkipCounts, appendQueue } =
     useDeckStore.getState();
