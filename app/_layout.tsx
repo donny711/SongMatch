@@ -18,6 +18,14 @@ import { sampleLikedSeeds } from '../src/utils/sampleLikedSeeds';
 import { ONBOARDING_KEY } from './onboarding';
 import { useReferral } from '../src/hooks/useReferral';
 
+// Initialize Google Mobile Ads SDK manually (auto-init disabled to prevent native crash)
+function initAds() {
+  try {
+    const { default: mobileAds } = require('react-native-google-mobile-ads');
+    mobileAds().initialize().catch(() => {});
+  } catch {}
+}
+
 async function prefetchRecommendations() {
   const { likedTracks, seenTrackIds, artistSkipCounts, appendQueue } =
     useDeckStore.getState();
@@ -85,6 +93,7 @@ export default function RootLayout() {
   useReferral();
 
   useEffect(() => {
+    initAds();
     (async () => {
       await loadSettings();
       await useAuthStore.getState().loadPlatforms();
