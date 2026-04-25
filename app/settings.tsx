@@ -34,13 +34,6 @@ const BANNER_AD_UNIT_ID = Platform.select({
 
 function SettingsBanner() {
   if (!ADS_AVAILABLE) return null;
-  try {
-    const { BannerAd, BannerAdSize } = require('react-native-google-mobile-ads');
-    return (
-      <View style={{ alignItems: 'center', paddingVertical: SPACING.sm }}>
-        <BannerAd unitId={BANNER_AD_UNIT_ID} size={BannerAdSize.BANNER} />
-      </View>
-    );
   } catch {
     return null;
   }

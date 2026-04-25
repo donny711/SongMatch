@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
 
@@ -17,35 +17,6 @@ export function useInterstitialAd() {
 
   const loadAd = useCallback(() => {
     if (!ADS_AVAILABLE) return;
-    setStatus('loading');
-
-    const {
-      InterstitialAd,
-      AdEventType,
-    } = require('react-native-google-mobile-ads');
-
-    const interstitial = InterstitialAd.createForAdRequest(AD_UNIT_ID, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    const unsubLoaded = interstitial.addAdEventListener(AdEventType.LOADED, () => {
-      setStatus('ready');
-    });
-
-    const unsubClosed = interstitial.addAdEventListener(AdEventType.CLOSED, () => {
-      unsubLoaded();
-      unsubClosed();
-      unsubError();
-      adRef.current = null;
-      loadAd(); // pre-load next
-    });
-
-    const unsubError = interstitial.addAdEventListener(AdEventType.ERROR, () => {
-      setStatus('error');
-    });
-
-    interstitial.load();
-    adRef.current = interstitial;
   }, []);
 
   useEffect(() => {

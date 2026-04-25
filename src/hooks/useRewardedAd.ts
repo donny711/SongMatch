@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import { grantAdReward } from '../firebase/profileService';
 import { useProfileStore } from '../store/profileStore';
 import { useToastStore } from '../store/toastStore';
@@ -25,50 +25,6 @@ export function useRewardedAd() {
 
   const loadAd = useCallback(() => {
     if (!ADS_AVAILABLE) return;
-    setStatus('loading');
-
-    // Dynamic require so the module is never imported in Expo Go
-    const {
-      RewardedAd,
-      RewardedAdEventType,
-      AdEventType,
-    } = require('react-native-google-mobile-ads');
-
-    const rewarded = RewardedAd.createForAdRequest(AD_UNIT_ID, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    const unsubLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => {
-      setStatus('ready');
-    });
-
-    const unsubEarned = rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, async () => {
-      if (!uid) return;
-      try {
-        const result = await grantAdReward(uid);
-        if (result.granted) {
-          useToastStore.getState().push(30, 'Ad Reward');
-        }
-      } catch {
-        // Non-critical
-      }
-    });
-
-    const unsubClosed = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
-      unsubLoaded();
-      unsubEarned();
-      unsubClosed();
-      unsubError();
-      setAd(null);
-      loadAd(); // pre-load next
-    });
-
-    const unsubError = rewarded.addAdEventListener(AdEventType.ERROR, () => {
-      setStatus('error');
-    });
-
-    rewarded.load();
-    setAd(rewarded);
   }, [uid]);
 
   useEffect(() => {

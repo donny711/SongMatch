@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 
 const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
 
@@ -21,27 +21,6 @@ export function useSwipeGateAd(onRewarded: () => void) {
 
   const loadAd = useCallback(() => {
     if (!ADS_AVAILABLE) return;
-    setStatus('loading');
-
-    const { RewardedAd, RewardedAdEventType, AdEventType } = require('react-native-google-mobile-ads');
-
-    const rewarded = RewardedAd.createForAdRequest(AD_UNIT_ID, {
-      requestNonPersonalizedAdsOnly: false,
-    });
-
-    const unsubLoaded = rewarded.addAdEventListener(RewardedAdEventType.LOADED, () => setStatus('ready'));
-    const unsubEarned = rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-      onRewardedRef.current();
-    });
-    const unsubClosed = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
-      unsubLoaded(); unsubEarned(); unsubClosed(); unsubError();
-      setAd(null);
-      loadAd();
-    });
-    const unsubError = rewarded.addAdEventListener(AdEventType.ERROR, () => setStatus('error'));
-
-    rewarded.load();
-    setAd(rewarded);
   }, []);
 
   useEffect(() => { loadAd(); }, []);
