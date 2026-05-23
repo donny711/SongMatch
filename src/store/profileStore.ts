@@ -21,7 +21,7 @@ import {
 } from '../firebase/profileService';
 import { MILESTONE_MAP } from '../data/milestones';
 import type { DeezerTrack } from '../api/types';
-import { uploadProfileImage, uploadGifBackground } from '../firebase/storageService';
+import { uploadProfileImage, uploadGifBackground, deleteProfileImage } from '../firebase/storageService';
 
 interface ProfileState {
   uid: string | null;
@@ -53,6 +53,7 @@ interface ProfileState {
   updateDisplayName: (name: string) => Promise<void>;
   uploadAvatar: (localUri: string) => Promise<void>;
   uploadBanner: (localUri: string) => Promise<void>;
+  removeAvatar: () => Promise<void>;
   removeBanner: () => Promise<void>;
   uploadGifBg: (localUri: string) => Promise<void>;
   removeGifBg: () => Promise<void>;
@@ -228,11 +229,20 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     await updateProfileFields(uid, { bannerUrl: publicUrl });
   },
 
+  removeAvatar: async () => {
+    const { uid, avatarUrl } = get();
+    if (!uid) return;
+    set({ avatarUrl: null });
+    await updateProfileFields(uid, { avatarUrl: null });
+    if (avatarUrl) deleteProfileImage(avatarUrl).catch(() => {});
+  },
+
   removeBanner: async () => {
-    const { uid } = get();
+    const { uid, bannerUrl } = get();
     if (!uid) return;
     set({ bannerUrl: null });
     await updateProfileFields(uid, { bannerUrl: null });
+    if (bannerUrl) deleteProfileImage(bannerUrl).catch(() => {});
   },
 
   uploadGifBg: async (localUri) => {
@@ -244,10 +254,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   },
 
   removeGifBg: async () => {
-    const { uid } = get();
+    const { uid, gifBgUrl } = get();
     if (!uid) return;
     set({ gifBgUrl: null });
     await updateProfileFields(uid, { gifBgUrl: null });
+    if (gifBgUrl) deleteProfileImage(gifBgUrl).catch(() => {});
   },
 
   grantMilestone: async (milestoneId) => {

@@ -405,6 +405,179 @@ function MoltenBackground({ item, height }: { item: ShopItem; height: number }) 
 }
 
 
+
+// Sweep: deep gradient breathes diagonally back and forth
+function SweepBackground({ item, height }: { item: ShopItem; height: number }) {
+  const progress = useSharedValue(0);
+  useFocusEffect(
+    React.useCallback(() => {
+      progress.value = withRepeat(withTiming(1, { duration: 4500, easing: Easing.inOut(Easing.sin) }), -1, true);
+      return () => { cancelAnimation(progress); progress.value = 0; };
+    }, []),
+  );
+  const overlayStyle = useAnimatedStyle(() => ({ opacity: 0.2 + 0.5 * progress.value }));
+  const c1 = item.colors[0] ?? '#0D0521';
+  const c2 = item.colors[1] ?? '#1E0A4E';
+  const c3 = item.colors[2] ?? c2;
+  return (
+    <View style={{ width: SCREEN_WIDTH, height, overflow: 'hidden' }}>
+      <LinearGradient
+        colors={[c1, c2] as [string, string]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, overlayStyle]}>
+        <LinearGradient
+          colors={[c3, c1] as [string, string]}
+          start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+    </View>
+  );
+}
+
+// Wave: centered waveform bars pulse symmetrically from the middle
+function WaveBar({ progress, phase, x, barW, maxH, color, containerH }: {
+  progress: SharedValue<number>; phase: number; x: number; barW: number;
+  maxH: number; color: string; containerH: number;
+}) {
+  const style = useAnimatedStyle(() => {
+    'worklet';
+    const norm = (Math.sin(progress.value * Math.PI * 2 + phase) + 1) / 2;
+    const h = Math.max(4, norm * maxH);
+    return { height: h, top: containerH / 2 - h / 2 };
+  });
+  return (
+    <Animated.View style={[{ position: 'absolute', left: x, width: barW, borderRadius: barW / 2, backgroundColor: color }, style]} />
+  );
+}
+
+function WaveBackground({ item, height }: { item: ShopItem; height: number }) {
+  const progress = useSharedValue(0);
+  useFocusEffect(
+    React.useCallback(() => {
+      progress.value = withRepeat(withTiming(1, { duration: 1600, easing: Easing.linear }), -1);
+      return () => { cancelAnimation(progress); progress.value = 0; };
+    }, []),
+  );
+  const BAR_COUNT = 28;
+  const BAR_W = 7;
+  const GAP = (SCREEN_WIDTH - BAR_COUNT * BAR_W) / (BAR_COUNT + 1);
+  const c1 = item.colors[0] ?? '#7C3AED';
+  const c2 = item.colors[1] ?? '#A855F7';
+  const bars = React.useMemo(() =>
+    Array.from({ length: BAR_COUNT }, (_, i) => ({
+      phase: (i / BAR_COUNT) * Math.PI * 2,
+      color: i % 2 === 0 ? c1 : c2,
+      x: GAP + i * (BAR_W + GAP),
+    })),
+  [c1, c2]);
+  return (
+    <View style={{ width: SCREEN_WIDTH, height, overflow: 'hidden', backgroundColor: '#040408' }}>
+      {bars.map((b, i) => (
+        <WaveBar key={i} progress={progress} phase={b.phase} x={b.x} barW={BAR_W} maxH={height * 0.7} color={b.color} containerH={height} />
+      ))}
+    </View>
+  );
+}
+
+// Float: soft orbs drift slowly through the dark
+function FloatOrb({ x, y, size, color, driftX, driftY, duration }: {
+  x: number; y: number; size: number; color: string; driftX: number; driftY: number; duration: number;
+}) {
+  const tx = useSharedValue(0);
+  const ty = useSharedValue(0);
+  useFocusEffect(
+    React.useCallback(() => {
+      tx.value = withRepeat(withSequence(
+        withTiming(driftX, { duration, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration, easing: Easing.inOut(Easing.sin) }),
+      ), -1);
+      ty.value = withRepeat(withSequence(
+        withTiming(driftY, { duration: duration * 1.15, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: duration * 1.15, easing: Easing.inOut(Easing.sin) }),
+      ), -1);
+      return () => { cancelAnimation(tx); cancelAnimation(ty); tx.value = 0; ty.value = 0; };
+    }, []),
+  );
+  const style = useAnimatedStyle(() => ({ transform: [{ translateX: tx.value }, { translateY: ty.value }] }));
+  return (
+    <Animated.View style={[{
+      position: 'absolute', left: x - size / 2, top: y - size / 2,
+      width: size, height: size, borderRadius: size / 2,
+      backgroundColor: color, opacity: 0.35,
+    }, style]} />
+  );
+}
+
+function FloatBackground({ item, height }: { item: ShopItem; height: number }) {
+  const c1 = item.colors[0] ?? '#0D0521';
+  const c2 = item.colors[1] ?? '#4C1D95';
+  const c3 = item.colors[2] ?? c2;
+  const orbs = React.useMemo(() => [
+    { x: SCREEN_WIDTH * 0.20, y: height * 0.25, size: height * 0.75, color: c2, driftX: 18, driftY: -10, duration: 9000 },
+    { x: SCREEN_WIDTH * 0.75, y: height * 0.60, size: height * 0.85, color: c3, driftX: -20, driftY: 14, duration: 11000 },
+    { x: SCREEN_WIDTH * 0.50, y: height * 0.10, size: height * 0.55, color: c2, driftX: 12, driftY: 16, duration: 7500 },
+    { x: SCREEN_WIDTH * 0.30, y: height * 0.75, size: height * 0.60, color: c3, driftX: -14, driftY: -8, duration: 10000 },
+  ], [height, c2, c3]);
+  return (
+    <View style={{ width: SCREEN_WIDTH, height, overflow: 'hidden', backgroundColor: c1 }}>
+      {orbs.map((orb, i) => <FloatOrb key={i} {...orb} />)}
+    </View>
+  );
+}
+
+// Combo: gradient base with waveform bars layered on top
+function ComboBackground({ item, height }: { item: ShopItem; height: number }) {
+  const progress = useSharedValue(0);
+  const sweep = useSharedValue(0);
+  useFocusEffect(
+    React.useCallback(() => {
+      progress.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.linear }), -1);
+      sweep.value = withRepeat(withTiming(1, { duration: 5000, easing: Easing.inOut(Easing.sin) }), -1, true);
+      return () => {
+        cancelAnimation(progress); cancelAnimation(sweep);
+        progress.value = 0; sweep.value = 0;
+      };
+    }, []),
+  );
+  const overlayStyle = useAnimatedStyle(() => ({ opacity: 0.2 + 0.4 * sweep.value }));
+  const BAR_COUNT = 28;
+  const BAR_W = 6;
+  const GAP = (SCREEN_WIDTH - BAR_COUNT * BAR_W) / (BAR_COUNT + 1);
+  const c1 = item.colors[0] ?? '#06030F';
+  const c2 = item.colors[1] ?? '#2D1B69';
+  const c3 = item.colors[2] ?? '#7C3AED';
+  const c4 = item.colors[3] ?? c3;
+  const bars = React.useMemo(() =>
+    Array.from({ length: BAR_COUNT }, (_, i) => ({
+      phase: (i / BAR_COUNT) * Math.PI * 2,
+      color: (i % 2 === 0 ? c3 : c4) + '70',
+      x: GAP + i * (BAR_W + GAP),
+    })),
+  [c3, c4]);
+  return (
+    <View style={{ width: SCREEN_WIDTH, height, overflow: 'hidden' }}>
+      <LinearGradient
+        colors={[c1, c2] as [string, string]}
+        start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      <Animated.View style={[{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }, overlayStyle]}>
+        <LinearGradient
+          colors={[c3 + '40', c1] as [string, string]}
+          start={{ x: 1, y: 0 }} end={{ x: 0, y: 1 }}
+          style={{ flex: 1 }}
+        />
+      </Animated.View>
+      {bars.map((b, i) => (
+        <WaveBar key={i} progress={progress} phase={b.phase} x={b.x} barW={BAR_W} maxH={height * 0.6} color={b.color} containerH={height} />
+      ))}
+    </View>
+  );
+}
+
 // ── Nebula: twinkling starfield with drifting gas clouds ──────────────────────
 
 const NEBULA_STARS: ReadonlyArray<{ px: number; py: number; sz: number; op: number; phase: number }> = [
@@ -612,6 +785,10 @@ export function ProfileBackground({ backgroundId, height }: Props) {
     case 'inferno': return <InfernoBackground item={item} height={height} />;
     case 'frost':   return <FrostBackground item={item} height={height} />;
     case 'molten':  return <MoltenBackground item={item} height={height} />;
+    case 'sweep':  return <SweepBackground item={item} height={height} />;
+    case 'wave':   return <WaveBackground item={item} height={height} />;
+    case 'float':  return <FloatBackground item={item} height={height} />;
+    case 'combo':  return <ComboBackground item={item} height={height} />;
     default: return null;
   }
 }
