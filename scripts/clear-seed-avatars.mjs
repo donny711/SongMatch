@@ -6,14 +6,9 @@
 
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, writeBatch } from 'firebase/firestore';
+import { firebaseConfig } from './firebase-config.mjs';
 
-const app = initializeApp({
-  apiKey: 'AIzaSyDs-YfseH3oC3cecffoqZFI1sHGivUeb5E',
-  authDomain: 'soundmatch-d5496.firebaseapp.com',
-  projectId: 'soundmatch-d5496',
-  messagingSenderId: '794930413474',
-  appId: '1:794930413474:web:d045f6ec46952fd7547cfb',
-});
+const app = initializeApp(firebaseConfig);
 
 const db = getFirestore(app);
 
