@@ -18,20 +18,29 @@ import { sampleLikedSeeds } from '../src/utils/sampleLikedSeeds';
 import { ONBOARDING_KEY } from './onboarding';
 import { useReferral } from '../src/hooks/useReferral';
 
-// Capture fatal JS errors before they crash on iOS 26 via the TurboModule path.
-// We log the error to console (visible in device logs) and attempt an AsyncStorage
-// write before calling the original handler.
+// iOS 26 crash prevention: fatal JS errors that reach RCTExceptionsManager.reportFatal
+// throw an ObjC exception that crosses the TurboModule C++ boundary and calls
+// std::terminate. We intercept here BEFORE that path. For fatal errors we log
+// and write to AsyncStorage, then skip the original handler (which would crash).
+// Non-fatal errors still go to the original handler. On next launch the captured
+// error is surfaced so we can diagnose the root cause.
 try {
   const _origHandler = (global as any).ErrorUtils?.getGlobalHandler?.();
   if (_origHandler) {
     (global as any).ErrorUtils.setGlobalHandler((error: unknown, isFatal: boolean) => {
       const msg = (error as Error)?.message ?? String(error);
-      const stack = ((error as Error)?.stack ?? '').slice(0, 1500);
-      // Fire-and-forget: native logging buffers may survive the abort
-      console.error('[SM-FATAL]', msg, stack);
+      const stack = ((error as Error)?.stack ?? '').slice(0, 2000);
+      console.error('[SM-ERROR]', isFatal ? 'FATAL' : 'non-fatal', msg);
+      console.error('[SM-ERROR-STACK]', stack);
       AsyncStorage.setItem('__sm_last_error', JSON.stringify({
         message: msg, stack, isFatal, at: new Date().toISOString(),
       })).catch(() => {});
+      if (isFatal) {
+        // Do NOT call origHandler for fatal errors on iOS 26 — it triggers
+        // RCTFatal → ObjC exception → TurboModule std::terminate → SIGABRT.
+        // The app continues running (possibly in a degraded state) instead of crashing.
+        return;
+      }
       _origHandler(error, isFatal);
     });
   }
