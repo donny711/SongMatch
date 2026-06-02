@@ -24,6 +24,7 @@ import { useSwipeGateAd } from '../../src/hooks/useSwipeGateAd';
 import { COLORS, SPACING, RADIUS, GLOW } from '../../src/theme';
 import type { RecommendationCard } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
+import { todayISO } from '../../src/utils/dateUtils';
 
 type Tab = 'foryou' | 'friends';
 
@@ -102,7 +103,7 @@ export default function HomeScreen() {
       if (!raw) return;
       try {
         const { count, date } = JSON.parse(raw);
-        if (date === new Date().toISOString().slice(0, 10)) {
+        if (date === todayISO()) {
           dailySwipeCountRef.current = count;
         }
       } catch {}
@@ -216,7 +217,7 @@ export default function HomeScreen() {
     if (isPro) return;
 
     // Daily limit check
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayISO();
     dailySwipeCountRef.current += 1;
     AsyncStorage.setItem(DAILY_SWIPE_KEY, JSON.stringify({ count: dailySwipeCountRef.current, date: today })).catch(() => {});
 
@@ -231,7 +232,6 @@ export default function HomeScreen() {
     setSwipesSinceGate((prev) => {
       const next = prev + 1;
       if (next >= SWIPE_GATE_LIMIT) {
-        stopAudio();
         setGateVisible(true);
         return 0;
       }

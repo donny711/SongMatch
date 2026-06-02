@@ -6,18 +6,19 @@ import {
   saveSubscriptionToFirestore,
   type SubscriptionRecord,
 } from '../firebase/subscriptionService';
+import { todayISO } from '../utils/dateUtils';
 
 const RC_AVAILABLE = !!NativeModules.RNPurchases;
 
-const DAILY_SEARCH_KEY = 'songmatch_daily_searches_v7';
+const DAILY_SEARCH_KEY = 'songmatch_daily_searches_v12';
 const FREE_DAILY_LIMIT = 5;
 const REWARDED_BONUS = 2;
 
 // RevenueCat product IDs — must match App Store Connect & RevenueCat dashboard
 export const RC_PRODUCTS = {
-  monthly: 'songmatch_pro_monthly',
-  quarterly: 'songmatch_pro_quarterly',
-  annual: 'songmatch_pro_annual',
+  monthly: 'soundmatch_pro_monthly',
+  quarterly: 'soundmatch_pro_quarterly',
+  annual: 'soundmatch_pro_annual',
 } as const;
 
 export type ProTier = 'monthly' | 'quarterly' | 'annual';
@@ -51,10 +52,6 @@ interface SubscriptionState {
   syncFromFirestore: (uid: string) => Promise<void>;
 }
 
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 async function loadDailyState(): Promise<DailySearchState> {
   const today = todayISO();
@@ -108,7 +105,7 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
             android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '',
             default: '',
           })!;
-          if (apiKey) {
+          if (apiKey && !Purchases.isConfigured) {
             await Purchases.configure({ apiKey, appUserID: uid });
             const info = await Purchases.getCustomerInfo();
             const activeEntitlements = info.entitlements.active;

@@ -40,6 +40,10 @@ interface LikedTrackPreview {
   coverUrl: string;
 }
 
+function fmtN(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export default function UserProfileScreen() {
   const { uid } = useLocalSearchParams<{ uid: string }>();
   const insets = useSafeAreaInsets();
@@ -196,7 +200,7 @@ export default function UserProfileScreen() {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statBox}>
-            <Text style={[styles.statNumber, { color: COLORS.purple }]}>{profile.points ?? 0}</Text>
+            <Text style={[styles.statNumber, { color: COLORS.purple }]}>{fmtN(profile.points ?? 0)}</Text>
             <View style={styles.statMeta}>
               <Ionicons name="sparkles" size={13} color={COLORS.purple} />
               <Text style={styles.statLabel}>Points</Text>

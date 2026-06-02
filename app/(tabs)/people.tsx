@@ -76,6 +76,10 @@ function SegmentBar({ active, onChange }: { active: Segment; onChange: (s: Segme
 
 // ── Feed segment ──────────────────────────────────────────────────────────────
 
+function fmtN(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function FeedSegment() {
   const { data: items = [], isLoading, refetch, isFetching } = useFeed();
 
@@ -442,7 +446,7 @@ function LeaderboardSegment() {
       {myUid && field !== 'invites' && (
         <View style={styles.myRankPill}>
           <Text style={styles.myRankText}>
-            {myRank > 0 ? `#${myRank}` : 'Unranked'} — {myValue.toLocaleString()}{' '}
+            {myRank > 0 ? `#${myRank}` : 'Unranked'} — {fmtN(myValue)}{' '}
             {field === 'points' ? 'pts' : field === 'currentStreak' ? 'day streak' : 'liked'}
           </Text>
         </View>

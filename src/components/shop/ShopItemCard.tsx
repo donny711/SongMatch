@@ -95,6 +95,10 @@ function ItemPreview({ item }: { item: ShopItem }) {
   );
 }
 
+function fmtN(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function ShopItemCard({ item, owned, equipped, canAfford, onPress }: Props) {
   const rarityColor = RARITY_COLORS[item.rarity];
 
@@ -136,7 +140,7 @@ export function ShopItemCard({ item, owned, equipped, canAfford, onPress }: Prop
         <View style={[styles.chip, canAfford ? styles.chipBuy : styles.chipCantAfford]}>
           <Ionicons name="diamond" size={10} color={canAfford ? '#22D3EE' : COLORS.textMuted} />
           <Text style={[styles.chipText, { color: canAfford ? '#22D3EE' : COLORS.textMuted }]}>
-            {item.cost.toLocaleString()}
+            {fmtN(item.cost)}
           </Text>
         </View>
       )}

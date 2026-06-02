@@ -86,18 +86,18 @@ export default function ShopScreen() {
     if (points < item.cost) {
       Alert.alert(
         'Not enough MatchPoints',
-        `You need ${(item.cost - points).toLocaleString()} more MP to unlock ${item.name}.`
+        `You need ${(item.cost - points).toLocaleString('en-US')} more MP to unlock ${item.name}.`
       );
       return;
     }
 
     Alert.alert(
       `Buy ${item.name}?`,
-      `This will cost ${item.cost.toLocaleString()} MP. You have ${points.toLocaleString()} MP.`,
+      `This will cost ${item.cost.toLocaleString('en-US')} MP. You have ${points.toLocaleString('en-US')} MP.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: `Buy for ${item.cost.toLocaleString()} MP`,
+          text: `Buy for ${item.cost.toLocaleString('en-US')} MP`,
           onPress: async () => {
             setPurchasing(item.id);
             try {
@@ -194,7 +194,7 @@ export default function ShopScreen() {
                     {rank.label}
                   </Text>
                   <Text style={styles.rankRowReq}>
-                    {rank.minLikes === 0 ? 'Starting rank' : `${rank.minLikes.toLocaleString()} likes required`}
+                    {rank.minLikes === 0 ? 'Starting rank' : `${rank.minLikes.toLocaleString('en-US')} likes required`}
                   </Text>
                   <Text style={styles.rankRowTime}>{rank.timeEstimate}</Text>
                 </View>

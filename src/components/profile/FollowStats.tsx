@@ -9,6 +9,10 @@ interface Props {
   followingCount: number;
 }
 
+function fmtN(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function FollowStats({ uid, followerCount, followingCount }: Props) {
   return (
     <View style={styles.row}>
@@ -17,7 +21,7 @@ export function FollowStats({ uid, followerCount, followingCount }: Props) {
         onPress={() => router.push(`/followers?uid=${uid}`)}
         activeOpacity={0.75}
       >
-        <Text style={styles.count}>{followerCount.toLocaleString()}</Text>
+        <Text style={styles.count}>{fmtN(followerCount)}</Text>
         <Text style={styles.label}>Followers</Text>
       </TouchableOpacity>
       <View style={styles.divider} />
@@ -26,7 +30,7 @@ export function FollowStats({ uid, followerCount, followingCount }: Props) {
         onPress={() => router.push(`/following?uid=${uid}`)}
         activeOpacity={0.75}
       >
-        <Text style={styles.count}>{followingCount.toLocaleString()}</Text>
+        <Text style={styles.count}>{fmtN(followingCount)}</Text>
         <Text style={styles.label}>Following</Text>
       </TouchableOpacity>
     </View>

@@ -129,7 +129,6 @@ export function StreakCelebration() {
   const [displayed, setDisplayed] = useState(fromRef.current);
 
   const visible = streakAnimFrom !== null && currentStreak > streakAnimFrom;
-  if (visible) console.log('[StreakCelebration] visible=true', { streakAnimFrom, currentStreak });
 
   // Shared values
   const contentOpacity = useSharedValue(0);

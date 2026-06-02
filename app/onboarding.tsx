@@ -144,9 +144,9 @@ export default function OnboardingScreen() {
       const uid = auth.currentUser?.uid;
       if (uid) {
         if (codeType === 'affiliate') {
-          recordAffiliateInstall(uid, referralCode);
+          recordAffiliateInstall(uid, referralCode).catch(() => {});
         } else {
-          recordReferralInstall(uid, referralCode);
+          recordReferralInstall(uid, referralCode).catch(() => {});
         }
       }
     }

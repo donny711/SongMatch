@@ -14,6 +14,11 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { SWIPE_THRESHOLD, SWIPE_VELOCITY_THRESHOLD } from '../../utils/constants';
 import SwipeIndicators from './SwipeIndicators';
 import { swipeConfirm } from '../../utils/haptics';
+import { usePlayerStore } from '../../store/playerStore';
+
+function stopCurrentAudio() {
+  usePlayerStore.getState().setActivePreviewUri(null);
+}
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -51,6 +56,7 @@ const SwipeCard = forwardRef<SwipeCardRef, Props>(
     const flyOut = (direction: 'left' | 'right', callback: () => void) => {
       'worklet';
       runOnJS(swipeConfirm)();
+      runOnJS(stopCurrentAudio)();
       translateX.value = withSpring(
         direction === 'right' ? SCREEN_WIDTH * 1.6 : -SCREEN_WIDTH * 1.6,
         { damping: 22, stiffness: 200, mass: 0.9 },
@@ -59,8 +65,8 @@ const SwipeCard = forwardRef<SwipeCardRef, Props>(
     };
 
     useImperativeHandle(ref, () => ({
-      swipeLeft: () => flyOut('left', onSwipeLeft),
-      swipeRight: () => flyOut('right', onSwipeRight),
+      swipeLeft: () => { stopCurrentAudio(); flyOut('left', onSwipeLeft); },
+      swipeRight: () => { stopCurrentAudio(); flyOut('right', onSwipeRight); },
     }));
 
     const pan = Gesture.Pan()

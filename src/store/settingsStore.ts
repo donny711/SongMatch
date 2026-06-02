@@ -36,10 +36,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   load: async () => {
     const raw = await AsyncStorage.getItem(SETTINGS_KEY);
     if (!raw) return;
-    const saved = JSON.parse(raw);
-    set({
-      genreShiftAfter: saved.genreShiftAfter ?? 5,
-      autoPlayPreviews: saved.autoPlayPreviews ?? true,
-    });
+    try {
+      const saved = JSON.parse(raw);
+      set({
+        genreShiftAfter: saved.genreShiftAfter ?? 5,
+        autoPlayPreviews: saved.autoPlayPreviews ?? true,
+      });
+    } catch {}
   },
 }));

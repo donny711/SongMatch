@@ -1,6 +1,34 @@
+import { File, Paths } from 'expo-file-system';
+import { copyAsync, deleteAsync } from 'expo-file-system/legacy';
 import { supabase, STORAGE_BUCKET } from '../supabase/config';
 
 type ImageType = 'avatar' | 'banner' | 'gif-bg';
+
+async function toFileUri(uri: string, ext: string): Promise<string> {
+  if (uri.startsWith('file://')) return uri;
+  const dest = new File(Paths.cache, `${Date.now()}.${ext}`);
+  await copyAsync({ from: uri, to: dest.uri });
+  return dest.uri;
+}
+
+async function xhrUpload(
+  signedUrl: string,
+  fileUri: string,
+  contentType: string
+): Promise<void> {
+  const buffer = await new File(fileUri).arrayBuffer();
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', signedUrl);
+    xhr.setRequestHeader('Content-Type', contentType);
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else reject(new Error(`Upload failed: ${xhr.status} ${xhr.responseText}`));
+    };
+    xhr.onerror = () => reject(new Error('XHR network error'));
+    xhr.send(buffer);
+  });
+}
 
 export async function uploadProfileImage(
   uid: string,
@@ -10,18 +38,18 @@ export async function uploadProfileImage(
   const timestamp = Date.now();
   const path = `${type}s/${uid}/${timestamp}.jpg`;
 
-  // FormData is the reliable way to upload local file:// URIs in React Native
-  const formData = new FormData();
-  formData.append('file', { uri: localUri, name: `${timestamp}.jpg`, type: 'image/jpeg' } as any);
-
-  const { error } = await supabase.storage
+  const { data: signed, error: signErr } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .upload(path, formData, {
-      contentType: 'image/jpeg',
-      upsert: false,
-    });
+    .createSignedUploadUrl(path);
+  if (signErr) throw new Error(`Signed URL failed: ${signErr.message}`);
 
-  if (error) throw new Error(`Upload failed: ${error.message}`);
+  const isTemp = !localUri.startsWith('file://');
+  const fileUri = await toFileUri(localUri, 'jpg');
+  try {
+    await xhrUpload(signed.signedUrl, fileUri, 'image/jpeg');
+  } finally {
+    if (isTemp) deleteAsync(fileUri, { idempotent: true }).catch(() => {});
+  }
 
   const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
   return data.publicUrl;
@@ -31,14 +59,18 @@ export async function uploadGifBackground(uid: string, localUri: string): Promis
   const timestamp = Date.now();
   const path = `gif-backgrounds/${uid}/${timestamp}.gif`;
 
-  const formData = new FormData();
-  formData.append('file', { uri: localUri, name: `${timestamp}.gif`, type: 'image/gif' } as any);
-
-  const { error } = await supabase.storage
+  const { data: signed, error: signErr } = await supabase.storage
     .from(STORAGE_BUCKET)
-    .upload(path, formData, { contentType: 'image/gif', upsert: false });
+    .createSignedUploadUrl(path);
+  if (signErr) throw new Error(`Signed URL failed: ${signErr.message}`);
 
-  if (error) throw new Error(`Upload failed: ${error.message}`);
+  const isTemp = !localUri.startsWith('file://');
+  const fileUri = await toFileUri(localUri, 'gif');
+  try {
+    await xhrUpload(signed.signedUrl, fileUri, 'image/gif');
+  } finally {
+    if (isTemp) deleteAsync(fileUri, { idempotent: true }).catch(() => {});
+  }
 
   const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
   return data.publicUrl;

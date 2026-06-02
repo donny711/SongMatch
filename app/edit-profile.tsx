@@ -31,6 +31,7 @@ export default function EditProfileScreen() {
   const updateDisplayName = useProfileStore((s) => s.updateDisplayName);
   const updateUsername = useProfileStore((s) => s.updateUsername);
   const uploadAvatar = useProfileStore((s) => s.uploadAvatar);
+  const removeAvatarAction = useProfileStore((s) => s.removeAvatar);
   const uploadBanner = useProfileStore((s) => s.uploadBanner);
   const removeBannerAction = useProfileStore((s) => s.removeBanner);
   const gifBgUrl = useProfileStore((s) => s.gifBgUrl);
@@ -42,6 +43,7 @@ export default function EditProfileScreen() {
   const [usernameStatus, setUsernameStatus] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid'>('idle');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localAvatarUri, setLocalAvatarUri] = useState<string | null>(null);
+  const [avatarRemoved, setAvatarRemoved] = useState(false);
   const [localBannerUri, setLocalBannerUri] = useState<string | null>(null);
   const [bannerRemoved, setBannerRemoved] = useState(false);
   const [localGifUri, setLocalGifUri] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export default function EditProfileScreen() {
 
   useEffect(() => {
     if (!usernameChanged) { setUsernameStatus('idle'); return; }
-    if (usernameInput === '') { setUsernameStatus('idle'); return; }
+    if (usernameInput === '') { setUsernameStatus(currentUsername ? 'invalid' : 'idle'); return; }
     if (!USERNAME_RE.test(usernameInput)) { setUsernameStatus('invalid'); return; }
 
     setUsernameStatus('checking');
@@ -72,6 +74,7 @@ export default function EditProfileScreen() {
     usernameChanged ||
     localAvatarUri !== null ||
     localBannerUri !== null ||
+    avatarRemoved ||
     bannerRemoved ||
     localGifUri !== null ||
     gifRemoved;
@@ -131,7 +134,7 @@ export default function EditProfileScreen() {
       await Promise.all([
         trimmedName !== (displayName ?? '') ? updateDisplayName(trimmedName) : Promise.resolve(),
         usernameChanged && usernameInput ? updateUsername(usernameInput) : Promise.resolve(),
-        localAvatarUri ? uploadAvatar(localAvatarUri) : Promise.resolve(),
+        localAvatarUri ? uploadAvatar(localAvatarUri) : avatarRemoved ? removeAvatarAction() : Promise.resolve(),
         localBannerUri ? uploadBanner(localBannerUri) : bannerRemoved ? removeBannerAction() : Promise.resolve(),
         localGifUri ? uploadGifBg(localGifUri) : gifRemoved ? removeGifBgAction() : Promise.resolve(),
       ]);
@@ -143,7 +146,7 @@ export default function EditProfileScreen() {
     }
   };
 
-  const displayAvatarUri = localAvatarUri ?? avatarUrl;
+  const displayAvatarUri = avatarRemoved ? null : (localAvatarUri ?? avatarUrl);
   const displayBannerUri = localBannerUri ?? bannerUrl;
   const displayGifUri = gifRemoved ? null : (localGifUri ?? gifBgUrl);
 
@@ -204,6 +207,18 @@ export default function EditProfileScreen() {
             </View>
           </TouchableOpacity>
         </View>
+
+        {/* Remove avatar */}
+        {(displayAvatarUri) && !avatarRemoved && (
+          <TouchableOpacity
+            style={styles.removeBannerBtn}
+            onPress={() => { setLocalAvatarUri(null); setAvatarRemoved(true); }}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="trash-outline" size={15} color={COLORS.pink} />
+            <Text style={styles.removeBannerText}>Remove photo</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Display name */}
         <View style={styles.field}>

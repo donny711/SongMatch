@@ -9,6 +9,10 @@ interface Props {
   onPress?: () => void;
 }
 
+function fmtPts(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function MatchPointsDisplay({ points, size = 'sm', onPress }: Props) {
   const isLg = size === 'lg';
   const Wrap = onPress ? TouchableOpacity : View;
@@ -16,7 +20,7 @@ export function MatchPointsDisplay({ points, size = 'sm', onPress }: Props) {
     <Wrap onPress={onPress} activeOpacity={0.75} style={[styles.pill, isLg && styles.pillLg]}>
       <Ionicons name="diamond" size={isLg ? 16 : 12} color="#22D3EE" />
       <Text style={[styles.label, isLg && styles.labelLg]}>
-        {points.toLocaleString()}
+        {fmtPts(points)}
       </Text>
       <Text style={[styles.unit, isLg && styles.unitLg]}>MP</Text>
       {onPress && <Ionicons name="chevron-forward" size={10} color="rgba(34,211,238,0.5)" />}

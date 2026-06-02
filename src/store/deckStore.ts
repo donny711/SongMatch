@@ -181,6 +181,11 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       }));
       AsyncStorage.setItem(likedKey(userId), JSON.stringify(newLiked));
       AsyncStorage.setItem(statsKey(userId), JSON.stringify({ likedCount: newLikedCount, skippedCount }));
+      const { useProfileStore } = require('./profileStore');
+      const uid = useProfileStore.getState().uid;
+      if (uid) {
+        removeLikedTrackFromFirestore(uid, lastSwipedCard.track.id).catch(() => {});
+      }
     } else {
       const artistKey = lastSwipedCard.track.artist.name.toLowerCase();
       const newSkips = recentSkips.filter((t) => t.id !== lastSwipedCard.track.id);
@@ -214,11 +219,15 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       AsyncStorage.getItem(genresKey()),
       AsyncStorage.getItem(artistSkipsKey(userId)),
     ]);
-    const likedTracks: DeezerTrack[] = likedRaw ? JSON.parse(likedRaw) : [];
-    const recentSkips: DeezerTrack[] = skipsRaw ? JSON.parse(skipsRaw) : [];
-    const seenTrackIds: number[] = seenRaw ? JSON.parse(seenRaw) : [];
-    const onboardingGenres: string[] = genresRaw ? JSON.parse(genresRaw) : [];
-    let artistSkipCounts: Record<string, number> = artistSkipsRaw ? JSON.parse(artistSkipsRaw) : {};
+    function safeParse<T>(raw: string | null, fallback: T): T {
+      if (!raw) return fallback;
+      try { return JSON.parse(raw); } catch { return fallback; }
+    }
+    const likedTracks: DeezerTrack[] = safeParse(likedRaw, []);
+    const recentSkips: DeezerTrack[] = safeParse(skipsRaw, []);
+    const seenTrackIds: number[] = safeParse(seenRaw, []);
+    const onboardingGenres: string[] = safeParse(genresRaw, []);
+    let artistSkipCounts: Record<string, number> = safeParse(artistSkipsRaw, {});
     // Bootstrap from recentSkips the first time (migrates pre-feature skips)
     if (!artistSkipsRaw && recentSkips.length > 0) {
       for (const skip of recentSkips) {
@@ -227,9 +236,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       }
       AsyncStorage.setItem(artistSkipsKey(userId), JSON.stringify(artistSkipCounts));
     }
-    const stats: { likedCount: number; skippedCount: number } = statsRaw
-      ? JSON.parse(statsRaw)
-      : { likedCount: 0, skippedCount: 0 };
+    const stats: { likedCount: number; skippedCount: number } = safeParse(statsRaw, { likedCount: 0, skippedCount: 0 });
     set({ userId, likedTracks, recentSkips, seenTrackIds, onboardingGenres, artistSkipCounts, likedCount: stats.likedCount, skippedCount: stats.skippedCount });
   },
 }));

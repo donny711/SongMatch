@@ -252,6 +252,10 @@ function WatchAdCard() {
   );
 }
 
+function fmtN(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export default function EarnMPScreen() {
   const insets = useSafeAreaInsets();
   const earnedMilestones = useProfileStore((s) => s.earnedMilestones);
@@ -283,8 +287,8 @@ export default function EarnMPScreen() {
 
         {/* Total MP pill */}
         <View style={styles.totalPill}>
-          <Text style={styles.totalText}>{points.toLocaleString()}</Text>
-          <Text style={styles.totalUnit}>/ {totalPossible.toLocaleString()}</Text>
+          <Text style={styles.totalText}>{fmtN(points)}</Text>
+          <Text style={styles.totalUnit}>/ {fmtN(totalPossible)}</Text>
         </View>
       </View>
 

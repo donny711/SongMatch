@@ -1,7 +1,7 @@
 import { makeRedirectUri } from 'expo-auth-session';
 
 export const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID ?? '';
-export const SPOTIFY_REDIRECT_URI = makeRedirectUri({ native: 'songmatch://' });
+export const SPOTIFY_REDIRECT_URI = makeRedirectUri({ native: 'songmatch://callback' });
 
 export const SPOTIFY_SCOPES = [
   'user-read-private',

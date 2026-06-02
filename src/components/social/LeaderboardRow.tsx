@@ -25,6 +25,10 @@ const FIELD_LABELS: Record<LeaderboardField, string> = {
   likedCount: 'liked',
 };
 
+function fmtN(n: number): string {
+  return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 export function LeaderboardRow({ user, rank, field }: Props) {
   const rankColor = RANK_COLORS[rank] ?? COLORS.textMuted;
   const value = field === 'points' ? user.points
@@ -47,7 +51,7 @@ export function LeaderboardRow({ user, rank, field }: Props) {
           {user.isPro && <Ionicons name="crown" size={11} color="#ffd700" />}
         </View>
         <Text style={styles.score}>
-          {value.toLocaleString()} {FIELD_LABELS[field]}
+          {fmtN(value)} {FIELD_LABELS[field]}
         </Text>
       </View>
       <FollowButton theirUid={user.uid} isPrivate={user.isPrivate} size="sm" />
