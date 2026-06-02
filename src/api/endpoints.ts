@@ -1,6 +1,6 @@
 import { spotifyFetch } from './spotifyClient';
-import { getSimilarTracks, getArtistSimilar, getArtistTopTracks, getTrackTags, getTagTopTracks } from './lastfmClient';
-import { searchDeezer } from './deezerClient';
+import { getSimilarTracks, getArtistSimilar, getArtistTopTracks, getTrackTags, getTagTopTracks, getArtistTags } from './lastfmClient';
+import { searchDeezer, getDeezerRadio } from './deezerClient';
 import type {
   SpotifyUser,
   SpotifyPaginated,
@@ -196,88 +196,96 @@ export async function getSongSimilarRecs(
   seedTitle: string,
   limit = 15,
   seenIds: Set<number> = new Set(),
-  likedArtistKeys: Set<string> = new Set()
+  filteredArtistKeys: Set<string> = new Set(),
+  seedDeezerTrackId?: number
 ): Promise<RecommendationCard[]> {
+  const seedArtistKey = seedArtist.toLowerCase();
+
+  // Fetch all signals in parallel
+  const [trackSimilar, trackTags, similarArtists, radioTracks] = await Promise.all([
+    getSimilarTracks(seedArtist, seedTitle, 50).catch(() => [] as Array<{ name: string; artist: string; match: number }>),
+    getTrackTags(seedArtist, seedTitle),
+    getArtistSimilar(seedArtist, 10),
+    seedDeezerTrackId ? getDeezerRadio(seedDeezerTrackId, 40) : Promise.resolve([]),
+  ]);
+
+  // If track tags sparse, fall back to artist-level tags
+  const tags = trackTags.length >= 2 ? trackTags : await getArtistTags(seedArtist);
+
+  // Signal 1: Last.fm track similarity (score 0.4-1.0)
   type Candidate = { name: string; artist: string; score: number };
   const seen = new Map<string, Candidate>();
-
   const add = (name: string, artist: string, score: number) => {
     const key = `${artist.toLowerCase()}|${name.toLowerCase()}`;
     const existing = seen.get(key);
     if (!existing || score > existing.score) seen.set(key, { name, artist, score });
   };
 
-  // ── Signal 1: track-level similarity (score = Last.fm match, 0–1) ─────────
-  const [trackSimilar, tags] = await Promise.all([
-    getSimilarTracks(seedArtist, seedTitle, 50),
-    getTrackTags(seedArtist, seedTitle),
-  ]);
-  trackSimilar.forEach((t) => add(t.name, t.artist, 0.4 + t.match * 0.6)); // 0.4–1.0
+  trackSimilar.forEach((t) => add(t.name, t.artist, 0.4 + t.match * 0.6));
 
-  // ── Signal 2: similar artists → their top tracks (score = 0.25–0.4) ──────
-  const similarArtists = await getArtistSimilar(seedArtist, 8);
-  const seedArtistKey = seedArtist.toLowerCase();
+  // Signal 2: similar artists top tracks (score 0.25-0.4)
   const artistCandidates = await Promise.all(
-    similarArtists.slice(0, 6).map((a) => getArtistTopTracks(a, 5))
+    similarArtists.slice(0, 8).map((a) => getArtistTopTracks(a, 8))
   );
-  similarArtists.slice(0, 6).forEach((artist, i) => {
-    // Rank-decay: artists at position 0 score higher than position 5
-    const artistScore = 0.4 - i * 0.025;
-    artistCandidates[i].forEach((t, j) => {
-      add(t.name, t.artist, artistScore - j * 0.01);
-    });
+  similarArtists.slice(0, 8).forEach((artist, i) => {
+    const artistScore = 0.4 - i * 0.02;
+    artistCandidates[i].forEach((t, j) => add(t.name, t.artist, artistScore - j * 0.01));
   });
 
-  // ── Signal 3: genre tag top tracks — always run, not just as fill ───────
+  // Signal 3: genre/tag top tracks (score ~0.22)
   if (tags.length > 0) {
     const tagTracks = await Promise.all(
-      tags.slice(0, 3).map((tag) => getTagTopTracks(tag, 25))
+      tags.slice(0, 4).map((tag) => getTagTopTracks(tag, 30))
     );
-    tagTracks.flat().forEach((t, i) => {
-      add(t.name, t.artist, 0.22 - i * 0.001);
-    });
+    tagTracks.flat().forEach((t, i) => add(t.name, t.artist, 0.22 - i * 0.001));
   }
 
-  // ── Rank, filter seed artist, deduplicate ─────────────────────────────────
   const ranked = [...seen.values()]
     .filter((c) => c.artist.toLowerCase() !== seedArtistKey)
     .sort((a, b) => b.score - a.score);
 
-  // ── Deezer lookup — large buffer to survive null hits ────────────────────
-  // Many Last.fm tracks aren't on Deezer; try up to 6× the desired count.
-  const fetchBatch = ranked.slice(0, limit * 6);
-  const deezerResults: (DeezerTrack | null)[] = [];
-  for (let i = 0; i < fetchBatch.length && deezerResults.filter(Boolean).length < limit; i += 8) {
-    const batch = fetchBatch.slice(i, i + 8);
-    const batchResults = await Promise.all(
-      batch.map(async (c) => {
-        try {
-          const tracks = await searchDeezer(`${c.name} ${c.artist}`, 1);
-          return tracks[0] ?? null;
-        } catch {
-          return null;
-        }
-      })
-    );
-    deezerResults.push(...batchResults);
-  }
-
+  // Build output: Deezer radio first (audio similarity), then Last.fm fill
   const output: DeezerTrack[] = [];
+  const outputIds = new Set<number>();
   const recentArtists: string[] = [];
 
-  for (const track of deezerResults) {
-    if (!track) continue;
-    if (output.length >= limit) break;
-    if (seenIds.has(track.id)) continue;
-
+  const accept = (track: DeezerTrack): boolean => {
+    if (output.length >= limit) return false;
+    if (seenIds.has(track.id) || outputIds.has(track.id)) return false;
     const artistKey = track.artist.name.toLowerCase();
-    if (likedArtistKeys.has(artistKey)) continue;
-    // Looser diversity window (5 instead of 9) — single-seed context has
-    // fewer distinct artists so a tight window kills too many results.
-    if (recentArtists.slice(-5).includes(artistKey)) continue;
-
+    if (artistKey === seedArtistKey) return false;
+    if (filteredArtistKeys.has(artistKey)) return false;
+    if (recentArtists.slice(-5).includes(artistKey)) return false;
     output.push(track);
+    outputIds.add(track.id);
     recentArtists.push(artistKey);
+    return true;
+  };
+
+  // Pool 1: Deezer radio (audio-fingerprint similarity, highest quality)
+  for (const track of radioTracks) accept(track);
+
+  // Pool 2: Last.fm candidates via Deezer lookup (fills remaining slots)
+  if (output.length < limit) {
+    const fetchBatch = ranked.slice(0, (limit - output.length) * 6);
+    const deezerResults: (DeezerTrack | null)[] = [];
+    for (let i = 0; i < fetchBatch.length && deezerResults.filter(Boolean).length < (limit - output.length); i += 8) {
+      const batch = fetchBatch.slice(i, i + 8);
+      const batchResults = await Promise.all(
+        batch.map(async (c) => {
+          try {
+            const tracks = await searchDeezer(`${c.name} ${c.artist}`, 1);
+            return tracks[0] ?? null;
+          } catch {
+            return null;
+          }
+        })
+      );
+      deezerResults.push(...batchResults);
+    }
+    for (const track of deezerResults) {
+      if (track) accept(track);
+    }
   }
 
   return output.map((track) => ({ type: 'track' as const, track }));

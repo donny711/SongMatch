@@ -51,3 +51,19 @@ export async function getDeezerChart(limit = 20): Promise<DeezerTrack[]> {
     return [];
   }
 }
+
+export async function getDeezerRadio(trackId: number, limit = 40): Promise<DeezerTrack[]> {
+  const url = `${DEEZER_API}/track/${trackId}/radio?limit=${limit}`;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.data ?? []) as DeezerTrack[];
+  } catch (e: any) {
+    clearTimeout(timeoutId);
+    return [];
+  }
+}

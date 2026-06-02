@@ -149,7 +149,7 @@ export async function getTrackTags(artist: string, track: string): Promise<strin
     const tags = Array.isArray(data.toptags.tag) ? data.toptags.tag : [data.toptags.tag];
     return tags
       .filter((t: { name: string; count: number }) =>
-        t.count >= 5 && !NON_GENRE_TAGS.has(t.name.toLowerCase())
+        t.count >= 3 && !NON_GENRE_TAGS.has(t.name.toLowerCase())
       )
       .slice(0, 5)
       .map((t: { name: string }) => t.name.toLowerCase());
@@ -190,6 +190,34 @@ export async function getTagTopTracks(
   } catch (e: any) {
     clearTimeout(timeoutId);
     if (e.name === 'AbortError') return [];
+    return [];
+  }
+}
+
+export async function getArtistTags(artist: string): Promise<string[]> {
+  const url =
+    `${LASTFM_API_BASE}/?method=artist.gettoptags` +
+    `&artist=${encodeURIComponent(artist)}` +
+    `&api_key=${encodeURIComponent(apiKey())}` +
+    `&format=json`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.error || !data.toptags?.tag) return [];
+
+    const tags = Array.isArray(data.toptags.tag) ? data.toptags.tag : [data.toptags.tag];
+    return tags
+      .filter((t: { name: string; count: number }) =>
+        t.count >= 10 && !NON_GENRE_TAGS.has(t.name.toLowerCase())
+      )
+      .slice(0, 5)
+      .map((t: { name: string }) => t.name.toLowerCase());
+  } catch {
     return [];
   }
 }
