@@ -49,12 +49,6 @@
       "expo-router",
       "expo-secure-store",
       [
-        "expo-av",
-        {
-          "microphonePermission": "Allow SongMatch to access your microphone to identify songs."
-        }
-      ],
-      [
         "expo-image-picker",
         {
           "photosPermission": "SoundMatch needs access to your photo library to set a profile photo and banner."
@@ -148,6 +142,13 @@
             "ios": "./assets/icons/butter_yellow.png"
           }
         ]
+      ],
+      "expo-image",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow SongMatch to access your microphone to identify songs."
+        }
       ]
     ],
     "extra": {
