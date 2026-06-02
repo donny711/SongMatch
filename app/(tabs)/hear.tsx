@@ -10,6 +10,8 @@ import {
   Modal,
   Pressable,
   Keyboard,
+  Image,
+  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -22,8 +24,9 @@ import Animated, {
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { Audio } from 'expo-av';
+import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
 import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import { router } from 'expo-router';
 import { searchDeezer } from '../../src/api/deezerClient';
 import { recognizeSong } from '../../src/api/auddClient';
@@ -32,6 +35,7 @@ import { useDeckStore } from '../../src/store/deckStore';
 import { useSubscriptionStore } from '../../src/store/subscriptionStore';
 import { useSearchBonusAd } from '../../src/hooks/useSearchBonusAd';
 import SwipeDeck, { SwipeDeckRef } from '../../src/components/SwipeDeck/SwipeDeck';
+import SnippetPlayer from '../../src/components/cards/SnippetPlayer';
 import GradientText from '../../src/components/GradientText';
 import { COLORS, SPACING, RADIUS, GLOW } from '../../src/theme';
 import type { DeezerTrack, RecommendationCard } from '../../src/api/types';
@@ -68,6 +72,223 @@ function ActionButton({
   );
 }
 
+
+// ── Seed track card — full screen modal ────────────────────────────────────────────
+const { width: SEED_W, height: SEED_H } = Dimensions.get('window');
+const SEED_CARD_W = SEED_W - 32;
+const SEED_CARD_H = SEED_H * 0.64;
+
+function SeedTrackCard({
+  track,
+  onSimilar,
+  onBack,
+}: {
+  track: DeezerTrack;
+  onSimilar: () => void;
+  onBack: () => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const { addLikedTrack, removeLikedTrack, likedTracks, incrementLiked } = useDeckStore();
+  const isLiked = likedTracks.some((t) => t.id === track.id);
+  const duration = track.duration ?? 0;
+  const mins = Math.floor(duration / 60);
+  const secs = String(duration % 60).padStart(2, '0');
+
+  const handleLike = () => {
+    if (isLiked) removeLikedTrack(track.id);
+    else { addLikedTrack(track); incrementLiked(); }
+  };
+
+  return (
+    <View style={[seedStyles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom + SPACING.md }]}>
+      {/* Header row */}
+      <View style={seedStyles.header}>
+        <TouchableOpacity onPress={onBack} style={seedStyles.backBtn} activeOpacity={0.7}>
+          <Ionicons name='chevron-back' size={22} color={COLORS.text} />
+        </TouchableOpacity>
+        <Text style={seedStyles.headerTitle} numberOfLines={1}>Recognized Song</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      {/* Card */}
+      <View style={seedStyles.cardArea}>
+        <View style={seedStyles.card}>
+          {track.album.cover_xl ? (
+            <Image source={{ uri: track.album.cover_xl }} style={seedStyles.albumArt} />
+          ) : (
+            <View style={[seedStyles.albumArt, seedStyles.albumArtFallback]} />
+          )}
+          <Svg style={StyleSheet.absoluteFill} width={SEED_CARD_W} height={SEED_CARD_H}>
+            <Defs>
+              <SvgGradient id='seedGrad' x1='0' y1='0' x2='0' y2='1'>
+                <Stop offset='0.25' stopColor='#000' stopOpacity='0' />
+                <Stop offset='0.60' stopColor='#1F1F28' stopOpacity='0.55' />
+                <Stop offset='0.80' stopColor='#0D0D0D' stopOpacity='0.82' />
+                <Stop offset='1'   stopColor='#0D0D0D' stopOpacity='0.97' />
+              </SvgGradient>
+            </Defs>
+            <Rect x='0' y='0' width={SEED_CARD_W} height={SEED_CARD_H} fill='url(#seedGrad)' />
+          </Svg>
+          <View style={seedStyles.info}>
+            <Text style={seedStyles.title} numberOfLines={2}>{track.title}</Text>
+            <Text style={seedStyles.artist} numberOfLines={1}>{track.artist.name}</Text>
+            {duration > 0 && (
+              <Text style={seedStyles.album} numberOfLines={1}>
+                {track.album.title} · {mins}:{secs}
+              </Text>
+            )}
+            {track.preview ? <SnippetPlayer previewUrl={track.preview} /> : null}
+          </View>
+        </View>
+      </View>
+
+      {/* Action buttons */}
+      <View style={seedStyles.actions}>
+        <TouchableOpacity
+          onPress={handleLike}
+          style={[seedStyles.heartBtn, isLiked && seedStyles.heartBtnActive]}
+          activeOpacity={0.75}
+        >
+          <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={28} color={isLiked ? COLORS.pink : '#fff'} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={onSimilar} style={seedStyles.simBtn} activeOpacity={0.85}>
+          <Ionicons name='sparkles' size={17} color='#fff' />
+          <Text style={seedStyles.simText}>Similar to this song</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+const seedStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.md,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  headerTitle: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  cardArea: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  card: {
+    width: SEED_CARD_W,
+    height: SEED_CARD_H,
+    borderRadius: 28,
+    backgroundColor: COLORS.surface,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.65,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 16,
+  },
+  albumArt: {
+    ...StyleSheet.absoluteFillObject,
+    width: SEED_CARD_W,
+    height: SEED_CARD_H,
+  },
+  albumArtFallback: {
+    backgroundColor: '#1F1F28',
+  },
+  info: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    paddingBottom: 18,
+    gap: 5,
+    backgroundColor: 'rgba(13,13,13,0.65)',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(167,139,250,0.14)',
+  },
+  title: {
+    color: '#fff',
+    fontSize: 25,
+    fontWeight: '800',
+    letterSpacing: -0.4,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
+  },
+  artist: {
+    color: COLORS.cyan,
+    fontSize: 16,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+  album: {
+    color: '#6B7280',
+    fontSize: 13,
+    marginBottom: 4,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+    paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.lg,
+  },
+  heartBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 5,
+  },
+  heartBtnActive: {
+    backgroundColor: 'rgba(236,72,153,0.12)',
+    borderColor: 'rgba(236,72,153,0.35)',
+  },
+  simBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: SPACING.sm,
+    backgroundColor: COLORS.purple,
+    borderRadius: RADIUS.full,
+    height: 64,
+    shadowColor: COLORS.purple,
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  simText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+});
+
 export default function HearScreen() {
   const [stage, setStage] = useState<Stage>('idle');
   const [searchQuery, setSearchQuery] = useState('');
@@ -77,12 +298,13 @@ export default function HearScreen() {
   const [recsLoading, setRecsLoading] = useState(false);
   const [recsVisible, setRecsVisible] = useState(false);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
   const recognizedRef = useRef<{ title: string; artist: string } | null>(null);
-  const recordingRef = useRef<Audio.Recording | null>(null);
   const deckRef = useRef<SwipeDeckRef>(null);
+  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const searchInputRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
-  const { addLikedTrack, addSkippedTrack, incrementLiked, incrementSkipped, likedTracks, seenTrackIds, artistSkipCounts } = useDeckStore();
+  const { addLikedTrack, addSkippedTrack, incrementLiked, incrementSkipped, likedTracks, artistSkipCounts } = useDeckStore();
   const isPro = useSubscriptionStore((s) => s.isPro);
   const searchesRemaining = useSubscriptionStore((s) => s.searchesRemaining);
   const dailyBonusGranted = useSubscriptionStore((s) => s.dailyBonusGranted);
@@ -110,6 +332,7 @@ export default function HearScreen() {
         setStage('idle');
         setResults([]);
         setSeedTrack(null);
+        setSelectedTrack(null);
         setSearchQuery('');
         recognizedRef.current = null;
       };
@@ -118,10 +341,11 @@ export default function HearScreen() {
 
   // Close limit modal once bonus searches are granted
   useEffect(() => {
-    if (limitModalVisible && searchesRemaining > 0) {
+    if (searchesRemaining > 0) {
       setLimitModalVisible(false);
+      setStage((s) => s === 'limitReached' ? 'idle' : s);
     }
-  }, [searchesRemaining, limitModalVisible]);
+  }, [searchesRemaining]);
 
   const isRecording = stage === 'recording';
 
@@ -162,13 +386,11 @@ export default function HearScreen() {
 
   const startRecording = async () => {
     try {
-      const { granted } = await Audio.requestPermissionsAsync();
+      const { granted } = await requestRecordingPermissionsAsync();
       if (!granted) { setStage('error'); return; }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-      recordingRef.current = recording;
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await recorder.prepareToRecordAsync();
+      recorder.record();
       setStage('recording');
     } catch {
       setStage('error');
@@ -177,13 +399,13 @@ export default function HearScreen() {
 
   const stopRecording = async () => {
     Keyboard.dismiss();
-    const recording = recordingRef.current;
-    recordingRef.current = null;
-    const uri = recording?.getURI();
-    await recording?.stopAndUnloadAsync();
-    await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+    await recorder.stop();
+    const uri = recorder.uri;
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
     if (!uri) { setStage('error'); return; }
 
+    const { searchesRemaining: remaining, isPro: pro } = useSubscriptionStore.getState();
+    if (!pro && remaining === 0) { setStage('limitReached'); return; }
     setStage('recognizing');
     try {
       const match = await recognizeSong(uri);
@@ -231,18 +453,17 @@ export default function HearScreen() {
     setRecQueue([]);
     setRecsVisible(true);
     try {
-      const seenIds = new Set<number>([
-        ...likedTracks.map((t) => t.id),
-        ...seenTrackIds,
-      ]);
-      const likedArtistKeys = new Set(likedTracks.map((t) => t.artist.name.toLowerCase()));
+      // Hear tab: only block tracks already in library, not all 500 seen-in-deck IDs.
+      // seenTrackIds from the main deck over-filters and causes empty results.
+      const seenIds = new Set<number>(likedTracks.map((t) => t.id));
+      // Only filter artists the user has actively skipped 2+ times.
+      // Liked artists should still appear — user wants similarity, not novelty.
       const skipFilteredKeys = new Set(
         Object.entries(artistSkipCounts)
           .filter(([, count]) => count >= 2)
           .map(([artist]) => artist)
       );
-      const filteredArtistKeys = new Set([...likedArtistKeys, ...skipFilteredKeys]);
-      const cards = await getSongSimilarRecs(seed.artist, seed.title, 15, seenIds, filteredArtistKeys);
+      const cards = await getSongSimilarRecs(seed.artist, seed.title, 15, seenIds, skipFilteredKeys, track.id);
       setRecQueue(cards);
     } catch (e) {
       console.log('[Recs] error:', e);
@@ -363,7 +584,7 @@ export default function HearScreen() {
       )}
 
       {/* Results list */}
-      {stage === 'result' && results.length > 0 && (
+      {stage === 'result' && results.length > 0 && !selectedTrack && (
         <View style={styles.resultsSection}>
           <Text style={styles.resultsLabel}>Pick a song</Text>
           <ScrollView style={styles.resultsList} showsVerticalScrollIndicator={false}>
@@ -371,7 +592,7 @@ export default function HearScreen() {
               <TouchableOpacity
                 key={track.id}
                 style={styles.resultRow}
-                onPress={() => openRecs(track)}
+                onPress={() => setSelectedTrack(track)}
                 activeOpacity={0.85}
               >
                 <View style={styles.resultIconWrap}>
@@ -387,6 +608,17 @@ export default function HearScreen() {
           </ScrollView>
         </View>
       )}
+
+      {/* Seed track card — full screen modal */}
+      <Modal visible={!!selectedTrack} animationType="slide" statusBarTranslucent onRequestClose={() => setSelectedTrack(null)}>
+        {selectedTrack && (
+          <SeedTrackCard
+            track={selectedTrack}
+            onSimilar={() => { const t = selectedTrack; setSelectedTrack(null); openRecs(t); }}
+            onBack={() => setSelectedTrack(null)}
+          />
+        )}
+      </Modal>
 
       {/* Error */}
       {stage === 'error' && (

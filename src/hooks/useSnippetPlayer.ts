@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import type { AudioPlayer } from 'expo-audio';
 import { usePlayerStore } from '../store/playerStore';
 
 export function useSnippetPlayer(previewUrl: string | null, autoPlay = false) {
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
+  const subscriptionRef = useRef<{ remove: () => void } | null>(null);
   const mountedRef = useRef(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
@@ -18,75 +20,85 @@ export function useSnippetPlayer(previewUrl: string | null, autoPlay = false) {
     };
   }, []);
 
-  // Stop if another card starts playing
+  // Destroy this player whenever a different card takes over audio
   useEffect(() => {
-    if (activePreviewUri !== previewUrl && isPlaying) {
-      soundRef.current?.pauseAsync();
+    if (activePreviewUri !== previewUrl && playerRef.current) {
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = null;
+      playerRef.current.pause();
+      playerRef.current.remove();
+      playerRef.current = null;
       setIsPlaying(false);
+      setPosition(0);
     }
-  }, [activePreviewUri]);
+  }, [activePreviewUri, previewUrl]);
 
   // Auto-play when this card becomes the top card
   useEffect(() => {
     if (!autoPlay || !previewUrl) return;
     const t = setTimeout(() => {
       if (mountedRef.current) toggle();
-    }, 400);
+    }, 0);
     return () => clearTimeout(t);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, previewUrl]);
 
   useEffect(() => {
     return () => {
-      soundRef.current?.unloadAsync();
-      soundRef.current = null;
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = null;
+      playerRef.current?.pause();
+      playerRef.current?.remove();
+      playerRef.current = null;
     };
   }, []);
 
   const toggle = async () => {
     if (!previewUrl) return;
 
-    if (!soundRef.current) {
+    if (!playerRef.current) {
       try {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: previewUrl },
-          { shouldPlay: true },
-          (status) => {
-            if (!status.isLoaded) return;
-            setPosition(status.positionMillis);
-            setDuration(status.durationMillis ?? 30000);
-            if (status.didJustFinish) {
-              setIsPlaying(false);
-              setPosition(0);
-            }
+        await setAudioModeAsync({ playsInSilentMode: true });
+        const player = createAudioPlayer({ uri: previewUrl }, { updateInterval: 250 });
+        const sub = player.addListener('playbackStatusUpdate', (status) => {
+          if (!mountedRef.current) return;
+          setPosition(Math.round(status.currentTime * 1000));
+          setDuration(status.duration > 0 ? Math.round(status.duration * 1000) : 30000);
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            setPosition(0);
           }
-        );
-        // Component unmounted while createAsync was in-flight — kill the orphaned sound
+        });
+        // Component unmounted while player was being set up — kill the orphaned player
         if (!mountedRef.current) {
-          sound.unloadAsync();
+          sub.remove();
+          player.remove();
           return;
         }
-        soundRef.current = sound;
+        player.play();
+        playerRef.current = player;
+        subscriptionRef.current = sub;
         setIsPlaying(true);
         setActivePreviewUri(previewUrl);
       } catch {
         // Preview URL is inaccessible or expired — fail silently
       }
     } else if (isPlaying) {
-      await soundRef.current.pauseAsync();
+      playerRef.current.pause();
       setIsPlaying(false);
     } else {
-      await soundRef.current.playAsync();
+      playerRef.current.play();
       setIsPlaying(true);
       setActivePreviewUri(previewUrl);
     }
   };
 
   const stop = async () => {
-    await soundRef.current?.stopAsync();
-    await soundRef.current?.unloadAsync();
-    soundRef.current = null;
+    subscriptionRef.current?.remove();
+    subscriptionRef.current = null;
+    playerRef.current?.pause();
+    playerRef.current?.remove();
+    playerRef.current = null;
     setIsPlaying(false);
     setPosition(0);
   };

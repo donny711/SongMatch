@@ -14,8 +14,10 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AvatarWithFrame } from '../profile/AvatarWithFrame';
 import { useDeckStore } from '../../store/deckStore';
+import { usePlayerStore } from '../../store/playerStore';
 import { getDeezerTrackById, searchDeezer } from '../../api/deezerClient';
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import type { AudioPlayer } from 'expo-audio';
 import type { FeedItem as FeedItemData } from '../../firebase/socialService';
 import type { DeezerTrack } from '../../api/types';
 import { COLORS, SPACING, RADIUS } from '../../theme';
@@ -47,11 +49,13 @@ export function FeedItem({ item }: Props) {
   const incrementLiked = useDeckStore((s) => s.incrementLiked);
 
   // Audio state
-  const soundRef = useRef<Audio.Sound | null>(null);
+  const playerRef = useRef<AudioPlayer | null>(null);
+  const subscriptionRef = useRef<{ remove: () => void } | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [audioError, setAudioError] = useState(false);
+  const { activePreviewUri, setActivePreviewUri } = usePlayerStore();
   const progress = duration > 0 ? position / duration : 0;
 
   const toggle = async () => {
@@ -59,46 +63,63 @@ export function FeedItem({ item }: Props) {
     setAudioError(false);
 
     try {
-      if (!soundRef.current) {
-        await Audio.setAudioModeAsync({ playsInSilentModeIOS: true });
-        const { sound } = await Audio.Sound.createAsync(
-          { uri: previewUrl },
-          { shouldPlay: true },
-          (status) => {
-            if (!mountedRef.current || !status.isLoaded) return;
-            setPosition(status.positionMillis);
-            setDuration(status.durationMillis ?? 30000);
-            if (status.didJustFinish) {
-              setIsPlaying(false);
-              setPosition(0);
-            }
+      if (!playerRef.current) {
+        await setAudioModeAsync({ playsInSilentMode: true });
+        const player = createAudioPlayer({ uri: previewUrl }, { updateInterval: 250 });
+        const sub = player.addListener('playbackStatusUpdate', (status) => {
+          if (!mountedRef.current) return;
+          setPosition(Math.round(status.currentTime * 1000));
+          setDuration(status.duration > 0 ? Math.round(status.duration * 1000) : 30000);
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            setPosition(0);
           }
-        );
-        if (!mountedRef.current) { sound.unloadAsync(); return; }
-        soundRef.current = sound;
+        });
+        if (!mountedRef.current) { sub.remove(); player.remove(); return; }
+        player.play();
+        playerRef.current = player;
+        subscriptionRef.current = sub;
         setIsPlaying(true);
+        setActivePreviewUri(previewUrl);
       } else if (isPlaying) {
-        await soundRef.current.pauseAsync();
+        playerRef.current.pause();
         setIsPlaying(false);
       } else {
-        await soundRef.current.playAsync();
+        playerRef.current.play();
         setIsPlaying(true);
+        setActivePreviewUri(previewUrl);
       }
     } catch {
       setAudioError(true);
     }
   };
 
-  // Reset sound when URL changes (e.g. after fresh Deezer fetch)
+  // Reset player when URL changes (e.g. after fresh Deezer fetch)
   useEffect(() => {
-    if (soundRef.current) {
-      soundRef.current.unloadAsync().catch(() => {});
-      soundRef.current = null;
+    if (playerRef.current) {
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = null;
+      playerRef.current.pause();
+      playerRef.current.remove();
+      playerRef.current = null;
       setIsPlaying(false);
       setPosition(0);
     }
     setAudioError(false);
   }, [previewUrl]);
+
+  // Stop when another player takes over
+  useEffect(() => {
+    if (activePreviewUri !== previewUrl && playerRef.current) {
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = null;
+      playerRef.current.pause();
+      playerRef.current.remove();
+      playerRef.current = null;
+      setIsPlaying(false);
+      setPosition(0);
+    }
+  }, [activePreviewUri, previewUrl]);
 
   // Fetch fresh preview URL from Deezer. Falls back to search-by-name if
   // the track ID returns no preview (e.g. old tracks without stored URL).
@@ -132,8 +153,12 @@ export function FeedItem({ item }: Props) {
     });
 
     return () => {
-      soundRef.current?.unloadAsync().catch(() => {});
-      soundRef.current = null;
+      mountedRef.current = false;
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = null;
+      playerRef.current?.pause();
+      playerRef.current?.remove();
+      playerRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
