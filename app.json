@@ -46,6 +46,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "./plugins/withIOSFatalHandler",
       "expo-router",
       "expo-secure-store",
       [

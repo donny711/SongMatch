@@ -18,34 +18,6 @@ import { sampleLikedSeeds } from '../src/utils/sampleLikedSeeds';
 import { ONBOARDING_KEY } from './onboarding';
 import { useReferral } from '../src/hooks/useReferral';
 
-// iOS 26 crash prevention: fatal JS errors that reach RCTExceptionsManager.reportFatal
-// throw an ObjC exception that crosses the TurboModule C++ boundary and calls
-// std::terminate. We intercept here BEFORE that path. For fatal errors we log
-// and write to AsyncStorage, then skip the original handler (which would crash).
-// Non-fatal errors still go to the original handler. On next launch the captured
-// error is surfaced so we can diagnose the root cause.
-try {
-  const _origHandler = (global as any).ErrorUtils?.getGlobalHandler?.();
-  if (_origHandler) {
-    (global as any).ErrorUtils.setGlobalHandler((error: unknown, isFatal: boolean) => {
-      const msg = (error as Error)?.message ?? String(error);
-      const stack = ((error as Error)?.stack ?? '').slice(0, 2000);
-      console.error('[SM-ERROR]', isFatal ? 'FATAL' : 'non-fatal', msg);
-      console.error('[SM-ERROR-STACK]', stack);
-      AsyncStorage.setItem('__sm_last_error', JSON.stringify({
-        message: msg, stack, isFatal, at: new Date().toISOString(),
-      })).catch(() => {});
-      if (isFatal) {
-        // Do NOT call origHandler for fatal errors on iOS 26 — it triggers
-        // RCTFatal → ObjC exception → TurboModule std::terminate → SIGABRT.
-        // The app continues running (possibly in a degraded state) instead of crashing.
-        return;
-      }
-      _origHandler(error, isFatal);
-    });
-  }
-} catch {}
-
 async function prefetchRecommendations() {
   const { likedTracks, seenTrackIds, artistSkipCounts, appendQueue } =
     useDeckStore.getState();
@@ -114,15 +86,6 @@ export default function RootLayout() {
 
   useEffect(() => {
     (async () => {
-      // Surface any fatal error from the previous launch for debugging
-      try {
-        const prev = await AsyncStorage.getItem('__sm_last_error');
-        if (prev) {
-          console.warn('[SongMatch] Previous fatal error:', prev);
-          await AsyncStorage.removeItem('__sm_last_error');
-        }
-      } catch {}
-
       await loadSettings();
       await useAuthStore.getState().loadPlatforms();
 
@@ -157,7 +120,7 @@ export default function RootLayout() {
         if (uid) {
           useSubscriptionStore.getState().initialize(uid).catch(() => {});
         }
-      });
+      }).catch(() => {});
 
       // Restore SoundCloud session in the background
       restoreSoundCloudSession();

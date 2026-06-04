@@ -184,27 +184,35 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
 
   purchase: async (tier: ProTier) => {
     if (!RC_AVAILABLE) throw new Error('Purchases not available');
-    const Purchases = require('react-native-purchases').default;
-    const offerings = await Purchases.getOfferings();
-    const pkg = offerings.current?.availablePackages?.find(
-      (p: any) => p.product.productIdentifier === RC_PRODUCTS[tier]
-    );
-    if (!pkg) throw new Error('Product not found');
-    const { customerInfo } = await Purchases.purchasePackage(pkg);
-    const isPro = !!customerInfo.entitlements.active['pro'];
-    const firstActive = Object.values(customerInfo.entitlements.active)[0] as any;
-    const expiresAt = isPro && firstActive?.expirationDate
-      ? new Date(firstActive.expirationDate)
-      : null;
-    set({ isPro, tier, expiresAt });
+    try {
+      const Purchases = require('react-native-purchases').default;
+      const offerings = await Purchases.getOfferings();
+      const pkg = offerings.current?.availablePackages?.find(
+        (p: any) => p.product.productIdentifier === RC_PRODUCTS[tier]
+      );
+      if (!pkg) throw new Error('Product not found');
+      const { customerInfo } = await Purchases.purchasePackage(pkg);
+      const isPro = !!customerInfo.entitlements.active['pro'];
+      const firstActive = Object.values(customerInfo.entitlements.active)[0] as any;
+      const expiresAt = isPro && firstActive?.expirationDate
+        ? new Date(firstActive.expirationDate)
+        : null;
+      set({ isPro, tier, expiresAt });
+    } catch (e) {
+      throw e;
+    }
   },
 
   restore: async () => {
     if (!RC_AVAILABLE) return;
-    const Purchases = require('react-native-purchases').default;
-    const info = await Purchases.restorePurchases();
-    const isPro = !!info.entitlements.active['pro'];
-    set({ isPro });
+    try {
+      const Purchases = require('react-native-purchases').default;
+      const info = await Purchases.restorePurchases();
+      const isPro = !!info.entitlements.active['pro'];
+      set({ isPro });
+    } catch {
+      // Non-critical
+    }
   },
 
   recordSearch: async () => {
