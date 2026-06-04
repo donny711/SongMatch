@@ -41,6 +41,7 @@ export interface UserProfile {
   uid: string;
   createdAt: unknown;
   updatedAt: unknown;
+  email: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   bannerUrl: string | null;
@@ -68,7 +69,7 @@ export interface UserProfile {
 }
 
 export type ProfileField = Partial<Pick<UserProfile,
-  'displayName' | 'avatarUrl' | 'bannerUrl' | 'avatarPending' | 'bannerPending' | 'isPrivate' | 'username' | 'gifBgUrl'
+  'displayName' | 'avatarUrl' | 'bannerUrl' | 'avatarPending' | 'bannerPending' | 'isPrivate' | 'username' | 'gifBgUrl' | 'email'
 >>;
 
 export type EquipSlot = keyof EquippedItems;
@@ -112,6 +113,7 @@ export async function getOrCreateUserDoc(uid: string): Promise<UserProfile> {
     uid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
+    email: null,
     displayName: null,
     avatarUrl: null,
     bannerUrl: null,

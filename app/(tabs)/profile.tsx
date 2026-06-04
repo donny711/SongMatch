@@ -265,6 +265,7 @@ export default function ProfileScreen() {
   const followerCount = useProfileStore((s) => s.followerCount);
   const followingCount = useProfileStore((s) => s.followingCount);
   const uid = useProfileStore((s) => s.uid);
+  const profileUsername = useProfileStore((s) => s.username);
 
   // Resolve display name: custom → Spotify → fallback
   const resolvedName = profileDisplayName ?? user?.display_name ?? 'SongMatch User';
@@ -363,7 +364,10 @@ export default function ProfileScreen() {
         <View style={styles.nameRow}>
           <View style={styles.nameBlock}>
             <Text style={styles.name}>{resolvedName}</Text>
-            {user?.email && !profileDisplayName && (
+            {profileUsername && (
+              <Text style={styles.usernameText}>@{profileUsername}</Text>
+            )}
+            {user?.email && !profileDisplayName && !profileUsername && (
               <Text style={styles.subName}>{user.email}</Text>
             )}
             <BadgeRow
@@ -600,6 +604,12 @@ const styles = StyleSheet.create({
   subName: {
     color: COLORS.textSub,
     fontSize: 13,
+  },
+  usernameText: {
+    color: COLORS.textMuted,
+    fontSize: 13,
+    fontWeight: '500',
+    marginTop: 2,
   },
   actionRow: {
     flexDirection: 'row',
