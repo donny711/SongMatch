@@ -277,23 +277,11 @@ export default function HomeScreen() {
     register('swipe-card', swipeCardRef);
   }, [register]);
 
-  // Auto-start tutorial for first-time users after deck loads
-  useEffect(() => {
-    if (tutorialComplete || tutorialActive || queue.length === 0) return;
-    let cancelled = false;
-    (async () => {
-      // Ensure tutorial state is loaded from storage first
-      await useTutorialStore.getState().load();
-      if (cancelled) return;
-      const { isComplete, isActive } = useTutorialStore.getState();
-      if (!isComplete && !isActive) {
-        setTimeout(() => {
-          if (!cancelled) useTutorialStore.getState().start();
-        }, 600);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [tutorialComplete, queue.length, tutorialActive]);
+  // Tutorial auto-start disabled for now — overlay blocks screen when measurements fail
+  // useEffect(() => {
+  //   if (tutorialComplete || tutorialActive || queue.length === 0) return;
+  //   useTutorialStore.getState().start();
+  // }, [tutorialComplete, queue.length, tutorialActive]);
 
   const isEmpty = !isFetching && queue.length === 0;
 
