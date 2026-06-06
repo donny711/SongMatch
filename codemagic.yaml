@@ -39,9 +39,14 @@ workflows:
           echo "EXPO_PUBLIC_ADMOB_BANNER_ANDROID=$EXPO_PUBLIC_ADMOB_BANNER_ANDROID" >> $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_REVENUECAT_IOS_KEY=$EXPO_PUBLIC_REVENUECAT_IOS_KEY" >> $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY=$EXPO_PUBLIC_REVENUECAT_ANDROID_KEY" >> $CM_BUILD_DIR/.env
+          cat $CM_BUILD_DIR/.env
 
       - name: Install dependencies
         script: npm install
+
+      - name: Test JS bundle
+        script: |
+          npx react-native bundle             --platform ios             --dev false             --entry-file node_modules/expo-router/entry.js             --bundle-output /tmp/test-bundle.jsbundle             --assets-dest /tmp/test-assets
 
       - name: Generate iOS project
         script: npx expo prebuild --platform ios --clean
@@ -65,6 +70,7 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Logs/Build/*.log
 
     publishing:
       app_store_connect:
