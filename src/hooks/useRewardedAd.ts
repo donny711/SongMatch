@@ -54,5 +54,5 @@ export function useRewardedAd() {
     ad.show();
   }, [ad, status]);
 
-  return { status, show };
+  return { status, show, retry: loadAd };
 }

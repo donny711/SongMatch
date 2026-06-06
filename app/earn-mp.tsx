@@ -212,24 +212,28 @@ function CategorySection({
 // ── Screen ─────────────────────────────────────────────────────────────────
 
 function WatchAdCard() {
-  const { status, show } = useRewardedAd();
+  const { status, show, retry } = useRewardedAd();
   const isReady = status === 'ready';
   const isLoading = status === 'loading';
-  const isUnavailable = status === 'unavailable';
+
+  const handlePress = () => {
+    if (isReady) { show(); return; }
+    if (!isLoading) retry();
+  };
 
   return (
     <TouchableOpacity
       style={[styles.adCard, !isReady && styles.adCardDisabled]}
-      onPress={isReady ? show : undefined}
+      onPress={handlePress}
       activeOpacity={0.8}
-      disabled={!isReady}
+      disabled={isLoading}
     >
       <View style={styles.adIconWrap}>
         {isLoading ? (
           <ActivityIndicator size="small" color="#A78BFA" />
         ) : (
           <Ionicons
-            name={isReady ? 'play-circle' : 'alert-circle-outline'}
+            name={isReady ? 'play-circle' : 'refresh-circle'}
             size={26}
             color={isReady ? '#A78BFA' : COLORS.textMuted}
           />
@@ -238,10 +242,9 @@ function WatchAdCard() {
       <View style={styles.adTextWrap}>
         <Text style={styles.adTitle}>Watch a short ad</Text>
         <Text style={styles.adSub}>
-          {isUnavailable ? 'Requires a compiled build (not Expo Go)'
-            : isLoading ? 'Loading ad…'
+          {isLoading ? 'Loading ad…'
             : isReady ? 'Earn 30 MP instantly · up to 5×/day'
-            : 'No ad available right now'}
+            : 'Tap to load an ad'}
         </Text>
       </View>
       <View style={[styles.adPill, !isReady && styles.adPillDisabled]}>
