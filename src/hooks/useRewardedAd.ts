@@ -1,68 +1,52 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
-import {
-  RewardedAd,
-  RewardedAdEventType,
-  AdEventType,
-  TestIds,
-} from 'react-native-google-mobile-ads';
 import { grantAdReward } from '../firebase/profileService';
 import { useProfileStore } from '../store/profileStore';
-import { useToastStore } from '../store/toastStore';
-
-const ADS_AVAILABLE = false;
+import { initializeAds } from './adsInit';
 
 const AD_UNIT_ID = Platform.select({
-  ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? TestIds.REWARDED,
-  android: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? TestIds.REWARDED,
-  default: TestIds.REWARDED,
+  ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? 'ca-app-pub-3940256099942544/1712485313',
+  android: process.env.EXPO_PUBLIC_ADMOB_REWARDED_ANDROID ?? 'ca-app-pub-3940256099942544/5224354917',
+  default: 'ca-app-pub-3940256099942544/5224354917',
 })!;
 
 export type AdStatus = 'loading' | 'ready' | 'showing' | 'error' | 'unavailable';
 
 export function useRewardedAd() {
   const uid = useProfileStore((s) => s.uid);
-  const [status, setStatus] = useState<AdStatus>(ADS_AVAILABLE ? 'loading' : 'unavailable');
-  const [ad, setAd] = useState<RewardedAd | null>(null);
+  const [status, setStatus] = useState<AdStatus>('loading');
+  const [ad, setAd] = useState<any>(null);
 
-  const loadAd = useCallback(() => {
-    if (!ADS_AVAILABLE) return;
-    setStatus('loading');
-    const rewarded = RewardedAd.createForAdRequest(AD_UNIT_ID);
+  const loadAd = useCallback(async () => {
+    try {
+      await initializeAds();
+      const { RewardedAd, RewardedAdEventType, AdEventType } =
+        await import('react-native-google-mobile-ads');
 
-    const unsubEarned = rewarded.addAdEventListener(
-      RewardedAdEventType.EARNED_REWARD,
-      () => {
-        if (uid) grantAdReward(uid).catch(() => {});
-      },
-    );
-    const unsubClosed = rewarded.addAdEventListener(AdEventType.CLOSED, () => {
       setStatus('loading');
-      setTimeout(() => loadAd(), 1000);
-    });
-    const unsubError = rewarded.addAdEventListener(AdEventType.ERROR, () => {
-      setStatus('error');
-      setTimeout(() => loadAd(), 30000);
-    });
-    const unsubLoaded = rewarded.addAdEventListener(AdEventType.LOADED, () => {
-      setStatus('ready');
-    });
+      const rewarded = RewardedAd.createForAdRequest(AD_UNIT_ID);
 
-    setAd(rewarded);
-    rewarded.load();
+      rewarded.addAdEventListener(AdEventType.LOADED, () => setStatus('ready'));
+      rewarded.addAdEventListener(AdEventType.CLOSED, () => {
+        setStatus('loading');
+        setTimeout(() => loadAd(), 1000);
+      });
+      rewarded.addAdEventListener(AdEventType.ERROR, () => {
+        setStatus('error');
+        setTimeout(() => loadAd(), 30000);
+      });
+      rewarded.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
+        if (uid) grantAdReward(uid).catch(() => {});
+      });
 
-    return () => {
-      unsubEarned();
-      unsubClosed();
-      unsubError();
-      unsubLoaded();
-    };
+      setAd(rewarded);
+      rewarded.load();
+    } catch {
+      setStatus('unavailable');
+    }
   }, [uid]);
 
-  useEffect(() => {
-    const cleanup = loadAd();
-    return () => cleanup?.();
-  }, []);
+  useEffect(() => { loadAd(); }, []);
 
   const show = useCallback(() => {
     if (!ad || status !== 'ready') return;
