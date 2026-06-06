@@ -7,7 +7,7 @@ import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 
-const ADS_AVAILABLE = true;
+const ADS_AVAILABLE = false;
 
 const AD_UNIT_ID = Platform.select({
   ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? TestIds.REWARDED,
