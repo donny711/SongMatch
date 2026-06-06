@@ -24,6 +24,8 @@ import { useSwipeGateAd } from '../../src/hooks/useSwipeGateAd';
 import { COLORS, SPACING, RADIUS, GLOW } from '../../src/theme';
 import type { RecommendationCard } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
+import { useTutorialMeasure } from '../../src/components/tutorial/TutorialMeasureContext';
+import { useTutorialStore } from '../../src/store/tutorialStore';
 import { todayISO } from '../../src/utils/dateUtils';
 
 type Tab = 'foryou' | 'friends';
@@ -261,13 +263,45 @@ export default function HomeScreen() {
     trackSwipe();
   }, [addSkippedTrack, recordSwipe, trackSwipe]);
 
+  // Tutorial measurement refs
+  const tabSwitcherRef = useRef<View>(null);
+  const actionBtnRef = useRef<View>(null);
+  const swipeCardRef = useRef<View>(null);
+  const { register } = useTutorialMeasure();
+  const tutorialActive = useTutorialStore((s) => s.isActive);
+  const tutorialComplete = useTutorialStore((s) => s.isComplete);
+
+  useEffect(() => {
+    register('tab-switcher', tabSwitcherRef);
+    register('action-buttons', actionBtnRef);
+    register('swipe-card', swipeCardRef);
+  }, [register]);
+
+  // Auto-start tutorial for first-time users after deck loads
+  useEffect(() => {
+    if (tutorialComplete || tutorialActive || queue.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      // Ensure tutorial state is loaded from storage first
+      await useTutorialStore.getState().load();
+      if (cancelled) return;
+      const { isComplete, isActive } = useTutorialStore.getState();
+      if (!isComplete && !isActive) {
+        setTimeout(() => {
+          if (!cancelled) useTutorialStore.getState().start();
+        }, 600);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [tutorialComplete, queue.length, tutorialActive]);
+
   const isEmpty = !isFetching && queue.length === 0;
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
       {/* TikTok-style tab switcher */}
-      <View style={styles.tabSwitcher}>
+      <View style={styles.tabSwitcher} ref={tabSwitcherRef}>
 
         {(['foryou', 'friends'] as Tab[]).map((tab) => {
           const isActive = activeTab === tab;
@@ -340,12 +374,14 @@ export default function HomeScreen() {
 
               {/* Swipe deck */}
               {queue.length > 0 && (
+                <View ref={swipeCardRef}>
                 <SwipeDeck
                   ref={deckRef}
                   queue={queue}
                   onSwipeLeft={handleSwipeLeft}
                   onSwipeRight={handleSwipeRight}
                 />
+                </View>
               )}
 
               {/* Liked toast */}
@@ -361,7 +397,7 @@ export default function HomeScreen() {
 
               {/* Action buttons */}
               {queue.length > 0 && (
-                <View style={[styles.actions, { paddingBottom: SPACING.lg }]}>
+                <View ref={actionBtnRef} style={[styles.actions, { paddingBottom: SPACING.lg }]}>
                   <ActionButton
                     style={[styles.actionBtn, styles.skipBtn]}
                     onPress={() => deckRef.current?.swipeLeft()}

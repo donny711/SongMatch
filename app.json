@@ -150,6 +150,13 @@
         {
           "microphonePermission": "Allow SongMatch to access your microphone to identify songs."
         }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-5279884722039690~5452090114",
+          "iosAppId": "ca-app-pub-5279884722039690~5452090114"
+        }
       ]
     ],
     "extra": {

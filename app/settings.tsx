@@ -24,6 +24,11 @@ import { COLORS, SPACING, RADIUS } from '../src/theme';
 import { GENRE_COLORS } from '../src/utils/genres';
 import { ONBOARDING_KEY, ONBOARDING_GENRES_KEY } from './onboarding';
 import { PRIVACY_POLICY_URL } from '../src/utils/constants';
+import { signOut } from 'firebase/auth';
+import { auth } from '../src/firebase/config';
+import { useAuthStore } from '../src/store/authStore';
+import { TokenStorage } from '../src/auth/TokenStorage';
+import { useTutorialStore } from '../src/store/tutorialStore';
 
 const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
 const BANNER_AD_UNIT_ID = Platform.select({
@@ -97,6 +102,7 @@ export default function SettingsScreen() {
   const togglePrivate = useProfileStore((s) => s.togglePrivate);
   const isPro = useSubscriptionStore((s) => s.isPro);
   const tier = useSubscriptionStore((s) => s.tier);
+  const isLoggedIn = !!auth.currentUser;
 
   const handleRedoQuiz = useCallback(() => {
     Alert.alert(
@@ -138,6 +144,52 @@ export default function SettingsScreen() {
       ]
     );
   }, [clearHistory]);
+
+  const handleLogOut = useCallback(() => {
+    Alert.alert(
+      'Log Out',
+      'You will be signed out and returned to the login screen.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Log Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await TokenStorage.clearTokens();
+              await TokenStorage.clearSoundCloudTokens();
+              useAuthStore.getState().logout();
+              useDeckStore.setState({
+                queue: [],
+                likedTracks: [],
+                recentSkips: [],
+                seenTrackIds: [],
+                artistSkipCounts: {},
+                likedCount: 0,
+                skippedCount: 0,
+                consecutiveSkips: 0,
+                sourcePlaylist: null,
+                targetPlaylistId: null,
+                seedTrack: null,
+                userId: 'anonymous',
+                lastSwipedCard: null,
+                lastSwipeDirection: null,
+              });
+              if (auth) await signOut(auth);
+            } catch {}
+            await AsyncStorage.multiRemove([ONBOARDING_KEY, ONBOARDING_GENRES_KEY]);
+            useDeckStore.setState({ onboardingGenres: [] });
+            router.replace('/onboarding');
+          },
+        },
+      ]
+    );
+  }, []);
+
+  const handleReplayTutorial = useCallback(() => {
+    useTutorialStore.getState().replay();
+    router.navigate('/(tabs)/home');
+  }, []);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -370,6 +422,39 @@ export default function SettingsScreen() {
               sublabel="Preview the onboarding flow"
               onPress={handleRedoQuiz}
             />
+            <Divider />
+            <SettingRow
+              icon="school-outline"
+              iconColor={COLORS.cyan}
+              label="Replay tutorial"
+              sublabel="See the guided walkthrough again"
+              onPress={handleReplayTutorial}
+            />
+          </SectionCard>
+        </View>
+
+        {/* ── Account ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Account</Text>
+          <SectionCard>
+            {isLoggedIn ? (
+              <SettingRow
+                icon="log-out-outline"
+                iconColor={COLORS.pink}
+                label="Log Out"
+                sublabel="Sign out and return to login"
+                onPress={handleLogOut}
+                danger
+              />
+            ) : (
+              <SettingRow
+                icon="log-in-outline"
+                iconColor={COLORS.cyan}
+                label="Log In"
+                sublabel="Sign in to sync your data"
+                onPress={() => router.push('/onboarding')}
+              />
+            )}
           </SectionCard>
         </View>
 
