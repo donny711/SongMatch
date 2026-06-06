@@ -15,7 +15,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { getDoc, getDocs, doc, query, collection, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../src/firebase/config';
 import { AvatarWithFrame } from '../../src/components/profile/AvatarWithFrame';
-import { ProfileBackground } from '../../src/components/profile/ProfileBackground';
+import { ProfileBackground, ProfileThemeBackground } from '../../src/components/profile/ProfileBackground';
 import { BadgeRow } from '../../src/components/profile/BadgeRow';
 import { MatchPointsDisplay } from '../../src/components/profile/MatchPointsDisplay';
 import { StreakIndicator } from '../../src/components/profile/StreakIndicator';
@@ -100,6 +100,11 @@ export default function UserProfileScreen() {
     ? SHOP_ITEMS_BY_ID[profile.equippedItems.cardTheme]
     : null;
   const accentColor = themeItem?.colors[0] ?? COLORS.purple;
+  const profileThemeItem = profile.equippedItems?.profileTheme
+    ? SHOP_ITEMS_BY_ID[profile.equippedItems.profileTheme]
+    : null;
+  const profileAccent = profileThemeItem?.colors[0] ?? null;
+  const profileUiAccent = profileAccent ?? accentColor;
   const isOwnProfile = myUid === uid;
   const currentRank = getRankForLikes(profile.likedCount ?? 0);
   const nextRank = getNextRank(currentRank);
@@ -144,6 +149,12 @@ export default function UserProfileScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* ── Content area below banner (theme background fills this) ── */}
+      <View style={{ position: 'relative' }}>
+        <View style={[StyleSheet.absoluteFill, { opacity: 0.85 }]} pointerEvents="none">
+          <ProfileThemeBackground themeId={profile.equippedItems?.profileTheme ?? null} height={999} />
+        </View>
+
       {/* ── Identity ── */}
       <View style={styles.identityZone}>
         <View style={styles.avatarWrapper}>
@@ -182,7 +193,7 @@ export default function UserProfileScreen() {
 
       <View style={styles.sections}>
         {/* ── Stats ── */}
-        <View style={[styles.statsRow, { borderColor: `${accentColor}30` }]}>
+        <View style={[styles.statsRow, { borderColor: `${profileUiAccent}30` }]}>
           <View style={styles.statBox}>
             <Text style={[styles.statNumber, { color: COLORS.green }]}>{profile.likedCount ?? 0}</Text>
             <View style={styles.statMeta}>
@@ -238,7 +249,7 @@ export default function UserProfileScreen() {
         {/* ── Recent Likes ── */}
         {!profile.isPrivate && recentLikes.length > 0 && (
           <View style={styles.section}>
-            <Text style={[styles.sectionTitle, { color: accentColor }]}>Recently Liked</Text>
+            <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Recently Liked</Text>
             <View style={styles.likesList}>
               {recentLikes.map((t) => (
                 <View key={t.trackId} style={styles.likeRow}>
@@ -252,6 +263,7 @@ export default function UserProfileScreen() {
             </View>
           </View>
         )}
+      </View>
       </View>
     </ScrollView>
   );

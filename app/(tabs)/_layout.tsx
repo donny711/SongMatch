@@ -1,7 +1,10 @@
+import { useRef, useEffect } from 'react';
+import { View, Pressable } from 'react-native';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../../src/theme';
+import { useTutorialMeasure } from '../../src/components/tutorial/TutorialMeasureContext';
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -14,6 +17,17 @@ const TAB_ICONS: Record<string, [IoniconName, IoniconName]> = {
 };
 
 const TAB_CONTENT_HEIGHT = 58;
+
+function TutorialTabButton({ tutorialId, children, onPress, style, ...rest }: any) {
+  const ref = useRef<View>(null);
+  const { register } = useTutorialMeasure();
+  useEffect(() => { register(tutorialId, ref); }, [tutorialId, register]);
+  return (
+    <Pressable ref={ref} onPress={onPress} style={style} {...rest}>
+      {children}
+    </Pressable>
+  );
+}
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
@@ -42,11 +56,11 @@ export default function TabsLayout() {
         };
       }}
     >
-      <Tabs.Screen name="hear"      options={{ title: 'Hear' }} />
-      <Tabs.Screen name="liked"     options={{ title: 'Liked' }} />
+      <Tabs.Screen name="hear"      options={{ title: 'Hear', tabBarButton: (props) => <TutorialTabButton tutorialId="tab-hear" {...props} /> }} />
+      <Tabs.Screen name="liked"     options={{ title: 'Liked', tabBarButton: (props) => <TutorialTabButton tutorialId="tab-liked" {...props} /> }} />
       <Tabs.Screen name="home"      options={{ title: 'Discover' }} />
       <Tabs.Screen name="people"    options={{ title: 'People' }} />
-      <Tabs.Screen name="profile"   options={{ title: 'Profile' }} />
+      <Tabs.Screen name="profile"   options={{ title: 'Profile', tabBarButton: (props) => <TutorialTabButton tutorialId="tab-profile" {...props} /> }} />
       <Tabs.Screen name="playlists" options={{ href: null }} />
     </Tabs>
   );

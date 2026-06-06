@@ -12,6 +12,7 @@ import { getArtistSimilar, getArtistTopTracks } from '../src/api/lastfmClient';
 import { getRecommendationsForSeeds } from '../src/api/endpoints';
 import { useDeckStore } from '../src/store/deckStore';
 import { useProfileStore } from '../src/store/profileStore';
+import { useTutorialStore } from '../src/store/tutorialStore';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 import GradientText from '../src/components/GradientText';
 import { GENRE_ARTISTS, GENRE_COLORS, GENRES } from '../src/utils/genres';
@@ -48,10 +49,15 @@ export default function OnboardingScreen() {
   const [searching, setSearching] = useState(false);
   const [searchEmpty, setSearchEmpty] = useState(false);
   const [selectedSong, setSelectedSong] = useState<DeezerTrack | null>(null);
+  const [favoriteArtists, setFavoriteArtists] = useState<Array<{ name: string; picture: string }>>([]);
+  const [artistQuery, setArtistQuery] = useState('');
+  const [artistSearching, setArtistSearching] = useState(false);
+  const [artistResults, setArtistResults] = useState<Array<{ name: string; picture: string }>>([]);
   const [referralInput, setReferralInput] = useState('');
   const [verifyStatus, setVerifyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   const [codeType, setCodeType] = useState<'referral' | 'affiliate' | null>(null);
   const [streakCount, setStreakCount] = useState(1);
+  const [isNewSignUp, setIsNewSignUp] = useState(false);
   const flameScale = useSharedValue(1);
   const contentOpacity = useSharedValue(0);
   const contentScale = useSharedValue(0.86);
@@ -79,7 +85,7 @@ export default function OnboardingScreen() {
     const vErr = validateUsername(username); if (vErr) { setUsernameError(vErr); return; }
     if (password.length < 6) { setAuthError('Password must be at least 6 characters'); return; }
     setAuthLoading(true);
-    try { await signUpWithEmail(email.trim(), password, username.trim()); await useProfileStore.getState().initialize(); setStep('genres'); }
+    try { await signUpWithEmail(email.trim(), password, username.trim()); await useProfileStore.getState().initialize(); setIsNewSignUp(true); setStep('genres'); }
     catch (e: any) { const m = e?.message || 'Something went wrong'; if (m.includes('email-already-in-use')) setAuthError('An account with this email already exists'); else if (m.includes('Username already taken')) setUsernameError('Username already taken'); else if (m.includes('invalid-email')) setAuthError('Please enter a valid email address'); else setAuthError(m); }
     finally { setAuthLoading(false); }
   };
@@ -117,6 +123,36 @@ export default function OnboardingScreen() {
     finally { setSearching(false); }
   };
 
+  const handleArtistSearch = async () => {
+    if (!artistQuery.trim()) return;
+    setArtistSearching(true); setArtistResults([]);
+    try {
+      const tracks = await searchDeezer(artistQuery, 5);
+      const seen = new Set<string>();
+      const artists: Array<{ name: string; picture: string }> = [];
+      for (const t of tracks) {
+        const key = t.artist.name.toLowerCase();
+        if (!seen.has(key) && !favoriteArtists.some(a => a.name.toLowerCase() === key)) {
+          seen.add(key);
+          artists.push({ name: t.artist.name, picture: (t.artist as any).picture_xl ?? (t.artist as any).picture ?? '' });
+        }
+      }
+      setArtistResults(artists);
+    } catch {}
+    finally { setArtistSearching(false); }
+  };
+
+  const addArtist = (artist: { name: string; picture: string }) => {
+    if (favoriteArtists.length >= 5) return;
+    setFavoriteArtists(prev => [...prev, artist]);
+    setArtistResults([]);
+    setArtistQuery('');
+  };
+
+  const removeArtist = (name: string) => {
+    setFavoriteArtists(prev => prev.filter(a => a.name !== name));
+  };
+
   const handleVerify = async () => {
     if (!referralInput.trim()) return;
     setVerifyStatus('checking');
@@ -136,6 +172,10 @@ export default function OnboardingScreen() {
     setStep('loading');
     const seeds: Array<{ name: string; artist: string }> = [];
     if (selectedSong) seeds.push({ name: selectedSong.title, artist: selectedSong.artist.name });
+    await Promise.all(favoriteArtists.map(async (a) => {
+      const tops = await getArtistTopTracks(a.name, 3);
+      if (tops.length > 0) seeds.push(tops[Math.floor(Math.random() * tops.length)]);
+    }));
     await Promise.all(selectedGenres.slice(0, 3).map(async (genre) => {
       const reps = GENRE_ARTISTS[genre] ?? []; if (reps.length === 0) return;
       const rep = reps[Math.floor(Math.random() * reps.length)];
@@ -173,8 +213,11 @@ export default function OnboardingScreen() {
   if (step === 'auth') {
     return (
       <KeyboardAvoidingView style={[styles.root, { paddingTop: insets.top + SPACING.lg }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={{ alignItems: 'center', marginBottom: SPACING.md }}>
+          <GradientText fontSize={28} hPad={24} letterSpacing={-0.5}>SongMatch</GradientText>
+        </View>
         <View style={styles.header}>
-          <GradientText fontSize={22} hPad={24} letterSpacing={-0.5}>SongMatch</GradientText>
+          <View />
           {renderDots(0)}
         </View>
         <GradientText fontSize={28} hPad={24} letterSpacing={-0.5}>{authTab === 'signup' ? 'Create your account' : 'Welcome back'}</GradientText>
@@ -243,19 +286,55 @@ export default function OnboardingScreen() {
     return (
       <View style={[styles.root, { paddingTop: insets.top + SPACING.lg }]}>
         <View style={styles.header}><TouchableOpacity onPress={() => setStep('genres')} hitSlop={12} activeOpacity={0.7}><Ionicons name="arrow-back" size={22} color={COLORS.textMuted} /></TouchableOpacity>{renderDots(2)}</View>
-        <GradientText fontSize={30} hPad={24} letterSpacing={-0.5}>Got a favourite song?</GradientText>
-        <Text style={styles.sub}>{"We'll find you songs with the same energy. You can skip this."}</Text>
-        <View style={styles.searchRow}>
-          <View style={styles.inputWrap}><Ionicons name="search-outline" size={18} color={COLORS.textMuted} style={{ marginRight: SPACING.sm }} /><TextInput style={styles.input} placeholder="Song name or artist..." placeholderTextColor={COLORS.textMuted} value={searchQuery} onChangeText={setSearchQuery} onSubmitEditing={handleSearch} returnKeyType="search" keyboardAppearance="dark" /></View>
-          <TouchableOpacity style={[styles.searchBtn, !searchQuery.trim() && styles.btnDisabled]} onPress={handleSearch} disabled={!searchQuery.trim()} activeOpacity={0.85}><Ionicons name="arrow-forward" size={20} color="#fff" /></TouchableOpacity>
-        </View>
-        {searching && <ActivityIndicator color={COLORS.purple} style={{ marginTop: SPACING.lg }} />}
-        {searchEmpty && !searching && <Text style={styles.noResultsText}>No results - try another track name</Text>}
-        {searchResult && !searching && (
-          <View style={styles.resultCard}><Image source={{ uri: searchResult.album.cover_xl }} style={styles.resultArt} /><View style={styles.resultInfo}><Text style={styles.resultTitle} numberOfLines={1}>{searchResult.title}</Text><Text style={styles.resultArtist} numberOfLines={1}>{searchResult.artist.name}</Text></View><TouchableOpacity style={styles.useBtn} onPress={() => goToReferral(searchResult)} activeOpacity={0.85}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity></View>
-        )}
+        <GradientText fontSize={30} hPad={24} letterSpacing={-0.5}>Personalise your feed</GradientText>
+        <Text style={styles.sub}>{"Add a favourite song and up to 5 artists. You can skip this."}</Text>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
+          <Text style={styles.fieldLabel}>Favourite Song</Text>
+          <View style={styles.searchRow}>
+            <View style={styles.inputWrap}><Ionicons name="search-outline" size={18} color={COLORS.textMuted} style={{ marginRight: SPACING.sm }} /><TextInput style={styles.input} placeholder="Song name or artist..." placeholderTextColor={COLORS.textMuted} value={searchQuery} onChangeText={setSearchQuery} onSubmitEditing={handleSearch} returnKeyType="search" keyboardAppearance="dark" /></View>
+            <TouchableOpacity style={[styles.searchBtn, !searchQuery.trim() && styles.btnDisabled]} onPress={handleSearch} disabled={!searchQuery.trim()} activeOpacity={0.85}><Ionicons name="arrow-forward" size={20} color="#fff" /></TouchableOpacity>
+          </View>
+          {searching && <ActivityIndicator color={COLORS.purple} style={{ marginTop: SPACING.sm }} />}
+          {searchEmpty && !searching && <Text style={styles.noResultsText}>No results - try another track name</Text>}
+          {searchResult && !searching && (
+            <View style={styles.resultCard}><Image source={{ uri: searchResult.album.cover_xl }} style={styles.resultArt} /><View style={styles.resultInfo}><Text style={styles.resultTitle} numberOfLines={1}>{searchResult.title}</Text><Text style={styles.resultArtist} numberOfLines={1}>{searchResult.artist.name}</Text></View><TouchableOpacity style={styles.useBtn} onPress={() => { setSelectedSong(searchResult); setSearchResult(null); setSearchQuery(''); }} activeOpacity={0.85}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity></View>
+          )}
+          {selectedSong && !searchResult && (
+            <View style={styles.resultCard}><Image source={{ uri: selectedSong.album.cover_xl }} style={styles.resultArt} /><View style={styles.resultInfo}><Text style={styles.resultTitle} numberOfLines={1}>{selectedSong.title}</Text><Text style={styles.resultArtist} numberOfLines={1}>{selectedSong.artist.name}</Text></View><TouchableOpacity onPress={() => setSelectedSong(null)} hitSlop={8}><Ionicons name="close-circle" size={22} color={COLORS.textMuted} /></TouchableOpacity></View>
+          )}
+          <Text style={[styles.fieldLabel, { marginTop: SPACING.lg }]}>{"Favourite Artists "}<Text style={{ color: COLORS.textMuted, fontWeight: '400' }}>({favoriteArtists.length}/5)</Text></Text>
+          {favoriteArtists.length < 5 && (
+            <View style={styles.searchRow}>
+              <View style={styles.inputWrap}><Ionicons name="person-outline" size={18} color={COLORS.textMuted} style={{ marginRight: SPACING.sm }} /><TextInput style={styles.input} placeholder="Search for an artist..." placeholderTextColor={COLORS.textMuted} value={artistQuery} onChangeText={setArtistQuery} onSubmitEditing={handleArtistSearch} returnKeyType="search" keyboardAppearance="dark" /></View>
+              <TouchableOpacity style={[styles.searchBtn, !artistQuery.trim() && styles.btnDisabled]} onPress={handleArtistSearch} disabled={!artistQuery.trim()} activeOpacity={0.85}><Ionicons name="arrow-forward" size={20} color="#fff" /></TouchableOpacity>
+            </View>
+          )}
+          {artistSearching && <ActivityIndicator color={COLORS.purple} style={{ marginTop: SPACING.sm }} />}
+          {artistResults.length > 0 && (
+            <View style={{ gap: 4, marginBottom: SPACING.sm }}>
+              {artistResults.map((a) => (
+                <TouchableOpacity key={a.name} style={styles.artistResultRow} onPress={() => addArtist(a)} activeOpacity={0.75}>
+                  {a.picture ? <Image source={{ uri: a.picture }} style={styles.artistThumb} /> : <View style={[styles.artistThumb, { backgroundColor: COLORS.border }]} />}
+                  <Text style={styles.artistResultName} numberOfLines={1}>{a.name}</Text>
+                  <Ionicons name="add-circle" size={22} color={COLORS.green} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+          {favoriteArtists.length > 0 && (
+            <View style={{ gap: 6, marginTop: SPACING.sm }}>
+              {favoriteArtists.map((a) => (
+                <View key={a.name} style={styles.artistChip}>
+                  {a.picture ? <Image source={{ uri: a.picture }} style={styles.artistChipImg} /> : <View style={[styles.artistChipImg, { backgroundColor: COLORS.border }]} />}
+                  <Text style={styles.artistChipName} numberOfLines={1}>{a.name}</Text>
+                  <TouchableOpacity onPress={() => removeArtist(a.name)} hitSlop={8}><Ionicons name="close-circle" size={20} color={COLORS.textMuted} /></TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
         <View style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => goToReferral(searchResult)} activeOpacity={0.85}><Ionicons name="sparkles" size={18} color="#fff" /><Text style={styles.primaryBtnText}>{searchResult ? 'Use this song' : 'Start Discovering'}</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => goToReferral(selectedSong)} activeOpacity={0.85}><Ionicons name="sparkles" size={18} color="#fff" /><Text style={styles.primaryBtnText}>{selectedSong || favoriteArtists.length > 0 ? 'Continue' : 'Start Discovering'}</Text></TouchableOpacity>
           <TouchableOpacity onPress={() => goToReferral(null)} style={styles.skipBtn} activeOpacity={0.7}><Text style={styles.skipText}>Skip</Text></TouchableOpacity>
         </View>
       </View>
@@ -293,7 +372,7 @@ export default function OnboardingScreen() {
           <Text style={styles.taglineText}>{streakCount <= 1 ? 'Your streak begins!' : 'Welcome back!'}</Text>
         </Animated.View>
         <View style={[styles.streakBtnWrap, { bottom: insets.bottom + SPACING.xl }]}>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => { useProfileStore.getState().clearStreakAnim(); router.replace('/(tabs)/home'); }} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => { useProfileStore.getState().clearStreakAnim(); if (isNewSignUp) useTutorialStore.getState().replay(); router.replace('/(tabs)/home'); }} activeOpacity={0.85}>
             <Text style={styles.primaryBtnText}>{"Let's Go"}</Text><Ionicons name="arrow-forward" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
@@ -362,4 +441,10 @@ const styles = StyleSheet.create({
   streakLabel: { fontSize: 13, fontWeight: '700', color: '#FDBA74', letterSpacing: 5, textTransform: 'uppercase', marginBottom: SPACING.md },
   taglineText: { fontSize: 18, fontWeight: '500', color: COLORS.textSub, textAlign: 'center' },
   streakBtnWrap: { position: 'absolute', left: SPACING.xl, right: SPACING.xl, alignItems: 'stretch' },
+  artistResultRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, paddingVertical: 8, paddingHorizontal: SPACING.md, backgroundColor: COLORS.surface, borderRadius: RADIUS.md, borderWidth: 1, borderColor: COLORS.border },
+  artistThumb: { width: 36, height: 36, borderRadius: 18 },
+  artistResultName: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '600' },
+  artistChip: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, paddingVertical: 8, paddingHorizontal: SPACING.md, borderWidth: 1.5, borderColor: 'rgba(167,139,250,0.35)' },
+  artistChipImg: { width: 32, height: 32, borderRadius: 16 },
+  artistChipName: { flex: 1, color: COLORS.text, fontSize: 14, fontWeight: '600' },
 });

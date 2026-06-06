@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import SnippetPlayer from './SnippetPlayer';
 import type { RecommendationCard } from '../../api/types';
 import { COLORS } from '../../theme';
+import { useTutorialMeasure } from '../tutorial/TutorialMeasureContext';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -15,6 +16,12 @@ interface Props {
 }
 
 export default function TrackCard({ card, isTop = false }: Props) {
+  const audioRef = useRef<View>(null);
+  const { register } = useTutorialMeasure();
+  useEffect(() => {
+    if (isTop) register('audio-player', audioRef);
+  }, [isTop, register]);
+
   const track = card.track;
   const duration = track.duration ?? 0;
   const mins = Math.floor(duration / 60);
@@ -49,7 +56,9 @@ export default function TrackCard({ card, isTop = false }: Props) {
         <Text style={styles.album} numberOfLines={1}>
           {track.album.title} · {mins}:{secs}
         </Text>
-        <SnippetPlayer previewUrl={track.preview} autoPlay={isTop} />
+        <View ref={audioRef}>
+          <SnippetPlayer previewUrl={track.preview} autoPlay={isTop} />
+        </View>
       </View>
     </View>
   );

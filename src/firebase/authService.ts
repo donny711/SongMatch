@@ -19,11 +19,11 @@ export async function signUpWithEmail(
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   const uid = credential.user.uid;
 
+  // Initialise the user profile doc first (sets defaults if it doesn't exist)
+  await getOrCreateUserDoc(uid);
+
   // Claim username in Firestore (transactional, enforces uniqueness)
   await claimUsername(uid, username.toLowerCase(), null);
-
-  // Initialise the user profile doc (sets defaults if it doesn't exist)
-  await getOrCreateUserDoc(uid);
 
   // Store email on the profile doc for username-based login lookup
   await updateProfileFields(uid, { email });

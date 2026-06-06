@@ -17,6 +17,12 @@ import { getMe, getRecommendationsForSeeds } from '../src/api/endpoints';
 import { sampleLikedSeeds } from '../src/utils/sampleLikedSeeds';
 import { ONBOARDING_KEY } from './onboarding';
 import { useReferral } from '../src/hooks/useReferral';
+import { TutorialMeasureProvider } from '../src/components/tutorial/TutorialMeasureContext';
+import { TutorialOverlay } from '../src/components/tutorial/TutorialOverlay';
+import { useTutorialStore } from '../src/store/tutorialStore';
+
+// Load tutorial state from AsyncStorage on app start
+useTutorialStore.getState().load();
 
 async function prefetchRecommendations() {
   const { likedTracks, seenTrackIds, artistSkipCounts, appendQueue } =
@@ -132,6 +138,7 @@ export default function RootLayout() {
       }
       router.replace('/(tabs)/home');
       prefetchRecommendations();
+      useTutorialStore.getState().load();
     })().catch((err: unknown) => {
       console.error('[SongMatch] Startup error:', err);
     });
@@ -150,6 +157,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.root}>
+        <TutorialMeasureProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="settings" options={{ presentation: 'card' }} />
           <Stack.Screen name="shop" options={{ presentation: 'card' }} />
@@ -165,6 +173,8 @@ export default function RootLayout() {
         </Stack>
         <MPToast />
         <StreakCelebration />
+        <TutorialOverlay />
+        </TutorialMeasureProvider>
       </GestureHandlerRootView>
     </QueryClientProvider>
   );

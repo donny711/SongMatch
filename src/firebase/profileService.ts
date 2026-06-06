@@ -309,7 +309,7 @@ export async function claimUsername(
       tx.delete(doc(db, 'usernames', oldUsername));
     }
     tx.set(newRef, { uid });
-    tx.update(uRef, { username: newUsername, updatedAt: serverTimestamp() });
+    tx.set(uRef, { username: newUsername, updatedAt: serverTimestamp() }, { merge: true });
   });
 }
 
