@@ -6,7 +6,7 @@ import {
   TestIds,
 } from 'react-native-google-mobile-ads';
 
-const ADS_AVAILABLE = true;
+const ADS_AVAILABLE = false; // interstitial disabled for now
 
 const AD_UNIT_ID = Platform.select({
   ios: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS ?? TestIds.INTERSTITIAL,
