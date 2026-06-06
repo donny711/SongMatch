@@ -442,14 +442,14 @@ export default function HomeScreen() {
                 {/* Watch ad — only shown when daily limit not hit and not waiting */}
                 {!dailyLimitHit && !timerEndMs && (
                   <TouchableOpacity
-                    style={[styles.gateAdBtn, gateAdStatus === 'loading' && styles.gateBtnDisabled]}
-                    onPress={gateAdStatus === 'ready' ? showGateAd : unlockSwipes}
-                    disabled={gateAdStatus === 'loading'}
+                    style={[styles.gateAdBtn, gateAdStatus !== 'ready' && styles.gateBtnDisabled]}
+                    onPress={showGateAd}
+                    disabled={gateAdStatus !== 'ready'}
                     activeOpacity={0.85}
                   >
                     <Ionicons name="play-circle-outline" size={18} color="#fff" />
                     <Text style={styles.gateAdBtnText}>
-                      {gateAdStatus === 'loading' ? 'Loading ad…' : 'Watch a short ad'}
+                      {gateAdStatus === 'ready' ? 'Watch a short ad' : 'Loading ad…'}
                     </Text>
                   </TouchableOpacity>
                 )}
