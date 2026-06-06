@@ -215,10 +215,12 @@ function WatchAdCard() {
   const { status, show, retry } = useRewardedAd();
   const isReady = status === 'ready';
   const isLoading = status === 'loading';
+  const isUnavailable = status === 'unavailable';
+  const canTap = isReady || status === 'error';
 
   const handlePress = () => {
     if (isReady) { show(); return; }
-    if (!isLoading) retry();
+    if (status === 'error') retry();
   };
 
   return (
@@ -226,14 +228,14 @@ function WatchAdCard() {
       style={[styles.adCard, !isReady && styles.adCardDisabled]}
       onPress={handlePress}
       activeOpacity={0.8}
-      disabled={isLoading}
+      disabled={!canTap}
     >
       <View style={styles.adIconWrap}>
         {isLoading ? (
           <ActivityIndicator size="small" color="#A78BFA" />
         ) : (
           <Ionicons
-            name={isReady ? 'play-circle' : 'refresh-circle'}
+            name={isReady ? 'play-circle' : status === 'error' ? 'refresh-circle' : 'alert-circle-outline'}
             size={26}
             color={isReady ? '#A78BFA' : COLORS.textMuted}
           />
@@ -242,9 +244,10 @@ function WatchAdCard() {
       <View style={styles.adTextWrap}>
         <Text style={styles.adTitle}>Watch a short ad</Text>
         <Text style={styles.adSub}>
-          {isLoading ? 'Loading ad…'
+          {isUnavailable ? 'Ads not available in Expo Go'
+            : isLoading ? 'Loading ad…'
             : isReady ? 'Earn 30 MP instantly · up to 5×/day'
-            : 'Tap to load an ad'}
+            : 'Tap to retry'}
         </Text>
       </View>
       <View style={[styles.adPill, !isReady && styles.adPillDisabled]}>

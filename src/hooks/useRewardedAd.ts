@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import { grantAdReward } from '../firebase/profileService';
 import { useProfileStore } from '../store/profileStore';
-import { initializeAds } from './adsInit';
+import { initializeAds, adsFailed } from './adsInit';
 
 const AD_UNIT_ID = Platform.select({
   ios: process.env.EXPO_PUBLIC_ADMOB_REWARDED_IOS ?? 'ca-app-pub-3940256099942544/1712485313',
@@ -18,6 +18,7 @@ export function useRewardedAd() {
   const [ad, setAd] = useState<any>(null);
 
   const loadAd = useCallback(async () => {
+    if (adsFailed()) { setStatus('unavailable'); return; }
     try {
       await initializeAds();
       const { RewardedAd, RewardedAdEventType, AdEventType } =
