@@ -45,9 +45,7 @@ workflows:
         script: npm install
 
       - name: Test JS bundle
-        script: |
-          npx expo export --platform ios 2>&1 || true
-          echo "Bundle test complete" 
+        script: npx expo export --platform ios
 
       - name: Generate iOS project
         script: npx expo prebuild --platform ios --clean
@@ -66,12 +64,12 @@ workflows:
 
       - name: Build IPA
         script: |
-          xcode-project build-ipa             --workspace "$CM_BUILD_DIR/ios/SongMatch.xcworkspace"             --scheme "SongMatch"
+          xcode-project build-ipa             --workspace "$CM_BUILD_DIR/ios/SongMatch.xcworkspace"             --scheme "SongMatch" 2>&1 | tee /tmp/xcodebuild_full.log
 
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Logs/Build/*.log
+      - /tmp/xcodebuild_full.log
 
     publishing:
       app_store_connect:
