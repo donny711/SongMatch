@@ -362,14 +362,12 @@ export default function HomeScreen() {
 
               {/* Swipe deck */}
               {queue.length > 0 && (
-                <View ref={swipeCardRef}>
                 <SwipeDeck
                   ref={deckRef}
                   queue={queue}
                   onSwipeLeft={handleSwipeLeft}
                   onSwipeRight={handleSwipeRight}
                 />
-                </View>
               )}
 
               {/* Liked toast */}
