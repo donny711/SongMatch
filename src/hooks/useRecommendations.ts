@@ -87,7 +87,7 @@ export function useRecommendations() {
       seeds = sampleLikedSeeds(likedTracks, seedCount - genreSlots);
       if (genreSlots > 0) {
         const genreSeeds = await buildTasteSeeds(
-          [], recentSkips, onboardingGenres, false, filteredArtistKeys, 0
+          [], recentSkips, onboardingGenres, false, filteredArtistKeys, 1
         );
         seeds = [...seeds, ...genreSeeds.slice(0, genreSlots)];
       }
