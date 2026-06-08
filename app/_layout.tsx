@@ -25,7 +25,7 @@ import { useTutorialStore } from '../src/store/tutorialStore';
 useTutorialStore.getState().load();
 
 async function prefetchRecommendations() {
-  const { likedTracks, seenTrackIds, artistSkipCounts, appendQueue } =
+  const { likedTracks, seenTrackIds, artistSkipCounts, onboardingSongId, appendQueue } =
     useDeckStore.getState();
 
   if (likedTracks.length < 3) return;
@@ -44,11 +44,17 @@ async function prefetchRecommendations() {
     const seeds = sampleLikedSeeds(likedTracks, seedCount);
     if (seeds.length === 0) return;
 
+    const recentLikedIds = likedTracks.slice(0, 3).map(t => t.id);
+    const deezerSeedIds = [
+      ...recentLikedIds,
+      ...(onboardingSongId !== null && !recentLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
+    ];
+
     const seenIds = new Set<number>([
       ...likedTracks.map((t) => t.id),
       ...seenTrackIds,
     ]);
-    const cards = await getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys);
+    const cards = await getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, deezerSeedIds);
     if (cards.length > 0) appendQueue(cards);
   } catch {
     // silent — the normal in-app fetch will handle it

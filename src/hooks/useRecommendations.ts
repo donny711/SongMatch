@@ -29,6 +29,7 @@ export function useRecommendations() {
     recentSkips,
     seenTrackIds,
     onboardingGenres,
+    onboardingSongId,
     consecutiveSkips,
     artistSkipCounts,
   } = useDeckStore();
@@ -55,6 +56,14 @@ export function useRecommendations() {
         .map(([artist]) => artist)
     );
     const filteredArtistKeys = new Set([...likedArtistKeys, ...skipFilteredKeys]);
+
+    // Deezer radio seeds: most recently liked tracks + onboarding song (if any).
+    // These are passed alongside text seeds so the radio signal always augments results.
+    const recentLikedIds = likedTracks.slice(0, 3).map(t => t.id);
+    const deezerSeedIds = [
+      ...recentLikedIds,
+      ...(onboardingSongId !== null && !recentLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
+    ];
 
     const n = likedTracks.length;
     const seedCount = n >= 50 ? 6 : n >= 20 ? 5 : n >= 10 ? 4 : 3;
@@ -122,8 +131,8 @@ export function useRecommendations() {
       ...likedTracks.map((t) => t.id),
       ...seenTrackIds,
     ]);
-    return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys);
-  }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, artistSkipCounts]);
+    return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, deezerSeedIds);
+  }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, onboardingSongId, artistSkipCounts]);
 
   const { refetch, isFetching } = useQuery({
     queryKey: ['recommendations', sourcePlaylist?.id, seedTrack?.name, !!accessToken],

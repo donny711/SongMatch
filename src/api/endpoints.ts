@@ -91,71 +91,93 @@ export async function getRecommendationsForSeeds(
   seeds: Array<{ name: string; artist: string }>,
   limit = 20,
   seenIds: Set<number> = new Set(),
-  likedArtistKeys: Set<string> = new Set()
+  likedArtistKeys: Set<string> = new Set(),
+  deezerSeedIds: number[] = []
 ): Promise<RecommendationCard[]> {
-  const perSeed = Math.ceil(limit / seeds.length) + 8;
-  const similarArrays = await Promise.all(
-    seeds.map(async (s) => {
-      const similar = await getSimilarTracks(s.artist, s.name, perSeed);
-      if (similar.length > 0) {
-        return similar.sort((a, b) => b.match - a.match);
-      }
-      const tops = await getArtistTopTracks(s.artist, perSeed);
-      return tops.map((t) => ({ ...t, match: 0.5 }));
-    })
-  );
+  const perSeed = seeds.length > 0 ? Math.ceil(limit / seeds.length) + 8 : 0;
 
-  // Round-robin interleave so every seed contributes proportionally.
-  const seenKeys = new Set<string>();
-  const candidates: Array<{ name: string; artist: string; match: number }> = [];
-  const maxLen = Math.max(...similarArrays.map((a) => a.length));
-  for (let i = 0; i < maxLen; i++) {
-    for (const arr of similarArrays) {
-      if (i >= arr.length) continue;
-      const t = arr[i];
-      const key = `${t.artist.toLowerCase()}|${t.name.toLowerCase()}`;
-      if (!seenKeys.has(key)) {
-        seenKeys.add(key);
-        candidates.push(t);
+  // Run Deezer radio and Last.fm similarity in parallel.
+  // Radio uses audio fingerprints — no text search, higher fidelity.
+  // Last.fm fills any slots radio doesn't cover.
+  const [radioArrays, similarArrays] = await Promise.all([
+    deezerSeedIds.length > 0
+      ? Promise.all(deezerSeedIds.slice(0, 4).map(id => getDeezerRadio(id, 40).catch(() => [] as DeezerTrack[])))
+      : Promise.resolve([] as DeezerTrack[][]),
+    seeds.length > 0
+      ? Promise.all(seeds.map(async (s) => {
+          const similar = await getSimilarTracks(s.artist, s.name, perSeed);
+          if (similar.length > 0) return similar.sort((a, b) => b.match - a.match);
+          const tops = await getArtistTopTracks(s.artist, perSeed);
+          return tops.map((t) => ({ ...t, match: 0.5 }));
+        }))
+      : Promise.resolve([] as Array<Array<{ name: string; artist: string; match: number }>>),
+  ]);
+
+  // Build radio candidate pool (already Deezer tracks; assign match=1.0).
+  const radioCandidates: Array<{ track: DeezerTrack; match: number }> = [];
+  {
+    const radioSeen = new Set<number>();
+    const maxLen = Math.max(0, ...radioArrays.map(a => a.length));
+    for (let i = 0; i < maxLen; i++) {
+      for (const arr of radioArrays) {
+        if (i >= arr.length) continue;
+        const t = arr[i];
+        if (!radioSeen.has(t.id)) { radioSeen.add(t.id); radioCandidates.push({ track: t, match: 1.0 }); }
       }
     }
   }
 
-  // Buffer at 4× the desired limit — many Last.fm tracks aren't on Deezer.
-  const fetchBatch = candidates.slice(0, Math.min(candidates.length, limit * 4));
-
-  // Carry match scores through the Deezer lookup.
-  const deezerWithMatch: Array<{ track: DeezerTrack | null; match: number }> = [];
-  for (let i = 0; i < fetchBatch.length && deezerWithMatch.filter((r) => r.track).length < limit; i += 8) {
-    const batch = fetchBatch.slice(i, i + 8);
-    const batchResults = await Promise.all(
-      batch.map(async (t) => {
-        try {
-          const tracks = await searchDeezer(`${t.name} ${t.artist}`, 1);
-          return { track: tracks[0] ?? null, match: t.match };
-        } catch {
-          return { track: null, match: t.match };
-        }
-      })
-    );
-    deezerWithMatch.push(...batchResults);
+  // Build Last.fm candidate pool (requires Deezer text search).
+  const lastfmCandidates: Array<{ track: DeezerTrack | null; match: number }> = [];
+  if (similarArrays.length > 0) {
+    const seenKeys = new Set<string>();
+    const candidates: Array<{ name: string; artist: string; match: number }> = [];
+    const maxLen = Math.max(0, ...similarArrays.map((a) => a.length));
+    for (let i = 0; i < maxLen; i++) {
+      for (const arr of similarArrays) {
+        if (i >= arr.length) continue;
+        const t = arr[i];
+        const key = `${t.artist.toLowerCase()}|${t.name.toLowerCase()}`;
+        if (!seenKeys.has(key)) { seenKeys.add(key); candidates.push(t); }
+      }
+    }
+    const fetchBatch = candidates.slice(0, Math.min(candidates.length, limit * 4));
+    for (let i = 0; i < fetchBatch.length && lastfmCandidates.filter((r) => r.track).length < limit; i += 8) {
+      const batch = fetchBatch.slice(i, i + 8);
+      const batchResults = await Promise.all(
+        batch.map(async (t) => {
+          try {
+            const tracks = await searchDeezer(`${t.name} ${t.artist}`, 1);
+            return { track: tracks[0] ?? null, match: t.match };
+          } catch {
+            return { track: null, match: t.match };
+          }
+        })
+      );
+      lastfmCandidates.push(...batchResults);
+    }
   }
 
-  // Build a match-score index keyed by Deezer track ID (take the highest score
-  // if the same track appears from multiple seeds).
+  // Build match-score index (radio = 1.0, Last.fm = actual similarity score).
   const matchById = new Map<number, number>();
-  for (const { track, match } of deezerWithMatch) {
-    if (!track) continue;
-    if ((matchById.get(track.id) ?? 0) < match) matchById.set(track.id, match);
+  for (const { track, match } of radioCandidates) {
+    matchById.set(track.id, match);
+  }
+  for (const { track, match } of lastfmCandidates) {
+    if (track && (matchById.get(track.id) ?? 0) < match) matchById.set(track.id, match);
   }
 
-  // Post-process: filter seen/liked, enforce artist diversity window.
+  // Merge: radio first (audio fidelity), then Last.fm fills remaining slots.
+  const allCandidates: DeezerTrack[] = [
+    ...radioCandidates.map(r => r.track),
+    ...lastfmCandidates.flatMap(r => r.track ? [r.track] : []),
+  ];
+
   const output: DeezerTrack[] = [];
   const windowArtists: string[] = [];
   const windowSet = new Set<string>();
 
-  for (const { track } of deezerWithMatch) {
-    if (!track) continue;
+  for (const track of allCandidates) {
     if (output.length >= limit) break;
     if (seenIds.has(track.id)) continue;
     const artistKey = track.artist.name.toLowerCase();
@@ -170,7 +192,7 @@ export async function getRecommendationsForSeeds(
     }
   }
 
-  // Sort by Last.fm match score so highest-confidence tracks surface first.
+  // Sort: radio tracks (1.0) surface first, then by Last.fm similarity score.
   output.sort((a, b) => (matchById.get(b.id) ?? 0) - (matchById.get(a.id) ?? 0));
   return output.map((track) => ({ type: 'track' as const, track }));
 }

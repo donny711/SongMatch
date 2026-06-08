@@ -184,8 +184,12 @@ export default function OnboardingScreen() {
       const tops = await getArtistTopTracks(pick, 5);
       if (tops.length > 0) seeds.push(tops[Math.floor(Math.random() * tops.length)]);
     }));
-    if (seeds.length > 0) { try { const cards = await getRecommendationsForSeeds(seeds, 20, new Set()); if (cards.length > 0) appendQueue(cards); } catch {} }
+    const deezerSeedIds = selectedSong ? [selectedSong.id] : [];
+    if (seeds.length > 0 || deezerSeedIds.length > 0) { try { const cards = await getRecommendationsForSeeds(seeds, 20, new Set(), new Set(), deezerSeedIds); if (cards.length > 0) appendQueue(cards); } catch {} }
     await AsyncStorage.setItem(ONBOARDING_GENRES_KEY, JSON.stringify(selectedGenres));
+    if (selectedSong) await AsyncStorage.setItem('sm_onboarding_song_id', String(selectedSong.id));
+    if (favoriteArtists.length > 0) await AsyncStorage.setItem('sm_onboarding_artists', JSON.stringify(favoriteArtists.map(a => a.name)));
+    useDeckStore.setState({ onboardingSongId: selectedSong?.id ?? null, onboardingArtists: favoriteArtists.map(a => a.name) });
     await AsyncStorage.setItem(ONBOARDING_KEY, '1');
     if (referralCode) { const uid = auth.currentUser?.uid; if (uid) { if (codeType === 'affiliate') recordAffiliateInstall(uid, referralCode).catch(() => {}); else recordReferralInstall(uid, referralCode).catch(() => {}); } }
     await useProfileStore.getState().checkAndUpdateStreak();

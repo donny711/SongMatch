@@ -13,6 +13,8 @@ interface DeckState {
   seenTrackIds: number[];
   artistSkipCounts: Record<string, { count: number; ts: number }>;
   onboardingGenres: string[];
+  onboardingArtists: string[];
+  onboardingSongId: number | null;
   sourcePlaylist: SpotifyPlaylist | null;
   targetPlaylistId: string | null;
   seedTrack: { name: string; artist: string } | null;
@@ -44,6 +46,8 @@ const skipsKey       = (userId: string) => `sm_skips_${userId}`;
 const seenKey        = (userId: string) => `sm_seen_${userId}`;
 const artistSkipsKey = (userId: string) => `sm_artist_skips_${userId}`;
 const genresKey      = () => 'sm_onboarding_genres';
+const onboardingArtistsKey = () => 'sm_onboarding_artists';
+const onboardingSongIdKey  = () => 'sm_onboarding_song_id';
 
 export const useDeckStore = create<DeckState>((set, get) => ({
   queue: [],
@@ -55,6 +59,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   seenTrackIds: [],
   artistSkipCounts: {},
   onboardingGenres: [],
+  onboardingArtists: [],
+  onboardingSongId: null,
   sourcePlaylist: null,
   targetPlaylistId: null,
   seedTrack: null,
@@ -212,13 +218,15 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     }
   },
   loadForUser: async (userId) => {
-    const [likedRaw, statsRaw, skipsRaw, seenRaw, genresRaw, artistSkipsRaw] = await Promise.all([
+    const [likedRaw, statsRaw, skipsRaw, seenRaw, genresRaw, artistSkipsRaw, onboardingArtistsRaw, onboardingSongIdRaw] = await Promise.all([
       AsyncStorage.getItem(likedKey(userId)),
       AsyncStorage.getItem(statsKey(userId)),
       AsyncStorage.getItem(skipsKey(userId)),
       AsyncStorage.getItem(seenKey(userId)),
       AsyncStorage.getItem(genresKey()),
       AsyncStorage.getItem(artistSkipsKey(userId)),
+      AsyncStorage.getItem(onboardingArtistsKey()),
+      AsyncStorage.getItem(onboardingSongIdKey()),
     ]);
     function safeParse<T>(raw: string | null, fallback: T): T {
       if (!raw) return fallback;
@@ -228,6 +236,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     const recentSkips: DeezerTrack[] = safeParse(skipsRaw, []);
     const seenTrackIds: number[] = safeParse(seenRaw, []);
     const onboardingGenres: string[] = safeParse(genresRaw, []);
+    const onboardingArtists: string[] = safeParse(onboardingArtistsRaw, []);
+    const onboardingSongId: number | null = onboardingSongIdRaw ? Number(onboardingSongIdRaw) : null;
     // Migrate: old format stored plain numbers, new format is { count, ts }.
     const rawSkipCounts: Record<string, number | { count: number; ts: number }> = safeParse(artistSkipsRaw, {});
     let artistSkipCounts: Record<string, { count: number; ts: number }> = {};
@@ -257,6 +267,6 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     }
     if (decayDirty) AsyncStorage.setItem(artistSkipsKey(userId), JSON.stringify(artistSkipCounts));
     const stats: { likedCount: number; skippedCount: number } = safeParse(statsRaw, { likedCount: 0, skippedCount: 0 });
-    set({ userId, likedTracks, recentSkips, seenTrackIds, onboardingGenres, artistSkipCounts, likedCount: stats.likedCount, skippedCount: stats.skippedCount });
+    set({ userId, likedTracks, recentSkips, seenTrackIds, onboardingGenres, onboardingArtists, onboardingSongId, artistSkipCounts, likedCount: stats.likedCount, skippedCount: stats.skippedCount });
   },
 }));
