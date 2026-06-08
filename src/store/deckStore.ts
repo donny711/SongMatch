@@ -11,7 +11,7 @@ interface DeckState {
   likedTracks: DeezerTrack[];
   recentSkips: DeezerTrack[];
   seenTrackIds: number[];
-  artistSkipCounts: Record<string, number>;
+  artistSkipCounts: Record<string, { count: number; ts: number }>;
   onboardingGenres: string[];
   sourcePlaylist: SpotifyPlaylist | null;
   targetPlaylistId: string | null;
@@ -130,7 +130,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
         : [track.id, ...s.seenTrackIds].slice(0, 500),
       artistSkipCounts: {
         ...s.artistSkipCounts,
-        [artistKey]: (s.artistSkipCounts[artistKey] ?? 0) + 1,
+        [artistKey]: { count: (s.artistSkipCounts[artistKey]?.count ?? 0) + 1, ts: Date.now() },
       },
     }));
     const { userId, recentSkips, seenTrackIds, artistSkipCounts } = get();
@@ -192,9 +192,10 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       const newSkippedCount = Math.max(0, skippedCount - 1);
       const newConsecutive = Math.max(0, consecutiveSkips - 1);
       const newArtistCounts = { ...artistSkipCounts };
-      if ((newArtistCounts[artistKey] ?? 0) > 0) {
-        newArtistCounts[artistKey]--;
-        if (newArtistCounts[artistKey] === 0) delete newArtistCounts[artistKey];
+      const current = newArtistCounts[artistKey];
+      if (current && current.count > 0) {
+        if (current.count === 1) delete newArtistCounts[artistKey];
+        else newArtistCounts[artistKey] = { count: current.count - 1, ts: current.ts };
       }
       set((s) => ({
         queue: [lastSwipedCard, ...s.queue],
@@ -227,15 +228,34 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     const recentSkips: DeezerTrack[] = safeParse(skipsRaw, []);
     const seenTrackIds: number[] = safeParse(seenRaw, []);
     const onboardingGenres: string[] = safeParse(genresRaw, []);
-    let artistSkipCounts: Record<string, number> = safeParse(artistSkipsRaw, {});
+    // Migrate: old format stored plain numbers, new format is { count, ts }.
+    const rawSkipCounts: Record<string, number | { count: number; ts: number }> = safeParse(artistSkipsRaw, {});
+    let artistSkipCounts: Record<string, { count: number; ts: number }> = {};
+    for (const [key, val] of Object.entries(rawSkipCounts)) {
+      artistSkipCounts[key] = typeof val === 'number' ? { count: val, ts: 0 } : val;
+    }
     // Bootstrap from recentSkips the first time (migrates pre-feature skips)
     if (!artistSkipsRaw && recentSkips.length > 0) {
       for (const skip of recentSkips) {
         const key = skip.artist.name.toLowerCase();
-        artistSkipCounts[key] = (artistSkipCounts[key] ?? 0) + 1;
+        const existing = artistSkipCounts[key];
+        artistSkipCounts[key] = { count: (existing?.count ?? 0) + 1, ts: 0 };
       }
-      AsyncStorage.setItem(artistSkipsKey(userId), JSON.stringify(artistSkipCounts));
     }
+    // Decay: halve counts for each 7-day window since last skip; remove zeroed entries.
+    const DECAY_MS = 7 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    let decayDirty = false;
+    for (const [key, entry] of Object.entries(artistSkipCounts)) {
+      const halvings = Math.floor((now - entry.ts) / DECAY_MS);
+      if (halvings > 0) {
+        const decayed = Math.floor(entry.count / Math.pow(2, halvings));
+        if (decayed === 0) { delete artistSkipCounts[key]; }
+        else { artistSkipCounts[key] = { count: decayed, ts: entry.ts }; }
+        decayDirty = true;
+      }
+    }
+    if (decayDirty) AsyncStorage.setItem(artistSkipsKey(userId), JSON.stringify(artistSkipCounts));
     const stats: { likedCount: number; skippedCount: number } = safeParse(statsRaw, { likedCount: 0, skippedCount: 0 });
     set({ userId, likedTracks, recentSkips, seenTrackIds, onboardingGenres, artistSkipCounts, likedCount: stats.likedCount, skippedCount: stats.skippedCount });
   },

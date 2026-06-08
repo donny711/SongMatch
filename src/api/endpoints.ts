@@ -98,18 +98,14 @@ export async function getRecommendationsForSeeds(
     seeds.map(async (s) => {
       const similar = await getSimilarTracks(s.artist, s.name, perSeed);
       if (similar.length > 0) {
-        // Sort by match score descending so best matches come first per seed
         return similar.sort((a, b) => b.match - a.match);
       }
-      // Fallback top tracks have no match score — use 0.5 as neutral
       const tops = await getArtistTopTracks(s.artist, perSeed);
       return tops.map((t) => ({ ...t, match: 0.5 }));
     })
   );
 
-  // Round-robin interleave: take one from each seed array in turn.
-  // Since each array is sorted by match score, every seed contributes
-  // proportionally and its best matches surface before weaker ones.
+  // Round-robin interleave so every seed contributes proportionally.
   const seenKeys = new Set<string>();
   const candidates: Array<{ name: string; artist: string; match: number }> = [];
   const maxLen = Math.max(...similarArrays.map((a) => a.length));
@@ -125,56 +121,57 @@ export async function getRecommendationsForSeeds(
     }
   }
 
-  // Preserve interleaved order (quality-ordered per seed, diverse across seeds).
   // Buffer at 4× the desired limit — many Last.fm tracks aren't on Deezer.
   const fetchBatch = candidates.slice(0, Math.min(candidates.length, limit * 4));
 
-  const deezerResults: (DeezerTrack | null)[] = [];
-  for (let i = 0; i < fetchBatch.length && deezerResults.filter(Boolean).length < limit; i += 8) {
+  // Carry match scores through the Deezer lookup.
+  const deezerWithMatch: Array<{ track: DeezerTrack | null; match: number }> = [];
+  for (let i = 0; i < fetchBatch.length && deezerWithMatch.filter((r) => r.track).length < limit; i += 8) {
     const batch = fetchBatch.slice(i, i + 8);
     const batchResults = await Promise.all(
       batch.map(async (t) => {
         try {
           const tracks = await searchDeezer(`${t.name} ${t.artist}`, 1);
-          return tracks[0] ?? null;
+          return { track: tracks[0] ?? null, match: t.match };
         } catch {
-          return null;
+          return { track: null, match: t.match };
         }
       })
     );
-    deezerResults.push(...batchResults);
+    deezerWithMatch.push(...batchResults);
   }
 
-  // Post-process: filter seen/liked tracks, enforce artist diversity window.
-  // Use a sliding Set for O(1) window membership — rebuilds when it exceeds 9.
+  // Build a match-score index keyed by Deezer track ID (take the highest score
+  // if the same track appears from multiple seeds).
+  const matchById = new Map<number, number>();
+  for (const { track, match } of deezerWithMatch) {
+    if (!track) continue;
+    if ((matchById.get(track.id) ?? 0) < match) matchById.set(track.id, match);
+  }
+
+  // Post-process: filter seen/liked, enforce artist diversity window.
   const output: DeezerTrack[] = [];
   const windowArtists: string[] = [];
   const windowSet = new Set<string>();
 
-  for (const track of deezerResults) {
+  for (const { track } of deezerWithMatch) {
     if (!track) continue;
     if (output.length >= limit) break;
-
     if (seenIds.has(track.id)) continue;
-
     const artistKey = track.artist.name.toLowerCase();
-
-    // Skip artists the user already knows — keep it a discovery feed
     if (likedArtistKeys.has(artistKey)) continue;
-
-    // Enforce max 1 appearance per artist in a 9-track output window
     if (windowSet.has(artistKey)) continue;
-
     output.push(track);
     windowArtists.push(artistKey);
     windowSet.add(artistKey);
-    // Evict the oldest entry once the window grows past 9
     if (windowArtists.length > 9) {
       const evicted = windowArtists.shift()!;
       windowSet.delete(evicted);
     }
   }
 
+  // Sort by Last.fm match score so highest-confidence tracks surface first.
+  output.sort((a, b) => (matchById.get(b.id) ?? 0) - (matchById.get(a.id) ?? 0));
   return output.map((track) => ({ type: 'track' as const, track }));
 }
 

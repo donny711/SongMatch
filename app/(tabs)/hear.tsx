@@ -457,7 +457,7 @@ export default function HearScreen() {
       // Liked artists should still appear — user wants similarity, not novelty.
       const skipFilteredKeys = new Set(
         Object.entries(artistSkipCounts)
-          .filter(([, count]) => count >= 2)
+          .filter(([, entry]) => entry.count >= 2)
           .map(([artist]) => artist)
       );
       const cards = await getSongSimilarRecs(seed.artist, seed.title, 15, seenIds, skipFilteredKeys, track.id);

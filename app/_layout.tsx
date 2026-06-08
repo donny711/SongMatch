@@ -34,7 +34,7 @@ async function prefetchRecommendations() {
     const likedArtistKeys = new Set(likedTracks.map((t) => t.artist.name.toLowerCase()));
     const skipFilteredKeys = new Set(
       Object.entries(artistSkipCounts)
-        .filter(([, count]) => count >= 2)
+        .filter(([, entry]) => entry.count >= 2)
         .map(([artist]) => artist)
     );
     const filteredArtistKeys = new Set([...likedArtistKeys, ...skipFilteredKeys]);

@@ -1,15 +1,32 @@
 import type { DeezerTrack } from './types';
 import { getTrackTags, getArtistSimilar, getArtistTopTracks } from './lastfmClient';
 import { GENRE_ARTISTS } from '../utils/genres';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Session-level tag cache — avoids re-fetching the same track's tags
-const tagCache = new Map<string, string[]>();
+const TAG_CACHE_PREFIX = 'tagcache_v1_';
+const TAG_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+// L1: in-memory for the session lifetime
+const memTagCache = new Map<string, string[]>();
 
 async function tagsFor(track: DeezerTrack): Promise<string[]> {
   const key = `${track.artist.name.toLowerCase()}|${track.title.toLowerCase()}`;
-  if (tagCache.has(key)) return tagCache.get(key)!;
+  if (memTagCache.has(key)) return memTagCache.get(key)!;
+  try {
+    const stored = await AsyncStorage.getItem(TAG_CACHE_PREFIX + key);
+    if (stored) {
+      const { tags, exp }: { tags: string[]; exp: number } = JSON.parse(stored);
+      if (Date.now() < exp) {
+        memTagCache.set(key, tags);
+        return tags;
+      }
+    }
+  } catch {}
   const tags = await getTrackTags(track.artist.name, track.title);
-  tagCache.set(key, tags);
+  memTagCache.set(key, tags);
+  AsyncStorage.setItem(
+    TAG_CACHE_PREFIX + key,
+    JSON.stringify({ tags, exp: Date.now() + TAG_CACHE_TTL_MS })
+  ).catch(() => {});
   return tags;
 }
 

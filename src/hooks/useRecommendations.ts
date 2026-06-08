@@ -51,7 +51,7 @@ export function useRecommendations() {
     const likedArtistKeys = new Set(likedTracks.map((t) => t.artist.name.toLowerCase()));
     const skipFilteredKeys = new Set(
       Object.entries(artistSkipCounts)
-        .filter(([, count]) => count >= 2)
+        .filter(([, entry]) => entry.count >= 2)
         .map(([artist]) => artist)
     );
     const filteredArtistKeys = new Set([...likedArtistKeys, ...skipFilteredKeys]);
@@ -81,10 +81,16 @@ export function useRecommendations() {
       seeds = pickSeeds(tracks, seedCount);
 
     } else if (n >= 3) {
-      // PRIMARY PATH: sample directly from liked songs.
-      // track.getSimilar(artist, title) gives musically similar tracks in one hop —
-      // no indirect artist-graph traversal that loses the original taste signal.
-      seeds = sampleLikedSeeds(likedTracks, seedCount);
+      // PRIMARY PATH: liked-song seeds + a slice of onboarding genre seeds so
+      // declared preferences stay relevant even after many likes accumulate.
+      const genreSlots = onboardingGenres.length > 0 ? Math.max(1, Math.round(seedCount * 0.25)) : 0;
+      seeds = sampleLikedSeeds(likedTracks, seedCount - genreSlots);
+      if (genreSlots > 0) {
+        const genreSeeds = await buildTasteSeeds(
+          [], recentSkips, onboardingGenres, false, filteredArtistKeys, 0
+        );
+        seeds = [...seeds, ...genreSeeds.slice(0, genreSlots)];
+      }
 
     } else if (onboardingGenres.length > 0) {
       // New user: no likes yet, use declared genre preferences
