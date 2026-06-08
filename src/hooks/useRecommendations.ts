@@ -131,7 +131,9 @@ export function useRecommendations() {
       ...likedTracks.map((t) => t.id),
       ...seenTrackIds,
     ]);
-    return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, deezerSeedIds);
+    // Skip Deezer radio on genre shifts — radio seeds from liked tracks would
+    // surface current-taste results first and defeat the shift intent.
+    return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, forceShift ? [] : deezerSeedIds);
   }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, onboardingSongId, artistSkipCounts]);
 
   const { refetch, isFetching } = useQuery({

@@ -174,16 +174,19 @@ export async function getRecommendationsForSeeds(
   ];
 
   const output: DeezerTrack[] = [];
+  const outputIds = new Set<number>();
   const windowArtists: string[] = [];
   const windowSet = new Set<string>();
 
   for (const track of allCandidates) {
     if (output.length >= limit) break;
     if (seenIds.has(track.id)) continue;
+    if (outputIds.has(track.id)) continue;
     const artistKey = track.artist.name.toLowerCase();
     if (likedArtistKeys.has(artistKey)) continue;
     if (windowSet.has(artistKey)) continue;
     output.push(track);
+    outputIds.add(track.id);
     windowArtists.push(artistKey);
     windowSet.add(artistKey);
     if (windowArtists.length > 9) {
