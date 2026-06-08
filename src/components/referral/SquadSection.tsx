@@ -70,7 +70,7 @@ export function SquadSection({ uid, viewerUid, isOwnProfile }: Props) {
         setCode(shareCode);
       }
       await Share.share({
-        message: `Join me on SoundMatch! Use my invite link: https://songmatch.net/invite/${shareCode}`,
+        message: `Join me on SongMatch! Use my invite link: https://songmatch.net/invite/${shareCode}`,
         url: `https://songmatch.net/invite/${shareCode}`,
       });
     } catch {}

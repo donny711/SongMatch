@@ -20,7 +20,6 @@ import { useDeckStore } from '../../src/store/deckStore';
 import { useRecommendations } from '../../src/hooks/useRecommendations';
 import { useSubscriptionStore } from '../../src/store/subscriptionStore';
 import { useInterstitialAd } from '../../src/hooks/useInterstitialAd';
-import { useSwipeGateAd } from '../../src/hooks/useSwipeGateAd';
 import { COLORS, SPACING, RADIUS, GLOW } from '../../src/theme';
 import type { RecommendationCard } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
@@ -122,7 +121,6 @@ export default function HomeScreen() {
     setSwipesSinceGate(0);
   }, []);
 
-  const { status: gateAdStatus, show: showGateAd } = useSwipeGateAd(unlockSwipes);
 
   // Countdown timer
   useEffect(() => {
@@ -427,7 +425,7 @@ export default function HomeScreen() {
                 </Text>
                 <Text style={styles.gateSub}>
                   {dailyLimitHit
-                    ? `You've used all 75 swipes for today.\nCome back tomorrow or upgrade to Pro.`
+                    ? `You've used all your swipes for today.\nCome back tomorrow!`
                     : `You've swiped through 15 songs.\nPick an option to keep going.`}
                 </Text>
 
@@ -437,21 +435,6 @@ export default function HomeScreen() {
                     <Text style={styles.gateTimerLabel}>Free in</Text>
                     <Text style={styles.gateTimer}>{formattedTime}</Text>
                   </>
-                )}
-
-                {/* Watch ad — only shown when daily limit not hit and not waiting */}
-                {!dailyLimitHit && !timerEndMs && (
-                  <TouchableOpacity
-                    style={[styles.gateAdBtn, gateAdStatus !== 'ready' && styles.gateBtnDisabled]}
-                    onPress={showGateAd}
-                    disabled={gateAdStatus !== 'ready'}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="play-circle-outline" size={18} color="#fff" />
-                    <Text style={styles.gateAdBtnText}>
-                      {gateAdStatus === 'ready' ? 'Watch a short ad' : 'Loading ad…'}
-                    </Text>
-                  </TouchableOpacity>
                 )}
 
                 {/* Wait 15 min — only shown when daily limit not hit and not already waiting */}

@@ -5,15 +5,12 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useProfileStore } from '../src/store/profileStore';
 import { useDeckStore } from '../src/store/deckStore';
-import { useSubscriptionStore } from '../src/store/subscriptionStore';
-import { useRewardedAd } from '../src/hooks/useRewardedAd';
 import { MILESTONES, type Milestone } from '../src/data/milestones';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 
@@ -71,7 +68,7 @@ function getMilestoneSubtitle(
 ): string {
   const t = ms.triggerCondition;
   switch (t.type) {
-    case 'first_launch':        return 'Open SoundMatch for the first time';
+    case 'first_launch':        return 'Open SongMatch for the first time';
     case 'set_avatar':          return 'Upload a profile picture';
     case 'set_username':        return 'Set your unique @username';
     case 'platform_connect':
@@ -211,53 +208,6 @@ function CategorySection({
 
 // ── Screen ─────────────────────────────────────────────────────────────────
 
-function WatchAdCard() {
-  const { status, show, retry } = useRewardedAd();
-  const isReady = status === 'ready';
-  const isLoading = status === 'loading';
-  const isUnavailable = status === 'unavailable';
-  const canTap = isReady || status === 'error';
-
-  const handlePress = () => {
-    if (isReady) { show(); return; }
-    if (status === 'error') retry();
-  };
-
-  return (
-    <TouchableOpacity
-      style={[styles.adCard, !isReady && styles.adCardDisabled]}
-      onPress={handlePress}
-      activeOpacity={0.8}
-      disabled={!canTap}
-    >
-      <View style={styles.adIconWrap}>
-        {isLoading ? (
-          <ActivityIndicator size="small" color="#A78BFA" />
-        ) : (
-          <Ionicons
-            name={isReady ? 'play-circle' : status === 'error' ? 'refresh-circle' : 'alert-circle-outline'}
-            size={26}
-            color={isReady ? '#A78BFA' : COLORS.textMuted}
-          />
-        )}
-      </View>
-      <View style={styles.adTextWrap}>
-        <Text style={styles.adTitle}>Watch a short ad</Text>
-        <Text style={styles.adSub}>
-          {isUnavailable ? 'Ads not available in Expo Go'
-            : isLoading ? 'Loading ad…'
-            : isReady ? 'Earn 30 MP instantly · up to 5×/day'
-            : 'Tap to retry'}
-        </Text>
-      </View>
-      <View style={[styles.adPill, !isReady && styles.adPillDisabled]}>
-        <Ionicons name="diamond" size={11} color={isReady ? '#A78BFA' : COLORS.textMuted} />
-        <Text style={[styles.adPillText, !isReady && styles.adPillTextDisabled]}>+30 MP</Text>
-      </View>
-    </TouchableOpacity>
-  );
-}
-
 function fmtN(n: number): string {
   return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
@@ -269,8 +219,6 @@ export default function EarnMPScreen() {
   const currentStreak = useProfileStore((s) => s.currentStreak);
   const followerCount = useProfileStore((s) => s.followerCount);
   const likedCount = useDeckStore((s) => s.likedCount);
-  const isPro = useSubscriptionStore((s) => s.isPro);
-
   const totalPossible = MILESTONES.reduce((s, m) => s + m.pointsReward, 0);
 
   return (
@@ -312,8 +260,6 @@ export default function EarnMPScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + SPACING.xxl }]}
         showsVerticalScrollIndicator={false}
       >
-        {!isPro && <WatchAdCard />}
-
         {CATEGORIES.map((cat) => (
           <CategorySection
             key={cat.label}

@@ -1,107 +1,67 @@
-import { useEffect, useRef, useState } from 'react';
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import type { AudioPlayer } from 'expo-audio';
+import { useEffect, useCallback } from 'react';
+import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { usePlayerStore } from '../store/playerStore';
 
+let audioModeReady = false;
+async function ensureAudioMode(): Promise<void> {
+  if (audioModeReady) return;
+  audioModeReady = true;
+  await setAudioModeAsync({ playsInSilentMode: true });
+}
+
 export function useSnippetPlayer(previewUrl: string | null, autoPlay = false) {
-  const playerRef = useRef<AudioPlayer | null>(null);
-  const subscriptionRef = useRef<{ remove: () => void } | null>(null);
-  const mountedRef = useRef(true);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [position, setPosition] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const player = useAudioPlayer(previewUrl, { updateInterval: 250 });
+  const status = useAudioPlayerStatus(player);
   const { activePreviewUri, setActivePreviewUri } = usePlayerStore();
 
-  // Mark unmounted so in-flight async ops can bail out
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // Destroy this player whenever a different card takes over audio
-  useEffect(() => {
-    if (activePreviewUri !== previewUrl && playerRef.current) {
-      subscriptionRef.current?.remove();
-      subscriptionRef.current = null;
-      playerRef.current.pause();
-      playerRef.current.remove();
-      playerRef.current = null;
-      setIsPlaying(false);
-      setPosition(0);
-    }
-  }, [activePreviewUri, previewUrl]);
-
-  // Auto-play when this card becomes the top card
+  // Auto-play when this becomes the top card
   useEffect(() => {
     if (!autoPlay || !previewUrl) return;
-    const t = setTimeout(() => {
-      if (mountedRef.current) toggle();
-    }, 0);
-    return () => clearTimeout(t);
+    ensureAudioMode()
+      .then(() => {
+        player.play();
+        setActivePreviewUri(previewUrl);
+      })
+      .catch(() => {});
+  // player and setActivePreviewUri are stable refs — intentionally omitted
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, previewUrl]);
 
+  // Pause when another card takes audio focus
   useEffect(() => {
-    return () => {
-      subscriptionRef.current?.remove();
-      subscriptionRef.current = null;
-      playerRef.current?.pause();
-      playerRef.current?.remove();
-      playerRef.current = null;
-    };
-  }, []);
+    if (activePreviewUri !== previewUrl && status.playing) {
+      player.pause();
+    }
+  }, [activePreviewUri, previewUrl, status.playing, player]);
 
-  const toggle = async () => {
+  // Seek back to start when the preview ends
+  useEffect(() => {
+    if (status.didJustFinish) {
+      player.seekTo(0).catch(() => {});
+    }
+  }, [status.didJustFinish, player]);
+
+  const toggle = useCallback(async () => {
     if (!previewUrl) return;
-
-    if (!playerRef.current) {
-      try {
-        await setAudioModeAsync({ playsInSilentMode: true });
-        const player = createAudioPlayer({ uri: previewUrl }, { updateInterval: 250 });
-        const sub = player.addListener('playbackStatusUpdate', (status) => {
-          if (!mountedRef.current) return;
-          setPosition(Math.round(status.currentTime * 1000));
-          setDuration(status.duration > 0 ? Math.round(status.duration * 1000) : 30000);
-          if (status.didJustFinish) {
-            setIsPlaying(false);
-            setPosition(0);
-          }
-        });
-        // Component unmounted while player was being set up — kill the orphaned player
-        if (!mountedRef.current) {
-          sub.remove();
-          player.remove();
-          return;
-        }
-        player.play();
-        playerRef.current = player;
-        subscriptionRef.current = sub;
-        setIsPlaying(true);
-        setActivePreviewUri(previewUrl);
-      } catch {
-        // Preview URL is inaccessible or expired — fail silently
-      }
-    } else if (isPlaying) {
-      playerRef.current.pause();
-      setIsPlaying(false);
+    if (status.playing) {
+      player.pause();
     } else {
-      playerRef.current.play();
-      setIsPlaying(true);
+      await ensureAudioMode().catch(() => {});
+      player.play();
       setActivePreviewUri(previewUrl);
     }
-  };
+  }, [previewUrl, status.playing, player, setActivePreviewUri]);
 
-  const stop = async () => {
-    subscriptionRef.current?.remove();
-    subscriptionRef.current = null;
-    playerRef.current?.pause();
-    playerRef.current?.remove();
-    playerRef.current = null;
-    setIsPlaying(false);
-    setPosition(0);
-  };
+  const stop = useCallback(async () => {
+    player.pause();
+    await player.seekTo(0).catch(() => {});
+  }, [player]);
 
-  return { isPlaying, toggle, stop, position, duration };
+  return {
+    isPlaying: status.playing,
+    toggle,
+    stop,
+    position: Math.round(status.currentTime * 1000),
+    duration: status.duration > 0 ? Math.round(status.duration * 1000) : 30000,
+  };
 }

@@ -33,7 +33,6 @@ import { recognizeSong } from '../../src/api/auddClient';
 import { getSongSimilarRecs } from '../../src/api/endpoints';
 import { useDeckStore } from '../../src/store/deckStore';
 import { useSubscriptionStore } from '../../src/store/subscriptionStore';
-import { useSearchBonusAd } from '../../src/hooks/useSearchBonusAd';
 import SwipeDeck, { SwipeDeckRef } from '../../src/components/SwipeDeck/SwipeDeck';
 import SnippetPlayer from '../../src/components/cards/SnippetPlayer';
 import GradientText from '../../src/components/GradientText';
@@ -307,10 +306,8 @@ export default function HearScreen() {
   const { addLikedTrack, addSkippedTrack, incrementLiked, incrementSkipped, likedTracks, artistSkipCounts } = useDeckStore();
   const isPro = useSubscriptionStore((s) => s.isPro);
   const searchesRemaining = useSubscriptionStore((s) => s.searchesRemaining);
-  const dailyBonusGranted = useSubscriptionStore((s) => s.dailyBonusGranted);
   const recordSearch = useSubscriptionStore((s) => s.recordSearch);
   const refreshDaily = useSubscriptionStore((s) => s.refreshDaily);
-  const { status: adStatus, show: showAd } = useSearchBonusAd();
 
   // Pulse ring animation values
   const scale1 = useSharedValue(1);
@@ -506,14 +503,6 @@ export default function HearScreen() {
         Record or type a song name to get recommendations
       </Text>
 
-      {!isPro && (
-        <View style={styles.searchCounterRow}>
-          <Ionicons name="search" size={13} color={searchesRemaining === 0 ? COLORS.pink : COLORS.textMuted} />
-          <Text style={[styles.searchCounterText, searchesRemaining === 0 && { color: COLORS.pink }]}>
-            {searchesRemaining} search{searchesRemaining !== 1 ? 'es' : ''} left today
-          </Text>
-        </View>
-      )}
 
       {/* Record button with pulse rings */}
       <View style={styles.recordContainer}>
@@ -635,21 +624,7 @@ export default function HearScreen() {
             <Ionicons name="time-outline" size={28} color={COLORS.pink} />
           </View>
           <Text style={styles.limitTitle}>Daily limit reached</Text>
-          <Text style={styles.limitSub}>You've used all 5 free searches for today.</Text>
-
-          {!isPro && !dailyBonusGranted && (
-            <TouchableOpacity
-              style={[styles.limitAdBtn, adStatus !== 'ready' && styles.limitAdBtnDisabled]}
-              onPress={showAd}
-              disabled={adStatus !== 'ready'}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="play-circle-outline" size={18} color="#fff" />
-              <Text style={styles.limitAdBtnText}>
-                {adStatus === 'ready' ? 'Watch ad for +2 searches' : 'Loading ad…'}
-              </Text>
-            </TouchableOpacity>
-          )}
+          <Text style={styles.limitSub}>You've used all your free searches for today.</Text>
 
           <TouchableOpacity
             style={styles.limitProBtn}
@@ -667,9 +642,7 @@ export default function HearScreen() {
             </LinearGradient>
           </TouchableOpacity>
 
-          {dailyBonusGranted && (
-            <Text style={styles.limitFooter}>Come back tomorrow for 5 more free searches.</Text>
-          )}
+          <Text style={styles.limitFooter}>Come back tomorrow for more free searches.</Text>
         </View>
       )}
 
@@ -684,20 +657,6 @@ export default function HearScreen() {
             <Text style={styles.limitModalSub}>
               You've used all your free searches for today.
             </Text>
-
-            {!isPro && !dailyBonusGranted && (
-              <TouchableOpacity
-                style={[styles.limitModalAdBtn, adStatus !== 'ready' && styles.limitAdBtnDisabled]}
-                onPress={() => { setLimitModalVisible(false); showAd(); }}
-                disabled={adStatus !== 'ready'}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="play-circle-outline" size={18} color="#fff" />
-                <Text style={styles.limitModalAdBtnText}>
-                  {adStatus === 'ready' ? 'Watch a short ad for +2 searches' : 'Loading ad…'}
-                </Text>
-              </TouchableOpacity>
-            )}
 
             <TouchableOpacity
               style={styles.limitModalProBtn}
@@ -715,9 +674,7 @@ export default function HearScreen() {
               </LinearGradient>
             </TouchableOpacity>
 
-            {dailyBonusGranted && (
-              <Text style={styles.limitModalFooter}>Come back tomorrow for more free searches.</Text>
-            )}
+            <Text style={styles.limitModalFooter}>Come back tomorrow for more free searches.</Text>
           </View>
         </View>
       )}

@@ -1,32 +1,23 @@
 import { create } from 'zustand';
-import { NativeModules, Platform } from 'react-native';
+import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {
-  getSubscriptionFromFirestore,
-  saveSubscriptionToFirestore,
-  type SubscriptionRecord,
-} from '../firebase/subscriptionService';
 import { todayISO } from '../utils/dateUtils';
 
-const RC_AVAILABLE = !!NativeModules.RNPurchases;
-
 const DAILY_SEARCH_KEY = 'songmatch_daily_searches_v12';
-const FREE_DAILY_LIMIT = 5;
-const REWARDED_BONUS = 2;
+const FREE_DAILY_LIMIT = 999; // effectively unlimited during non-commercial phase
 
-// RevenueCat product IDs — must match App Store Connect & RevenueCat dashboard
 export const RC_PRODUCTS = {
-  monthly: 'soundmatch_pro_monthly',
-  quarterly: 'soundmatch_pro_quarterly',
-  annual: 'soundmatch_pro_annual',
+  monthly: 'songmatch_pro_monthly',
+  quarterly: 'songmatch_pro_quarterly',
+  annual: 'songmatch_pro_annual',
 } as const;
 
 export type ProTier = 'monthly' | 'quarterly' | 'annual';
 
 interface DailySearchState {
   count: number;
-  date: string; // ISO date string YYYY-MM-DD
-  bonusGranted: boolean; // rewarded ad bonus already used today
+  date: string;
+  bonusGranted: boolean;
 }
 
 interface SubscriptionState {
@@ -35,23 +26,20 @@ interface SubscriptionState {
   expiresAt: Date | null;
   isLoading: boolean;
 
-  // Daily search tracking (free users)
   dailySearchCount: number;
   dailyBonusGranted: boolean;
-  searchesRemaining: number; // computed
+  searchesRemaining: number;
 
-  // Actions
   initialize: (uid: string) => Promise<void>;
   refreshFromStore: () => Promise<void>;
   purchase: (tier: ProTier) => Promise<void>;
   restore: () => Promise<void>;
-  recordSearch: () => Promise<boolean>; // returns false if limit hit
-  grantSearchBonus: () => Promise<void>; // called after rewarded ad
-  restoreSearches: (n: number) => Promise<void>; // give back n searches
-  refreshDaily: () => Promise<void>; // re-sync daily count (call on app foreground / screen focus)
+  recordSearch: () => Promise<boolean>;
+  grantSearchBonus: () => Promise<void>;
+  restoreSearches: (n: number) => Promise<void>;
+  refreshDaily: () => Promise<void>;
   syncFromFirestore: (uid: string) => Promise<void>;
 }
-
 
 async function loadDailyState(): Promise<DailySearchState> {
   const today = todayISO();
@@ -61,18 +49,14 @@ async function loadDailyState(): Promise<DailySearchState> {
       const parsed: DailySearchState = JSON.parse(raw);
       if (parsed.date === today) return parsed;
     }
-  } catch {
-    // ignore
-  }
+  } catch {}
   return { count: 0, date: today, bonusGranted: false };
 }
 
 async function saveDailyState(state: DailySearchState): Promise<void> {
   try {
     await AsyncStorage.setItem(DAILY_SEARCH_KEY, JSON.stringify(state));
-  } catch {
-    // ignore
-  }
+  } catch {}
 }
 
 export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
@@ -80,181 +64,66 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
   tier: null,
   expiresAt: null,
   isLoading: false,
+
   dailySearchCount: 0,
   dailyBonusGranted: false,
   searchesRemaining: FREE_DAILY_LIMIT,
 
-  initialize: async (uid: string) => {
-    set({ isLoading: true });
-    try {
-      // Load daily search state
-      const daily = await loadDailyState();
-      const maxSearches = FREE_DAILY_LIMIT + (daily.bonusGranted ? REWARDED_BONUS : 0);
-      set({
-        dailySearchCount: daily.count,
-        dailyBonusGranted: daily.bonusGranted,
-        searchesRemaining: Math.max(0, maxSearches - daily.count),
-      });
-
-      // Try RevenueCat if available
-      if (RC_AVAILABLE) {
-        try {
-          const Purchases = require('react-native-purchases').default;
-          const apiKey = Platform.select({
-            ios: process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY ?? '',
-            android: process.env.EXPO_PUBLIC_REVENUECAT_ANDROID_KEY ?? '',
-            default: '',
-          })!;
-          if (apiKey && !Purchases.isConfigured) {
-            await Purchases.configure({ apiKey, appUserID: uid });
-            const info = await Purchases.getCustomerInfo();
-            const activeEntitlements = info.entitlements.active;
-            const isPro = !!activeEntitlements['pro'];
-            let tier: ProTier | null = null;
-            if (isPro) {
-              const firstEntitlement = Object.values(activeEntitlements)[0] as any;
-              const productId: string = firstEntitlement?.productIdentifier ?? '';
-              if (productId.includes('monthly')) tier = 'monthly';
-              else if (productId.includes('quarterly')) tier = 'quarterly';
-              else if (productId.includes('annual')) tier = 'annual';
-            }
-            const firstActive = Object.values(activeEntitlements)[0] as any;
-            const expiresAt = isPro
-              ? new Date(firstActive?.expirationDate ?? '')
-              : null;
-            set({ isPro, tier, expiresAt });
-            await saveSubscriptionToFirestore(uid, { isPro, tier, expiresAt });
-          }
-        } catch {
-          // Fall back to Firestore
-          await get().syncFromFirestore(uid);
-        }
-      } else {
-        await get().syncFromFirestore(uid);
-      }
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  refreshDaily: async () => {
-    if (get().isPro) return;
+  initialize: async (_uid: string) => {
     const daily = await loadDailyState();
-    const maxSearches = FREE_DAILY_LIMIT + (daily.bonusGranted ? REWARDED_BONUS : 0);
     set({
       dailySearchCount: daily.count,
       dailyBonusGranted: daily.bonusGranted,
-      searchesRemaining: Math.max(0, maxSearches - daily.count),
+      searchesRemaining: FREE_DAILY_LIMIT - daily.count,
     });
   },
 
-  syncFromFirestore: async (uid: string) => {
-    try {
-      const record = await getSubscriptionFromFirestore(uid);
-      if (record) {
-        const expiresAt = record.expiresAt ? new Date(record.expiresAt) : null;
-        const isPro = record.isPro && (!expiresAt || expiresAt > new Date());
-        set({ isPro, tier: record.tier ?? null, expiresAt });
-      }
-    } catch {
-      // Non-critical
-    }
-  },
+  refreshFromStore: async () => {},
 
-  refreshFromStore: async () => {
-    if (!RC_AVAILABLE) return;
-    try {
-      const Purchases = require('react-native-purchases').default;
-      const info = await Purchases.getCustomerInfo();
-      const activeEntitlements = info.entitlements.active;
-      const isPro = !!activeEntitlements['pro'];
-      let tier: ProTier | null = null;
-      if (isPro) {
-        const firstEntitlement = Object.values(activeEntitlements)[0] as any;
-        const productId: string = firstEntitlement?.productIdentifier ?? '';
-        if (productId.includes('monthly')) tier = 'monthly';
-        else if (productId.includes('quarterly')) tier = 'quarterly';
-        else if (productId.includes('annual')) tier = 'annual';
-      }
-      set({ isPro, tier });
-    } catch {
-      // Non-critical
-    }
-  },
-
-  purchase: async (tier: ProTier) => {
-    if (!RC_AVAILABLE) throw new Error('Purchases not available');
-    try {
-      const Purchases = require('react-native-purchases').default;
-      const offerings = await Purchases.getOfferings();
-      const pkg = offerings.current?.availablePackages?.find(
-        (p: any) => p.product.productIdentifier === RC_PRODUCTS[tier]
-      );
-      if (!pkg) throw new Error('Product not found');
-      const { customerInfo } = await Purchases.purchasePackage(pkg);
-      const isPro = !!customerInfo.entitlements.active['pro'];
-      const firstActive = Object.values(customerInfo.entitlements.active)[0] as any;
-      const expiresAt = isPro && firstActive?.expirationDate
-        ? new Date(firstActive.expirationDate)
-        : null;
-      set({ isPro, tier, expiresAt });
-    } catch (e) {
-      throw e;
-    }
+  purchase: async (_tier: ProTier) => {
+    Alert.alert('Coming Soon', 'Pro subscriptions are not available yet. Stay tuned!');
   },
 
   restore: async () => {
-    if (!RC_AVAILABLE) return;
-    try {
-      const Purchases = require('react-native-purchases').default;
-      const info = await Purchases.restorePurchases();
-      const isPro = !!info.entitlements.active['pro'];
-      set({ isPro });
-    } catch {
-      // Non-critical
-    }
+    Alert.alert('Coming Soon', 'Pro subscriptions are not available yet.');
   },
 
   recordSearch: async () => {
-    if (get().isPro) return true; // Pro: unlimited
-    const daily = await loadDailyState();
-    const today = todayISO();
-    const state = daily.date === today ? daily : { count: 0, date: today, bonusGranted: false };
-    const maxSearches = FREE_DAILY_LIMIT + (state.bonusGranted ? REWARDED_BONUS : 0);
-
-    if (state.count >= maxSearches) {
-      set({ searchesRemaining: 0 });
-      return false;
-    }
-
-    const updated = { ...state, count: state.count + 1 };
-    await saveDailyState(updated);
-    const remaining = Math.max(0, maxSearches - updated.count);
-    set({ dailySearchCount: updated.count, searchesRemaining: remaining });
+    const { dailySearchCount } = get();
+    if (dailySearchCount >= FREE_DAILY_LIMIT) return false;
+    const newCount = dailySearchCount + 1;
+    const daily: DailySearchState = {
+      count: newCount,
+      date: todayISO(),
+      bonusGranted: get().dailyBonusGranted,
+    };
+    await saveDailyState(daily);
+    set({ dailySearchCount: newCount, searchesRemaining: FREE_DAILY_LIMIT - newCount });
     return true;
   },
 
-  grantSearchBonus: async () => {
-    if (get().isPro || get().dailyBonusGranted) return;
+  grantSearchBonus: async () => {},
+
+  restoreSearches: async (n: number) => {
+    const { dailySearchCount } = get();
+    const newCount = Math.max(0, dailySearchCount - n);
+    const daily: DailySearchState = {
+      count: newCount,
+      date: todayISO(),
+      bonusGranted: get().dailyBonusGranted,
+    };
+    await saveDailyState(daily);
+    set({ dailySearchCount: newCount, searchesRemaining: FREE_DAILY_LIMIT - newCount });
+  },
+
+  refreshDaily: async () => {
     const daily = await loadDailyState();
-    if (daily.bonusGranted) return;
-    const updated = { ...daily, bonusGranted: true };
-    await saveDailyState(updated);
-    const newMax = FREE_DAILY_LIMIT + REWARDED_BONUS;
     set({
-      dailyBonusGranted: true,
-      searchesRemaining: Math.max(0, newMax - updated.count),
+      dailySearchCount: daily.count,
+      dailyBonusGranted: daily.bonusGranted,
+      searchesRemaining: FREE_DAILY_LIMIT - daily.count,
     });
   },
 
-  restoreSearches: async (n: number) => {
-    const daily = await loadDailyState();
-    const updated = { ...daily, count: Math.max(0, daily.count - n) };
-    await saveDailyState(updated);
-    const maxSearches = FREE_DAILY_LIMIT + (updated.bonusGranted ? REWARDED_BONUS : 0);
-    set({
-      dailySearchCount: updated.count,
-      searchesRemaining: Math.max(0, maxSearches - updated.count),
-    });
-  },
+  syncFromFirestore: async (_uid: string) => {},
 }));

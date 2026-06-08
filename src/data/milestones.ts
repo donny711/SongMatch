@@ -20,7 +20,7 @@ export interface Milestone {
 export const MILESTONES: Milestone[] = [
   {
     id: 'ms_first_launch',
-    label: 'Welcome to SoundMatch',
+    label: 'Welcome to SongMatch',
     pointsReward: 50,
     badgeGrant: 'badge_early_adopter',
     triggerCondition: { type: 'first_launch' },

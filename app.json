@@ -52,7 +52,7 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "SoundMatch needs access to your photo library to set a profile photo and banner."
+          "photosPermission": "SongMatch needs access to your photo library to set a profile photo and banner."
         }
       ],
       [
@@ -151,13 +151,6 @@
           "microphonePermission": "Allow SongMatch to access your microphone to identify songs."
         }
       ],
-      [
-        "react-native-google-mobile-ads",
-        {
-          "android_app_id": "ca-app-pub-5279884722039690~5452090114",
-          "ios_app_id": "ca-app-pub-5279884722039690~5452090114"
-        }
-      ]
     ],
     "extra": {
       "router": {},
@@ -165,9 +158,5 @@
         "projectId": "adc8701a-14db-4a95-8ecb-28ce80db846c"
       }
     }
-  },
-  "react-native-google-mobile-ads": {
-    "android_app_id": "ca-app-pub-5279884722039690~5452090114",
-    "ios_app_id": "ca-app-pub-5279884722039690~5452090114"
   }
 }

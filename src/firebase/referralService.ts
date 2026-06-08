@@ -278,7 +278,7 @@ async function fetchSquadFromReferralDoc(
         const u = snap.data() as { displayName?: string; avatarUrl?: string; username?: string };
         const member: SquadMember = {
           uid: memberUid,
-          displayName: u.displayName ?? 'SoundMatch User',
+          displayName: u.displayName ?? 'SongMatch User',
           avatarUrl: u.avatarUrl ?? null,
           username: u.username ?? null,
           isReferrer: memberUid === data.referrerId,
@@ -348,7 +348,7 @@ export async function getReferralLeaderboard(
           const u = userSnap.data() as { displayName?: string; avatarUrl?: string; username?: string };
           const entry: ReferralLeaderboardEntry = {
             uid: data.referrerId,
-            displayName: u.displayName ?? 'SoundMatch User',
+            displayName: u.displayName ?? 'SongMatch User',
             avatarUrl: u.avatarUrl ?? null,
             username: u.username ?? null,
             installCount: data.installCount,
