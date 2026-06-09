@@ -172,24 +172,58 @@ export default function OnboardingScreen() {
     setStep('loading');
     const seeds: Array<{ name: string; artist: string }> = [];
     if (selectedSong) seeds.push({ name: selectedSong.title, artist: selectedSong.artist.name });
-    await Promise.all(favoriteArtists.map(async (a) => {
-      const tops = await getArtistTopTracks(a.name, 3);
-      if (tops.length > 0) seeds.push(tops[Math.floor(Math.random() * tops.length)]);
-    }));
-    await Promise.all(selectedGenres.slice(0, 3).map(async (genre) => {
-      const reps = GENRE_ARTISTS[genre] ?? []; if (reps.length === 0) return;
-      const rep = reps[Math.floor(Math.random() * reps.length)];
-      const similar = await getArtistSimilar(rep, 10);
-      const pick = similar.length > 0 ? similar[Math.floor(Math.random() * Math.min(similar.length, 6))] : rep;
-      const tops = await getArtistTopTracks(pick, 5);
-      if (tops.length > 0) seeds.push(tops[Math.floor(Math.random() * tops.length)]);
-    }));
-    const deezerSeedIds = selectedSong ? [selectedSong.id] : [];
-    if (seeds.length > 0 || deezerSeedIds.length > 0) { try { const cards = await getRecommendationsForSeeds(seeds, 20, new Set(), new Set(), deezerSeedIds); if (cards.length > 0) appendQueue(cards); } catch {} }
+
+    // Run all artist and genre lookups in parallel.
+    // Each path collects both a Last.fm text seed (broad coverage via similarity graph)
+    // and a Deezer track ID (direct audio-fingerprint radio seed — higher fidelity).
+    const [artistRadioIds, genreRadioIds] = await Promise.all([
+      Promise.all(favoriteArtists.map(async (a) => {
+        const [tops, deezerTracks] = await Promise.all([
+          getArtistTopTracks(a.name, 3).catch(() => [] as Array<{ name: string; artist: string }>),
+          searchDeezer(a.name, 10).catch(() => [] as DeezerTrack[]),
+        ]);
+        if (tops.length > 0) seeds.push(tops[Math.floor(Math.random() * tops.length)]);
+        const exactMatch = deezerTracks.find(t => t.artist.name.toLowerCase() === a.name.toLowerCase());
+        return (exactMatch ?? deezerTracks[0])?.id ?? null;
+      })),
+      Promise.all(selectedGenres.slice(0, 3).map(async (genre) => {
+        const reps = GENRE_ARTISTS[genre] ?? []; if (reps.length === 0) return null;
+        const rep = reps[Math.floor(Math.random() * reps.length)];
+        const [similar, deezerTracks] = await Promise.all([
+          getArtistSimilar(rep, 10).catch(() => [] as string[]),
+          searchDeezer(rep, 10).catch(() => [] as DeezerTrack[]),
+        ]);
+        const pick = similar.length > 0 ? similar[Math.floor(Math.random() * Math.min(similar.length, 6))] : rep;
+        const tops = await getArtistTopTracks(pick, 5);
+        if (tops.length > 0) seeds.push(tops[Math.floor(Math.random() * tops.length)]);
+        const exactMatch = deezerTracks.find(t => t.artist.name.toLowerCase() === rep.toLowerCase());
+        return (exactMatch ?? deezerTracks[0])?.id ?? null;
+      })),
+    ]);
+
+    // Build Deezer radio seeds: selected song (most personal) → favourite artists → genre reps.
+    // Capped at 4 (one API call each) so we don't slow down the loading screen.
+    const deezerSeedIds: number[] = selectedSong ? [selectedSong.id] : [];
+    for (const id of [...artistRadioIds, ...genreRadioIds]) {
+      if (id && !deezerSeedIds.includes(id) && deezerSeedIds.length < 4) deezerSeedIds.push(id);
+    }
+
+    // Persist artist track IDs so ongoing feed can use them as radio seeds
+    // in early sessions before liked history fills up.
+    const artistTrackIds = artistRadioIds.filter((id): id is number => id !== null);
+    useDeckStore.setState({
+      onboardingSongId: selectedSong?.id ?? null,
+      onboardingArtists: favoriteArtists.map(a => a.name),
+      onboardingArtistTrackIds: artistTrackIds,
+    });
+
+    if (seeds.length > 0 || deezerSeedIds.length > 0) {
+      try { const cards = await getRecommendationsForSeeds(seeds, 20, new Set(), new Set(), deezerSeedIds); if (cards.length > 0) appendQueue(cards); } catch {}
+    }
     await AsyncStorage.setItem(ONBOARDING_GENRES_KEY, JSON.stringify(selectedGenres));
     if (selectedSong) await AsyncStorage.setItem('sm_onboarding_song_id', String(selectedSong.id));
     if (favoriteArtists.length > 0) await AsyncStorage.setItem('sm_onboarding_artists', JSON.stringify(favoriteArtists.map(a => a.name)));
-    useDeckStore.setState({ onboardingSongId: selectedSong?.id ?? null, onboardingArtists: favoriteArtists.map(a => a.name) });
+    if (artistTrackIds.length > 0) await AsyncStorage.setItem('sm_onboarding_artist_track_ids', JSON.stringify(artistTrackIds));
     await AsyncStorage.setItem(ONBOARDING_KEY, '1');
     if (referralCode) { const uid = auth.currentUser?.uid; if (uid) { if (codeType === 'affiliate') recordAffiliateInstall(uid, referralCode).catch(() => {}); else recordReferralInstall(uid, referralCode).catch(() => {}); } }
     await useProfileStore.getState().checkAndUpdateStreak();

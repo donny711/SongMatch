@@ -25,7 +25,7 @@ import { useTutorialStore } from '../src/store/tutorialStore';
 useTutorialStore.getState().load();
 
 async function prefetchRecommendations() {
-  const { likedTracks, seenTrackIds, artistSkipCounts, onboardingSongId, appendQueue } =
+  const { likedTracks, seenTrackIds, artistSkipCounts, onboardingSongId, onboardingArtistTrackIds, appendQueue } =
     useDeckStore.getState();
 
   if (likedTracks.length < 3) return;
@@ -48,6 +48,7 @@ async function prefetchRecommendations() {
     const deezerSeedIds = [
       ...recentLikedIds,
       ...(onboardingSongId !== null && !recentLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
+      ...onboardingArtistTrackIds.filter(id => !recentLikedIds.includes(id) && id !== onboardingSongId),
     ];
 
     const seenIds = new Set<number>([

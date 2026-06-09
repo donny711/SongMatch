@@ -30,6 +30,7 @@ export function useRecommendations() {
     seenTrackIds,
     onboardingGenres,
     onboardingSongId,
+    onboardingArtistTrackIds,
     consecutiveSkips,
     artistSkipCounts,
   } = useDeckStore();
@@ -57,12 +58,14 @@ export function useRecommendations() {
     );
     const filteredArtistKeys = new Set([...likedArtistKeys, ...skipFilteredKeys]);
 
-    // Deezer radio seeds: most recently liked tracks + onboarding song (if any).
-    // These are passed alongside text seeds so the radio signal always augments results.
+    // Deezer radio seeds: most recently liked tracks + onboarding song + favourite artist
+    // tracks from onboarding. The 4-seed cap in endpoints handles crowding naturally —
+    // liked tracks fill first, onboarding data fills any remaining slots.
     const recentLikedIds = likedTracks.slice(0, 3).map(t => t.id);
     const deezerSeedIds = [
       ...recentLikedIds,
       ...(onboardingSongId !== null && !recentLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
+      ...onboardingArtistTrackIds.filter(id => !recentLikedIds.includes(id) && id !== onboardingSongId),
     ];
 
     const n = likedTracks.length;
@@ -134,7 +137,7 @@ export function useRecommendations() {
     // Skip Deezer radio on genre shifts — radio seeds from liked tracks would
     // surface current-taste results first and defeat the shift intent.
     return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, forceShift ? [] : deezerSeedIds);
-  }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, onboardingSongId, artistSkipCounts]);
+  }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, onboardingSongId, onboardingArtistTrackIds, artistSkipCounts]);
 
   const { refetch, isFetching } = useQuery({
     queryKey: ['recommendations', sourcePlaylist?.id, seedTrack?.name, !!accessToken],
