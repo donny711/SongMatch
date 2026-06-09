@@ -176,24 +176,42 @@ export async function getRecommendationsForSeeds(
   const output: DeezerTrack[] = [];
   const outputIds = new Set<number>();
   const windowArtists: string[] = [];
-  const windowSet = new Set<string>();
+  const windowArtistCounts = new Map<string, number>();
+  let radioFillCount = 0;
+
+  // Track boundary between radio and Last.fm candidates in allCandidates.
+  const radioEnd = radioCandidates.length;
+  let candidateIdx = 0;
 
   for (const track of allCandidates) {
     if (output.length >= limit) break;
+    const isRadio = candidateIdx < radioEnd;
+    candidateIdx++;
     if (seenIds.has(track.id)) continue;
     if (outputIds.has(track.id)) continue;
     const artistKey = track.artist.name.toLowerCase();
-    if (likedArtistKeys.has(artistKey)) continue;
-    if (windowSet.has(artistKey)) continue;
+    // Radio results are audio-fingerprint similarity — don't suppress liked artists,
+    // the user wants MORE of what they like. Last.fm text-search is discovery mode,
+    // so keep the liked-artist filter there to avoid repetition.
+    if (!isRadio && likedArtistKeys.has(artistKey)) continue;
+    // Artist diversity: radio clusters naturally around similar artists so allow 2
+    // per artist; Last.fm fill is broader so cap at 1.
+    const artistMax = isRadio ? 2 : 1;
+    if ((windowArtistCounts.get(artistKey) ?? 0) >= artistMax) continue;
     output.push(track);
     outputIds.add(track.id);
+    if (isRadio) radioFillCount++;
     windowArtists.push(artistKey);
-    windowSet.add(artistKey);
+    windowArtistCounts.set(artistKey, (windowArtistCounts.get(artistKey) ?? 0) + 1);
     if (windowArtists.length > 9) {
       const evicted = windowArtists.shift()!;
-      windowSet.delete(evicted);
+      const remaining = (windowArtistCounts.get(evicted) ?? 1) - 1;
+      if (remaining <= 0) windowArtistCounts.delete(evicted);
+      else windowArtistCounts.set(evicted, remaining);
     }
   }
+
+  console.log(`[SongMatch] recs: radio=${radioFillCount} lastfm=${output.length - radioFillCount} total=${output.length}`);
 
   // Sort: radio tracks (1.0) surface first, then by Last.fm similarity score.
   output.sort((a, b) => (matchById.get(b.id) ?? 0) - (matchById.get(a.id) ?? 0));
