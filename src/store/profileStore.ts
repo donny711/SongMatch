@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { signInAnonymously } from 'firebase/auth';
@@ -19,6 +20,8 @@ import {
   type EquipSlot,
   type ShowcaseArtist,
 } from '../firebase/profileService';
+import { useToastStore } from './toastStore';
+import { registerProfileRef } from './profileRef';
 import { MILESTONE_MAP } from '../data/milestones';
 import type { DeezerTrack } from '../api/types';
 import { uploadProfileImage, uploadGifBackground, deleteProfileImage } from '../firebase/storageService';
@@ -147,8 +150,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
       // One-time migration: sync existing liked tracks to Firestore
       try {
-        const { useDeckStore } = require('./deckStore');
-        const likedTracks = useDeckStore.getState().likedTracks;
+        const raw = await AsyncStorage.getItem(`sm_liked_${uid}`);
+        const likedTracks: DeezerTrack[] = raw ? JSON.parse(raw) : [];
         if (likedTracks.length > 0) {
           runLikedTracksMigration(uid, likedTracks).catch(() => {});
         }
@@ -269,7 +272,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       if (!result.alreadyGranted) {
         const ms = MILESTONE_MAP[milestoneId];
         if (ms) {
-          const { useToastStore } = require('./toastStore');
           useToastStore.getState().push(ms.pointsReward, ms.label);
         }
       }
@@ -331,3 +333,8 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     get().grantMilestone('ms_set_username').catch(() => {});
   },
 }));
+
+registerProfileRef(
+  () => useProfileStore.getState().uid,
+  (id) => { useProfileStore.getState().grantMilestone(id).catch(() => {}); },
+);

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { RecommendationCard, SpotifyPlaylist, DeezerTrack } from '../api/types';
 import { syncLikedTrackToFirestore, removeLikedTrackFromFirestore, updateArtistIds } from '../firebase/profileService';
+import { profileRef } from './profileRef';
 
 interface DeckState {
   queue: RecommendationCard[];
@@ -88,9 +89,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     // Check liked-count milestones against the already-incremented likedCount.
     const likedMilestones = [10, 25, 50, 100, 250] as const;
     if ((likedMilestones as readonly number[]).includes(likedCount)) {
-      // Import-free reference via dynamic require to avoid circular deps
-      const { useProfileStore } = require('./profileStore');
-      useProfileStore.getState().grantMilestone(`ms_liked_${likedCount}`);
+      profileRef.grantMilestone(`ms_liked_${likedCount}`);
     }
   },
   incrementSkipped: () => {
@@ -110,8 +109,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     AsyncStorage.setItem(likedKey(userId), JSON.stringify(likedTracks));
     AsyncStorage.setItem(seenKey(userId), JSON.stringify(seenTrackIds));
     if (!alreadyLiked) {
-      const { useProfileStore } = require('./profileStore');
-      const uid = useProfileStore.getState().uid;
+      const uid = profileRef.getUid();
       if (uid) {
         syncLikedTrackToFirestore(uid, track).catch(() => {});
         if (artistIdsDebounceTimer) clearTimeout(artistIdsDebounceTimer);
@@ -129,8 +127,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     const { userId, likedTracks, likedCount, skippedCount } = get();
     AsyncStorage.setItem(likedKey(userId), JSON.stringify(likedTracks));
     AsyncStorage.setItem(statsKey(userId), JSON.stringify({ likedCount, skippedCount }));
-    const { useProfileStore } = require('./profileStore');
-    const uid = useProfileStore.getState().uid;
+    const uid = profileRef.getUid();
     if (uid) {
       removeLikedTrackFromFirestore(uid, id).catch(() => {});
       updateArtistIds(uid, get().likedTracks).catch(() => {});
@@ -196,8 +193,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       }));
       AsyncStorage.setItem(likedKey(userId), JSON.stringify(newLiked));
       AsyncStorage.setItem(statsKey(userId), JSON.stringify({ likedCount: newLikedCount, skippedCount }));
-      const { useProfileStore } = require('./profileStore');
-      const uid = useProfileStore.getState().uid;
+      const uid = profileRef.getUid();
       if (uid) {
         removeLikedTrackFromFirestore(uid, lastSwipedCard.track.id).catch(() => {});
       }
