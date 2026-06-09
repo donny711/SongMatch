@@ -1,6 +1,5 @@
 import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, AppState, Pressable, TouchableOpacity } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -11,7 +10,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect } from 'expo-router';
-import { router } from 'expo-router';
 import SwipeDeck, { SwipeDeckRef } from '../../src/components/SwipeDeck/SwipeDeck';
 import SkeletonCard from '../../src/components/cards/SkeletonCard';
 import { FeedSegment } from './people';
@@ -25,7 +23,7 @@ import type { RecommendationCard } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
 import { useTutorialMeasure } from '../../src/components/tutorial/TutorialMeasureContext';
 import { useTutorialStore } from '../../src/store/tutorialStore';
-import { todayISO } from '../../src/utils/dateUtils';
+
 
 type Tab = 'foryou' | 'friends';
 
@@ -86,59 +84,6 @@ export default function HomeScreen() {
 
   // Subscription
   const isPro = useSubscriptionStore((s) => s.isPro);
-
-  // Swipe gate (free users: gate every 15 swipes, 75/day max)
-  const SWIPE_GATE_LIMIT = 15;
-  const DAILY_SWIPE_LIMIT = 75;
-  const DAILY_SWIPE_KEY = 'songmatch_daily_swipes_v1';
-  const [swipesSinceGate, setSwipesSinceGate] = useState(0);
-  const [gateVisible, setGateVisible] = useState(false);
-  const [dailyLimitHit, setDailyLimitHit] = useState(false);
-  const [timerEndMs, setTimerEndMs] = useState<number | null>(null);
-  const [timeRemaining, setTimeRemaining] = useState(0);
-  const dailySwipeCountRef = useRef(0);
-
-  // Load daily swipe count on mount
-  useEffect(() => {
-    AsyncStorage.getItem(DAILY_SWIPE_KEY).then((raw) => {
-      if (!raw) return;
-      try {
-        const { count, date } = JSON.parse(raw);
-        if (date === todayISO()) {
-          dailySwipeCountRef.current = count;
-        }
-      } catch {}
-    }).catch(() => {});
-  }, []);
-
-  // Dismiss gate if user upgrades to Pro
-  useEffect(() => { if (isPro) setGateVisible(false); }, [isPro]);
-
-  const unlockSwipes = useCallback(() => {
-    setGateVisible(false);
-    setDailyLimitHit(false);
-    setTimerEndMs(null);
-    setSwipesSinceGate(0);
-  }, []);
-
-
-  // Countdown timer
-  useEffect(() => {
-    if (!timerEndMs) return;
-    const interval = setInterval(() => {
-      const remaining = Math.max(0, Math.ceil((timerEndMs - Date.now()) / 1000));
-      setTimeRemaining(remaining);
-      if (remaining === 0) { clearInterval(interval); unlockSwipes(); }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [timerEndMs]);
-
-  const formattedTime = `${String(Math.floor(timeRemaining / 60)).padStart(2, '0')}:${String(timeRemaining % 60).padStart(2, '0')}`;
-
-  // Stop audio when gate appears
-  useEffect(() => {
-    if (gateVisible && !isPro) stopAudio();
-  }, [gateVisible]);
 
   // Interstitial
   const { status: interstitialStatus, show: showInterstitial } = useInterstitialAd();
@@ -213,32 +158,6 @@ export default function HomeScreen() {
   }, [stopAudio]);
 
   // ── Swipe handlers ────────────────────────────────────────
-  const trackSwipe = useCallback(() => {
-    if (isPro) return;
-
-    // Daily limit check
-    const today = todayISO();
-    dailySwipeCountRef.current += 1;
-    AsyncStorage.setItem(DAILY_SWIPE_KEY, JSON.stringify({ count: dailySwipeCountRef.current, date: today })).catch(() => {});
-
-    if (dailySwipeCountRef.current >= DAILY_SWIPE_LIMIT) {
-      stopAudio();
-      setDailyLimitHit(true);
-      setGateVisible(true);
-      setSwipesSinceGate(0);
-      return;
-    }
-
-    setSwipesSinceGate((prev) => {
-      const next = prev + 1;
-      if (next >= SWIPE_GATE_LIMIT) {
-        setGateVisible(true);
-        return 0;
-      }
-      return next;
-    });
-  }, [isPro, stopAudio]);
-
   const handleSwipeRight = useCallback(
     (card: RecommendationCard) => {
       recordSwipe(card, 'like');
@@ -246,9 +165,8 @@ export default function HomeScreen() {
       incrementLiked();
       addLikedTrack(card.track);
       showLikedToast();
-      trackSwipe();
     },
-    [addLikedTrack, recordSwipe, showLikedToast, trackSwipe]
+    [addLikedTrack, recordSwipe, showLikedToast]
   );
 
   const handleSwipeLeft = useCallback(() => {
@@ -258,8 +176,7 @@ export default function HomeScreen() {
     shiftQueue();
     incrementSkipped();
     if (track) addSkippedTrack(track);
-    trackSwipe();
-  }, [addSkippedTrack, recordSwipe, trackSwipe]);
+  }, [addSkippedTrack, recordSwipe]);
 
   // Tutorial measurement refs
   const tabSwitcherRef = useRef<View>(null);
@@ -413,66 +330,6 @@ export default function HomeScreen() {
               )}
           </>
 
-          {/* Swipe gate overlay — covers deck, not tab bar */}
-          {gateVisible && !isPro && (
-            <View style={styles.gateOverlay}>
-              <View style={styles.gateCard}>
-                <View style={styles.gateIconWrap}>
-                  <Ionicons name="headset" size={32} color={COLORS.purple} />
-                </View>
-                <Text style={styles.gateTitle}>
-                  {dailyLimitHit ? 'Daily Limit Reached' : 'Time for a breather!'}
-                </Text>
-                <Text style={styles.gateSub}>
-                  {dailyLimitHit
-                    ? `You've used all your swipes for today.\nCome back tomorrow!`
-                    : `You've swiped through 15 songs.\nPick an option to keep going.`}
-                </Text>
-
-                {/* Timer — shown while waiting */}
-                {timerEndMs && !dailyLimitHit && (
-                  <>
-                    <Text style={styles.gateTimerLabel}>Free in</Text>
-                    <Text style={styles.gateTimer}>{formattedTime}</Text>
-                  </>
-                )}
-
-                {/* Wait 15 min — only shown when daily limit not hit and not already waiting */}
-                {!dailyLimitHit && !timerEndMs && (
-                  <TouchableOpacity
-                    style={styles.gateWaitBtn}
-                    onPress={() => {
-                      const end = Date.now() + 15 * 60 * 1000;
-                      setTimerEndMs(end);
-                      setTimeRemaining(15 * 60);
-                    }}
-                    activeOpacity={0.85}
-                  >
-                    <Ionicons name="time-outline" size={16} color={COLORS.textMuted} />
-                    <Text style={styles.gateWaitBtnText}>Wait 15 minutes</Text>
-                  </TouchableOpacity>
-                )}
-
-                {/* Upgrade */}
-                <TouchableOpacity
-                  style={styles.gateProBtn}
-                  onPress={() => router.push('/upgrade')}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={['#A78BFA', '#E879F9']}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.gateProBtnGrad}
-                  >
-                    <Ionicons name="flash" size={15} color="#fff" />
-                    <Text style={styles.gateProBtnText}>Upgrade to Pro — Unlimited</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
-
-              </View>
-            </View>
-          )}
         </>
       )}
     </View>
@@ -645,102 +502,4 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(167,139,250,0.30)',
   },
 
-  // Swipe gate
-  gateOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: SPACING.lg,
-    zIndex: 99,
-  },
-  gateCard: {
-    width: '100%',
-    backgroundColor: COLORS.surface,
-    borderRadius: RADIUS.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.25)',
-    padding: SPACING.xl,
-    alignItems: 'center',
-    gap: SPACING.md,
-  },
-  gateIconWrap: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: 'rgba(167,139,250,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gateTitle: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.3,
-  },
-  gateSub: {
-    color: COLORS.textMuted,
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 21,
-  },
-  gateTimerLabel: {
-    color: COLORS.textMuted,
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: SPACING.xs,
-  },
-  gateTimer: {
-    color: COLORS.text,
-    fontSize: 42,
-    fontWeight: '800',
-    letterSpacing: 2,
-    fontVariant: ['tabular-nums'],
-  },
-  gateAdBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: COLORS.purple,
-    paddingVertical: 13,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.full,
-    alignSelf: 'stretch',
-    shadowColor: COLORS.purple,
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  gateBtnDisabled: { opacity: 0.5 },
-  gateAdBtnText: { color: '#fff', fontSize: 14, fontWeight: '700' },
-  gateWaitBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    paddingVertical: 12,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.full,
-    alignSelf: 'stretch',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  gateWaitBtnText: { color: COLORS.textMuted, fontSize: 14, fontWeight: '600' },
-  gateProBtn: {
-    borderRadius: RADIUS.full,
-    overflow: 'hidden',
-    alignSelf: 'stretch',
-  },
-  gateProBtnGrad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-    paddingVertical: 13,
-    borderRadius: RADIUS.full,
-    overflow: 'hidden',
-  },
-  gateProBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 });
