@@ -315,11 +315,9 @@ export async function claimUsername(
 // ── Social: liked track sync ───────────────────────────────────────────────
 
 export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack): Promise<void> {
+  // Write user's own liked track + likedCount
   const batch = writeBatch(db);
-
-  // Write to user's liked subcollection
-  const trackRef = doc(db, 'likedTracks', uid, 'tracks', String(track.id));
-  batch.set(trackRef, {
+  batch.set(doc(db, 'likedTracks', uid, 'tracks', String(track.id)), {
     trackId: track.id,
     title: track.title,
     artistId: track.artist.id,
@@ -330,25 +328,24 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
     previewUrl: track.preview ?? null,
     likedAt: serverTimestamp(),
   });
-
-  // Increment user's likedCount
   batch.update(userRef(uid), { likedCount: increment(1) });
-
-  // Update inverted index for "who liked this song"
-  const songLikesRef = doc(db, 'songLikes', String(track.id));
-  batch.set(songLikesRef, {
-    trackId: track.id,
-    title: track.title,
-    artistName: track.artist.name,
-    coverUrl: track.album.cover_xl,
-    likerCount: increment(1),
-  }, { merge: true });
-  batch.set(doc(db, 'songLikes', String(track.id), 'likers', uid), {
-    uid,
-    likedAt: serverTimestamp(),
-  });
-
   await batch.commit();
+
+  // Conditionally update global songLikes counter — only if liker doc is new.
+  // Prevents likerCount drift when the same user re-likes after a reinstall/cache clear.
+  const likerRef = doc(db, 'songLikes', String(track.id), 'likers', uid);
+  await runTransaction(db, async (tx) => {
+    const likerSnap = await tx.get(likerRef);
+    if (likerSnap.exists()) return;
+    tx.set(likerRef, { uid, likedAt: serverTimestamp() });
+    tx.set(doc(db, 'songLikes', String(track.id)), {
+      trackId: track.id,
+      title: track.title,
+      artistName: track.artist.name,
+      coverUrl: track.album.cover_xl,
+      likerCount: increment(1),
+    }, { merge: true });
+  });
 }
 
 export async function removeLikedTrackFromFirestore(uid: string, trackId: number): Promise<void> {

@@ -155,6 +155,8 @@ export default function SettingsScreen() {
           text: 'Log Out',
           style: 'destructive',
           onPress: async () => {
+            useDeckStore.getState().cancelArtistIdsTimer();
+            const prevUserId = useDeckStore.getState().userId;
             try {
               await TokenStorage.clearTokens();
               await TokenStorage.clearSoundCloudTokens();
@@ -177,16 +179,27 @@ export default function SettingsScreen() {
               });
               if (auth) await signOut(auth);
             } catch {}
-            // Wipe anonymous-scoped storage so a new user on the same device
-            // doesn't inherit liked/seen/skip data from the previous session.
+            const userKeys = prevUserId !== 'anonymous'
+              ? [
+                  `sm_liked_${prevUserId}`,
+                  `sm_stats_${prevUserId}`,
+                  `sm_skips_${prevUserId}`,
+                  `sm_seen_${prevUserId}`,
+                  `sm_artist_skips_${prevUserId}`,
+                ]
+              : [];
             await AsyncStorage.multiRemove([
               ONBOARDING_KEY,
               ONBOARDING_GENRES_KEY,
+              'sm_onboarding_song_id',
+              'sm_onboarding_artists',
+              'sm_onboarding_artist_track_ids',
               'sm_liked_anonymous',
               'sm_skips_anonymous',
               'sm_seen_anonymous',
               'sm_stats_anonymous',
               'sm_artist_skips_anonymous',
+              ...userKeys,
             ]);
             useDeckStore.setState({ onboardingGenres: [] });
             router.replace('/onboarding');

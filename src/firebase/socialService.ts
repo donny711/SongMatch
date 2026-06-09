@@ -309,7 +309,7 @@ export async function getFeedItems(
 
 export async function getWhoLikedSong(trackId: number): Promise<SongLikerUser[]> {
   const likersSnap = await getDocs(
-    query(collection(db, 'songLikes', String(trackId), 'likers'), limit(50))
+    query(collection(db, 'songLikes', String(trackId), 'likers'), orderBy('likedAt', 'desc'), limit(50))
   );
   if (likersSnap.empty) return [];
 
@@ -327,12 +327,9 @@ export async function getWhoLikedSong(trackId: number): Promise<SongLikerUser[]>
 }
 
 export async function getSongLikerCount(trackId: number): Promise<{ count: number; previewUids: string[] }> {
-  const [snap, likersSnap] = await Promise.all([
-    getDoc(doc(db, 'songLikes', String(trackId))),
-    getDocs(query(collection(db, 'songLikes', String(trackId), 'likers'), limit(3))),
-  ]);
+  const snap = await getDoc(doc(db, 'songLikes', String(trackId)));
   return {
     count: snap.exists() ? (snap.data().likerCount ?? 0) : 0,
-    previewUids: likersSnap.docs.map((d) => d.data().uid as string),
+    previewUids: [],
   };
 }

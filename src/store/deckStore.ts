@@ -39,6 +39,7 @@ interface DeckState {
   lastSwipeDirection: 'like' | 'skip' | null;
   recordSwipe: (card: RecommendationCard, direction: 'like' | 'skip') => void;
   undoLastSwipe: () => void;
+  cancelArtistIdsTimer: () => void;
 }
 
 let artistIdsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -223,6 +224,12 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       AsyncStorage.setItem(skipsKey(userId), JSON.stringify(newSkips));
       AsyncStorage.setItem(statsKey(userId), JSON.stringify({ likedCount, skippedCount: newSkippedCount }));
       AsyncStorage.setItem(artistSkipsKey(userId), JSON.stringify(newArtistCounts));
+    }
+  },
+  cancelArtistIdsTimer: () => {
+    if (artistIdsDebounceTimer) {
+      clearTimeout(artistIdsDebounceTimer);
+      artistIdsDebounceTimer = null;
     }
   },
   loadForUser: async (userId) => {
