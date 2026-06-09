@@ -41,6 +41,8 @@ interface DeckState {
   undoLastSwipe: () => void;
 }
 
+let artistIdsDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+
 const likedKey       = (userId: string) => `sm_liked_${userId}`;
 const statsKey       = (userId: string) => `sm_stats_${userId}`;
 const skipsKey       = (userId: string) => `sm_skips_${userId}`;
@@ -111,7 +113,10 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       const uid = useProfileStore.getState().uid;
       if (uid) {
         syncLikedTrackToFirestore(uid, track).catch(() => {});
-        updateArtistIds(uid, get().likedTracks).catch(() => {});
+        if (artistIdsDebounceTimer) clearTimeout(artistIdsDebounceTimer);
+        artistIdsDebounceTimer = setTimeout(() => {
+          updateArtistIds(uid, get().likedTracks).catch(() => {});
+        }, 3000);
       }
     }
   },

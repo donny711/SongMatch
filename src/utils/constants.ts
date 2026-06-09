@@ -28,6 +28,7 @@ export const SOUNDCLOUD_TOKEN_URL = 'https://api.soundcloud.com/oauth2/token';
 
 export const AUDD_API_TOKEN = process.env.EXPO_PUBLIC_AUDD_API_TOKEN ?? '';
 export const LASTFM_API_KEY = process.env.EXPO_PUBLIC_LASTFM_API_KEY ?? '';
+export const MUSIC_PROXY_URL = process.env.EXPO_PUBLIC_MUSIC_PROXY_URL ?? '';
 
 export const PRIVACY_POLICY_URL = 'https://donny711.github.io/songmatch-legal/privacy.html';
 

@@ -1,6 +1,9 @@
 import type { DeezerTrack } from './types';
+import { MUSIC_PROXY_URL } from '../utils/constants';
 
-const DEEZER_API = 'https://api.deezer.com';
+// Route through proxy when configured (keeps API key server-side + caches responses).
+// Falls back to direct Deezer API in local dev when MUSIC_PROXY_URL is not set.
+const DEEZER_API = MUSIC_PROXY_URL ? `${MUSIC_PROXY_URL}/deezer` : 'https://api.deezer.com';
 
 export async function searchDeezer(query: string, limit = 1): Promise<DeezerTrack[]> {
   const url = `${DEEZER_API}/search?q=${encodeURIComponent(query)}&limit=${limit}`;

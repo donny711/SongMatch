@@ -1,4 +1,8 @@
-const LASTFM_API_BASE = 'https://ws.audioscrobbler.com/2.0';
+import { MUSIC_PROXY_URL, LASTFM_API_KEY } from '../utils/constants';
+
+// When the proxy is configured, requests go to /lastfm and the Worker injects
+// the API key server-side. In local dev (no proxy URL), call Last.fm directly.
+const LASTFM_API_BASE = MUSIC_PROXY_URL ? `${MUSIC_PROXY_URL}/lastfm` : 'https://ws.audioscrobbler.com/2.0';
 
 interface LastFmSimilarTrack {
   name: string;
@@ -32,8 +36,9 @@ export function cleanTitle(title: string): string {
     .trim();
 }
 
-function apiKey() {
-  return process.env.EXPO_PUBLIC_LASTFM_API_KEY ?? '';
+// Returns the api_key param string — empty when using the proxy (Worker injects it).
+function apiKeyParam() {
+  return MUSIC_PROXY_URL ? '' : `&api_key=${encodeURIComponent(LASTFM_API_KEY)}`;
 }
 
 export async function getSimilarTracks(
@@ -46,7 +51,7 @@ export async function getSimilarTracks(
     `${LASTFM_API_BASE}/?method=track.getsimilar` +
     `&artist=${encodeURIComponent(artist)}` +
     `&track=${encodeURIComponent(cleaned)}` +
-    `&api_key=${encodeURIComponent(apiKey())}` +
+    `${apiKeyParam()}` +
     `&format=json&limit=${limit}`;
 
   const controller = new AbortController();
@@ -79,7 +84,7 @@ export async function getArtistTopTracks(
     `${LASTFM_API_BASE}/?method=artist.gettoptracks` +
     `&artist=${encodeURIComponent(artist)}` +
     `&format=json&limit=${limit}` +
-    `&api_key=${encodeURIComponent(apiKey())}`;
+    `${apiKeyParam()}`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
@@ -107,7 +112,7 @@ export async function getArtistSimilar(artist: string, limit = 10): Promise<stri
   const url =
     `${LASTFM_API_BASE}/?method=artist.getsimilar` +
     `&artist=${encodeURIComponent(artist)}` +
-    `&api_key=${encodeURIComponent(apiKey())}` +
+    `${apiKeyParam()}` +
     `&format=json&limit=${limit}`;
 
   const controller = new AbortController();
@@ -134,7 +139,7 @@ export async function getTrackTags(artist: string, track: string): Promise<strin
     `${LASTFM_API_BASE}/?method=track.gettoptags` +
     `&artist=${encodeURIComponent(artist)}` +
     `&track=${encodeURIComponent(cleanTitle(track))}` +
-    `&api_key=${encodeURIComponent(apiKey())}` +
+    `${apiKeyParam()}` +
     `&format=json`;
 
   const controller = new AbortController();
@@ -167,7 +172,7 @@ export async function getTagTopTracks(
   const url =
     `${LASTFM_API_BASE}/?method=tag.gettoptracks` +
     `&tag=${encodeURIComponent(tag)}` +
-    `&api_key=${encodeURIComponent(apiKey())}` +
+    `${apiKeyParam()}` +
     `&format=json&limit=${limit}`;
 
   const controller = new AbortController();
@@ -198,7 +203,7 @@ export async function getArtistTags(artist: string): Promise<string[]> {
   const url =
     `${LASTFM_API_BASE}/?method=artist.gettoptags` +
     `&artist=${encodeURIComponent(artist)}` +
-    `&api_key=${encodeURIComponent(apiKey())}` +
+    `${apiKeyParam()}` +
     `&format=json`;
 
   const controller = new AbortController();
