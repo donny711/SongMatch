@@ -177,7 +177,17 @@ export default function SettingsScreen() {
               });
               if (auth) await signOut(auth);
             } catch {}
-            await AsyncStorage.multiRemove([ONBOARDING_KEY, ONBOARDING_GENRES_KEY]);
+            // Wipe anonymous-scoped storage so a new user on the same device
+            // doesn't inherit liked/seen/skip data from the previous session.
+            await AsyncStorage.multiRemove([
+              ONBOARDING_KEY,
+              ONBOARDING_GENRES_KEY,
+              'sm_liked_anonymous',
+              'sm_skips_anonymous',
+              'sm_seen_anonymous',
+              'sm_stats_anonymous',
+              'sm_artist_skips_anonymous',
+            ]);
             useDeckStore.setState({ onboardingGenres: [] });
             router.replace('/onboarding');
           },
