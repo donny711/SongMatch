@@ -43,7 +43,7 @@ export function useRecommendations() {
 
   useEffect(() => {
     exhaustedRef.current = false;
-  }, [seedTrack?.name, sourcePlaylist?.id, accessToken]);
+  }, [seedTrack?.name, sourcePlaylist?.id, accessToken, likedTracks.length]);
 
   const fetchRecs = useCallback(async () => {
     const forceShift = genreShiftRef.current;
@@ -58,14 +58,16 @@ export function useRecommendations() {
     );
     const filteredArtistKeys = new Set([...likedArtistKeys, ...skipFilteredKeys]);
 
-    // Deezer radio seeds: most recently liked tracks + onboarding song + favourite artist
-    // tracks from onboarding. The 4-seed cap in endpoints handles crowding naturally —
-    // liked tracks fill first, onboarding data fills any remaining slots.
-    const recentLikedIds = likedTracks.slice(0, 3).map(t => t.id);
+    // Deezer radio seeds: sample 3 from the 20 most recently liked tracks so consecutive
+    // fetches rotate the seed pool and don't keep hitting the same exhausted radio cache.
+    const likedIdPool = likedTracks.slice(0, 20).map(t => t.id);
+    const sampledLikedIds = likedIdPool.length <= 3
+      ? likedIdPool
+      : [...likedIdPool].sort(() => Math.random() - 0.5).slice(0, 3);
     const deezerSeedIds = [
-      ...recentLikedIds,
-      ...(onboardingSongId !== null && !recentLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
-      ...onboardingArtistTrackIds.filter(id => !recentLikedIds.includes(id) && id !== onboardingSongId),
+      ...sampledLikedIds,
+      ...(onboardingSongId !== null && !sampledLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
+      ...onboardingArtistTrackIds.filter(id => !sampledLikedIds.includes(id) && id !== onboardingSongId),
     ];
 
     const n = likedTracks.length;
