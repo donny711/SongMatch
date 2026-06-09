@@ -192,11 +192,12 @@ export default function HomeScreen() {
     register('swipe-card', swipeCardRef);
   }, [register]);
 
-  // Tutorial auto-start disabled for now — overlay blocks screen when measurements fail
-  // useEffect(() => {
-  //   if (tutorialComplete || tutorialActive || queue.length === 0) return;
-  //   useTutorialStore.getState().start();
-  // }, [tutorialComplete, queue.length, tutorialActive]);
+  useEffect(() => {
+    if (tutorialComplete || tutorialActive || queue.length === 0) return;
+    // Delay start so native layout has time to settle — prevents measureInWindow returning 0,0.
+    const timer = setTimeout(() => useTutorialStore.getState().start(), 600);
+    return () => clearTimeout(timer);
+  }, [tutorialComplete, queue.length, tutorialActive]);
 
   const isEmpty = !isFetching && queue.length === 0;
 

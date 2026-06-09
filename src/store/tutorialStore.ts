@@ -15,6 +15,7 @@ interface TutorialState {
   complete: () => void;
   replay: () => void;
   load: () => Promise<void>;
+  abort: () => void;
 }
 
 export const useTutorialStore = create<TutorialState>((set, get) => ({
@@ -47,6 +48,9 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
     AsyncStorage.removeItem(TUTORIAL_KEY);
     set({ isComplete: false, isActive: true, currentStep: 0 });
   },
+
+  // Hides the overlay without marking complete — tutorial retries on next launch.
+  abort: () => set({ isActive: false }),
 
   load: async () => {
     try {

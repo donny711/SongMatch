@@ -25,7 +25,7 @@ const { height: SCREEN_H } = Dimensions.get('window');
 const SPRING = { damping: 14, stiffness: 200, mass: 0.85 };
 
 export function TutorialOverlay() {
-  const { isActive, currentStep, next, skip } = useTutorialStore();
+  const { isActive, currentStep, next, skip, abort } = useTutorialStore();
   const { measure } = useTutorialMeasure();
   const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
@@ -45,13 +45,17 @@ export function TutorialOverlay() {
     if (!step) return;
 
     let rect: TargetRect | null = null;
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       rect = await measure(step.targetId);
       if (rect) break;
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, 400));
     }
 
-    if (!rect) return;
+    if (!rect) {
+      // Layout measurement failed — hide overlay without marking complete so it retries next launch.
+      abort();
+      return;
+    }
 
     const padding = step.padding ?? 8;
 
@@ -71,7 +75,7 @@ export function TutorialOverlay() {
       tooltipOpacity.value = withTiming(1, { duration: 220 });
       tooltipScale.value = withSpring(1, { damping: 13, stiffness: 170 });
     });
-  }, [measure, targetX, targetY, targetW, targetH, tooltipOpacity, tooltipScale, tooltipY]);
+  }, [abort, measure, targetX, targetY, targetW, targetH, tooltipOpacity, tooltipScale, tooltipY]);
 
   // Show/hide overlay
   useEffect(() => {
