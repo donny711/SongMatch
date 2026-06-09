@@ -108,7 +108,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   isInitialized: false,
   streakAnimFrom: null,
 
-  initialize: async (_spotifyUserId?: string) => {
+  initialize: async (spotifyUserId?: string) => {
     // Always allow re-initialization so a second login after logout works.
     // The previous onSnapshot listener is cleaned up below before creating a new one.
     set({ isLoading: true });
@@ -150,7 +150,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
 
       // One-time migration: sync existing liked tracks to Firestore
       try {
-        const raw = await AsyncStorage.getItem(`sm_liked_${uid}`);
+        const raw = await AsyncStorage.getItem(`sm_liked_${spotifyUserId ?? uid}`);
         const likedTracks: DeezerTrack[] = raw ? JSON.parse(raw) : [];
         if (likedTracks.length > 0) {
           runLikedTracksMigration(uid, likedTracks).catch(() => {});

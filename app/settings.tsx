@@ -160,25 +160,25 @@ export default function SettingsScreen() {
             try {
               await TokenStorage.clearTokens();
               await TokenStorage.clearSoundCloudTokens();
-              useAuthStore.getState().logout();
-              useDeckStore.setState({
-                queue: [],
-                likedTracks: [],
-                recentSkips: [],
-                seenTrackIds: [],
-                artistSkipCounts: {},
-                likedCount: 0,
-                skippedCount: 0,
-                consecutiveSkips: 0,
-                sourcePlaylist: null,
-                targetPlaylistId: null,
-                seedTrack: null,
-                userId: 'anonymous',
-                lastSwipedCard: null,
-                lastSwipeDirection: null,
-              });
-              if (auth) await signOut(auth);
             } catch {}
+            useAuthStore.getState().logout();
+            useDeckStore.setState({
+              queue: [],
+              likedTracks: [],
+              recentSkips: [],
+              seenTrackIds: [],
+              artistSkipCounts: {},
+              likedCount: 0,
+              skippedCount: 0,
+              consecutiveSkips: 0,
+              sourcePlaylist: null,
+              targetPlaylistId: null,
+              seedTrack: null,
+              userId: 'anonymous',
+              lastSwipedCard: null,
+              lastSwipeDirection: null,
+            });
+            if (auth) await signOut(auth).catch(() => {});
             const userKeys = prevUserId !== 'anonymous'
               ? [
                   `sm_liked_${prevUserId}`,

@@ -315,36 +315,40 @@ export async function claimUsername(
 // ── Social: liked track sync ───────────────────────────────────────────────
 
 export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack): Promise<void> {
-  // Write user's own liked track + likedCount
-  const batch = writeBatch(db);
-  batch.set(doc(db, 'likedTracks', uid, 'tracks', String(track.id)), {
-    trackId: track.id,
-    title: track.title,
-    artistId: track.artist.id,
-    artistName: track.artist.name,
-    albumId: track.album.id,
-    albumTitle: track.album.title,
-    coverUrl: track.album.cover_xl,
-    previewUrl: track.preview ?? null,
-    likedAt: serverTimestamp(),
-  });
-  batch.update(userRef(uid), { likedCount: increment(1) });
-  await batch.commit();
-
-  // Conditionally update global songLikes counter — only if liker doc is new.
-  // Prevents likerCount drift when the same user re-likes after a reinstall/cache clear.
+  const trackRef = doc(db, 'likedTracks', uid, 'tracks', String(track.id));
   const likerRef = doc(db, 'songLikes', String(track.id), 'likers', uid);
+
+  // Single transaction: read both existence flags first, then write only what's new.
+  // Prevents likedCount and likerCount drift on re-like after reinstall/cache clear.
   await runTransaction(db, async (tx) => {
-    const likerSnap = await tx.get(likerRef);
-    if (likerSnap.exists()) return;
-    tx.set(likerRef, { uid, likedAt: serverTimestamp() });
-    tx.set(doc(db, 'songLikes', String(track.id)), {
+    const [trackSnap, likerSnap] = await Promise.all([tx.get(trackRef), tx.get(likerRef)]);
+
+    tx.set(trackRef, {
       trackId: track.id,
       title: track.title,
+      artistId: track.artist.id,
       artistName: track.artist.name,
+      albumId: track.album.id,
+      albumTitle: track.album.title,
       coverUrl: track.album.cover_xl,
-      likerCount: increment(1),
-    }, { merge: true });
+      previewUrl: track.preview ?? null,
+      likedAt: serverTimestamp(),
+    });
+
+    if (!trackSnap.exists()) {
+      tx.update(userRef(uid), { likedCount: increment(1) });
+    }
+
+    if (!likerSnap.exists()) {
+      tx.set(likerRef, { uid, likedAt: serverTimestamp() });
+      tx.set(doc(db, 'songLikes', String(track.id)), {
+        trackId: track.id,
+        title: track.title,
+        artistName: track.artist.name,
+        coverUrl: track.album.cover_xl,
+        likerCount: increment(1),
+      }, { merge: true });
+    }
   });
 }
 
