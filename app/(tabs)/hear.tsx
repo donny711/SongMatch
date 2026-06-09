@@ -326,10 +326,18 @@ export default function HearScreen() {
         }
       });
       return () => {
+        // Stop any in-progress recording so the microphone is released and
+        // the iOS audio session exits record mode before the tab loses focus.
+        if (recorder.isRecording) {
+          recorder.stop().catch(() => {});
+          setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
+        }
         setStage('idle');
         setResults([]);
         setSeedTrack(null);
         setSelectedTrack(null);
+        setRecsVisible(false);
+        setRecQueue([]);
         setSearchQuery('');
         recognizedRef.current = null;
       };
@@ -387,7 +395,7 @@ export default function HearScreen() {
       if (!granted) { setStage('error'); return; }
       await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
       await recorder.prepareToRecordAsync();
-      recorder.record();
+      await recorder.record();
       setStage('recording');
     } catch {
       setStage('error');
