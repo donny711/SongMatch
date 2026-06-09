@@ -4,7 +4,7 @@ compatibility_date = "2025-01-01"
 
 [[kv_namespaces]]
 binding = "CACHE"
-id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID"
+id = "fd83b40bff0b44ce8963a13b0f84af26"
 
 # Store LASTFM_API_KEY as a secret (never in this file):
 #   wrangler secret put LASTFM_API_KEY
