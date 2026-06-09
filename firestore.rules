@@ -29,8 +29,15 @@ service cloud.firestore {
       allow create: if request.auth != null;
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['likerUids', 'likerCount', 'updatedAt']);
+             .hasOnly(['likerCount', 'updatedAt']);
       allow delete: if false;
+    }
+
+    // Each liker gets their own doc — public read, owner create/delete only.
+    match /songLikes/{trackId}/likers/{uid} {
+      allow read: if true;
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow delete: if request.auth != null && request.auth.uid == uid;
     }
 
     // Public read; authenticated user may only register a username pointing to their own uid.

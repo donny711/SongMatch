@@ -10,7 +10,6 @@ import {
   runTransaction,
   increment,
   arrayUnion,
-  arrayRemove,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './config';
@@ -342,9 +341,12 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
     title: track.title,
     artistName: track.artist.name,
     coverUrl: track.album.cover_xl,
-    likerUids: arrayUnion(uid),
     likerCount: increment(1),
   }, { merge: true });
+  batch.set(doc(db, 'songLikes', String(track.id), 'likers', uid), {
+    uid,
+    likedAt: serverTimestamp(),
+  });
 
   await batch.commit();
 }
@@ -369,10 +371,8 @@ export async function removeLikedTrackFromFirestore(uid: string, trackId: number
       likedCount: Math.max(0, currentLikedCount - 1),
     });
     if (songSnap.exists()) {
-      tx.update(songRef, {
-        likerUids: arrayRemove(uid),
-        likerCount: Math.max(0, currentLikerCount - 1),
-      });
+      tx.update(songRef, { likerCount: Math.max(0, currentLikerCount - 1) });
+      tx.delete(doc(db, 'songLikes', String(trackId), 'likers', uid));
     }
   });
 }

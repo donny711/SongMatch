@@ -308,13 +308,13 @@ export async function getFeedItems(
 // ── Who liked this song ────────────────────────────────────────────────────
 
 export async function getWhoLikedSong(trackId: number): Promise<SongLikerUser[]> {
-  const snap = await getDoc(doc(db, 'songLikes', String(trackId)));
-  if (!snap.exists()) return [];
+  const likersSnap = await getDocs(
+    query(collection(db, 'songLikes', String(trackId), 'likers'), limit(50))
+  );
+  if (likersSnap.empty) return [];
 
-  const likerUids: string[] = snap.data().likerUids ?? [];
-  if (likerUids.length === 0) return [];
-
-  const users = await fetchUsersByIds(likerUids.slice(0, 50));
+  const uids = likersSnap.docs.map((d) => d.data().uid as string);
+  const users = await fetchUsersByIds(uids);
   return users
     .filter((u) => !u.isPrivate)
     .map((u) => ({
@@ -327,11 +327,12 @@ export async function getWhoLikedSong(trackId: number): Promise<SongLikerUser[]>
 }
 
 export async function getSongLikerCount(trackId: number): Promise<{ count: number; previewUids: string[] }> {
-  const snap = await getDoc(doc(db, 'songLikes', String(trackId)));
-  if (!snap.exists()) return { count: 0, previewUids: [] };
-  const data = snap.data();
+  const [snap, likersSnap] = await Promise.all([
+    getDoc(doc(db, 'songLikes', String(trackId))),
+    getDocs(query(collection(db, 'songLikes', String(trackId), 'likers'), limit(3))),
+  ]);
   return {
-    count: data.likerCount ?? 0,
-    previewUids: (data.likerUids ?? []).slice(0, 3),
+    count: snap.exists() ? (snap.data().likerCount ?? 0) : 0,
+    previewUids: likersSnap.docs.map((d) => d.data().uid as string),
   };
 }
