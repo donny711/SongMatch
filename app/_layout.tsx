@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus, StyleSheet } from 'react-native';
+import * as Sentry from '@sentry/react-native';
 import { Stack, router } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -20,6 +21,16 @@ import { useReferral } from '../src/hooks/useReferral';
 import { TutorialMeasureProvider } from '../src/components/tutorial/TutorialMeasureContext';
 import { TutorialOverlay } from '../src/components/tutorial/TutorialOverlay';
 import { useTutorialStore } from '../src/store/tutorialStore';
+
+Sentry.init({
+  // DSN is public by design (it can only receive crash reports); env var
+  // allows pointing dev builds elsewhere without a code change.
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN
+    ?? 'https://661540bd58cbb568ab579e3eb070ba95@o4511540761853952.ingest.de.sentry.io/4511540770766928',
+  enabled: !__DEV__,
+  sendDefaultPii: false,
+  tracesSampleRate: 0.2,
+});
 
 // Load tutorial state from AsyncStorage on app start
 useTutorialStore.getState().load();
@@ -89,7 +100,7 @@ async function restoreSoundCloudSession() {
   }
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const setAccessToken = useAuthStore((s) => s.setAccessToken);
   const setUser = useAuthStore((s) => s.setUser);
   const loadForUser = useDeckStore((s) => s.loadForUser);
@@ -148,6 +159,7 @@ export default function RootLayout() {
       useTutorialStore.getState().load();
     })().catch((err: unknown) => {
       console.error('[SongMatch] Startup error:', err);
+      Sentry.captureException(err);
     });
 
     // Check streak whenever app comes back to foreground
@@ -188,3 +200,6 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({ root: { flex: 1 } });
+
+// Sentry.wrap adds the top-level error boundary + touch/navigation breadcrumbs.
+export default Sentry.wrap(RootLayout);

@@ -151,6 +151,7 @@
           "microphonePermission": "Allow SongMatch to access your microphone to identify songs."
         }
       ],
+      "@sentry/react-native"
     ],
     "extra": {
       "router": {},

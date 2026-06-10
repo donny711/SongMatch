@@ -1,7 +1,10 @@
-const { getDefaultConfig } = require('expo/metro-config');
+// Sentry's wrapper extends expo/metro-config with debug-ID injection so
+// release stack traces map back to source. Keep using it in place of
+// getDefaultConfig.
+const { getSentryExpoConfig } = require('@sentry/react-native/metro');
 const path = require('path');
 
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
 
 // @protobufjs/inquire uses eval() which crashes Hermes in production builds
 // on iOS 26. Firebase Firestore depends on protobufjs which requires it.
