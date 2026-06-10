@@ -102,6 +102,14 @@ export default function LikedScreen() {
 
   async function openExport() {
     lightTap();
+    // No Spotify session (connect is gated publicly): the resolution loop is
+    // just N failing API calls ending in a "0 found on Spotify" modal — share
+    // the plain track list directly instead.
+    if (!useAuthStore.getState().accessToken) {
+      const trackLines = likedTracks.map(t => t.title + ' - ' + t.artist.name).join('\n');
+      await Share.share({ message: trackLines, title: 'My Liked Songs' }).catch(() => {});
+      return;
+    }
     setExportResult(null);
     setExportStep('exporting');
     setExportProgress({ done: 0, total: likedTracks.length });
