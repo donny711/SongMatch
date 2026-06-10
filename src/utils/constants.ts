@@ -27,7 +27,8 @@ export const SOUNDCLOUD_CLIENT_SECRET = process.env.EXPO_PUBLIC_SOUNDCLOUD_CLIEN
 export const SOUNDCLOUD_REDIRECT_URI = makeRedirectUri();
 export const SOUNDCLOUD_TOKEN_URL = 'https://api.soundcloud.com/oauth2/token';
 
-export const AUDD_API_TOKEN = process.env.EXPO_PUBLIC_AUDD_API_TOKEN ?? '';
+// Dev-only fallback: production builds don't define this (the worker proxy
+// injects the key server-side); audd recognition goes through its own worker.
 export const LASTFM_API_KEY = process.env.EXPO_PUBLIC_LASTFM_API_KEY ?? '';
 export const MUSIC_PROXY_URL = process.env.EXPO_PUBLIC_MUSIC_PROXY_URL ?? '';
 

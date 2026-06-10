@@ -20,12 +20,14 @@ workflows:
     scripts:
       - name: Create .env file
         script: |
+          # Only vars the release build actually needs. EXPO_PUBLIC_* values are
+          # inlined into the JS bundle and extractable from the IPA, so:
+          # no Last.fm key (prod uses the worker proxy, which injects it),
+          # no AudD token (its worker holds it), no SoundCloud secret (feature
+          # gated), no dead AdMob/RevenueCat keys. Never cat this file — it
+          # would print values into the build log.
           echo "EXPO_PUBLIC_MUSIC_PROXY_URL=$EXPO_PUBLIC_MUSIC_PROXY_URL" > $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_SPOTIFY_CLIENT_ID=$EXPO_PUBLIC_SPOTIFY_CLIENT_ID" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_AUDD_API_TOKEN=$EXPO_PUBLIC_AUDD_API_TOKEN" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_LASTFM_API_KEY=$EXPO_PUBLIC_LASTFM_API_KEY" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_SOUNDCLOUD_CLIENT_ID=$EXPO_PUBLIC_SOUNDCLOUD_CLIENT_ID" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_SOUNDCLOUD_CLIENT_SECRET=$EXPO_PUBLIC_SOUNDCLOUD_CLIENT_SECRET" >> $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_SUPABASE_URL=$EXPO_PUBLIC_SUPABASE_URL" >> $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=$EXPO_PUBLIC_SUPABASE_ANON_KEY" >> $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_FIREBASE_API_KEY=$EXPO_PUBLIC_FIREBASE_API_KEY" >> $CM_BUILD_DIR/.env
@@ -33,14 +35,6 @@ workflows:
           echo "EXPO_PUBLIC_FIREBASE_PROJECT_ID=$EXPO_PUBLIC_FIREBASE_PROJECT_ID" >> $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID" >> $CM_BUILD_DIR/.env
           echo "EXPO_PUBLIC_FIREBASE_APP_ID=$EXPO_PUBLIC_FIREBASE_APP_ID" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_ADMOB_REWARDED_IOS=$EXPO_PUBLIC_ADMOB_REWARDED_IOS" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS=$EXPO_PUBLIC_ADMOB_INTERSTITIAL_IOS" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID=$EXPO_PUBLIC_ADMOB_INTERSTITIAL_ANDROID" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_ADMOB_BANNER_IOS=$EXPO_PUBLIC_ADMOB_BANNER_IOS" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_ADMOB_BANNER_ANDROID=$EXPO_PUBLIC_ADMOB_BANNER_ANDROID" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_REVENUECAT_IOS_KEY=$EXPO_PUBLIC_REVENUECAT_IOS_KEY" >> $CM_BUILD_DIR/.env
-          echo "EXPO_PUBLIC_REVENUECAT_ANDROID_KEY=$EXPO_PUBLIC_REVENUECAT_ANDROID_KEY" >> $CM_BUILD_DIR/.env
-          cat $CM_BUILD_DIR/.env
 
       - name: Install dependencies
         script: npm install
