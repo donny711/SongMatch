@@ -16,6 +16,7 @@ import Animated, {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTutorialStore } from '../../store/tutorialStore';
+import { usePlayerStore } from '../../store/playerStore';
 import { useTutorialMeasure, type TargetRect } from './TutorialMeasureContext';
 import { TutorialSpotlight } from './TutorialSpotlight';
 import { TUTORIAL_STEPS, TOTAL_STEPS } from './tutorialSteps';
@@ -93,6 +94,9 @@ export function TutorialOverlay() {
   // never flashes an unpositioned overlay.
   useEffect(() => {
     if (isActive && !visible) {
+      // Pause the auto-playing preview: no music over the walkthrough, and
+      // its 4Hz progress re-renders stop competing with the overlay fades.
+      usePlayerStore.getState().setActivePreviewUri(null);
       measureTarget(0, true);
     } else if (!isActive && visible) {
       overlayOpacity.value = withTiming(0, { duration: 260 }, () => {

@@ -1,12 +1,10 @@
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
-import { RADIUS } from '../../theme';
+import { COLORS, RADIUS } from '../../theme';
 import type { TargetRect } from './TutorialMeasureContext';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
-// The dim layer is one view's border, sized to cover the screen from any
-// hole position. The transparent interior is the spotlight hole.
-const DIM = Math.max(SCREEN_W, SCREEN_H) + 100;
+const DIM_COLOR = 'rgba(0,0,0,0.75)';
 
 interface Props {
   rect: TargetRect;
@@ -14,37 +12,44 @@ interface Props {
 }
 
 /**
- * Static border-trick spotlight: the huge border paints the dim layer and the
- * rounded interior is the hole. Position changes are a single layout per step
- * — no per-frame animation. Earlier versions animated the hole every frame
- * (first via SVG-mask re-rasters, then via layout props on this giant view);
- * both were unusably choppy on device. Step transitions are covered by the
- * overlay/tooltip opacity fades, which stay on the GPU.
+ * Four plain dim strips around the hole + a highlight ring. Every previous
+ * implementation (SVG mask, giant border-trick view) created a layer far
+ * bigger than the screen; the overlay's opacity fade then composited that
+ * oversized layer offscreen every frame — choppy on device no matter how the
+ * hole was drawn. These views never exceed screen size, so fades stay cheap.
  */
 export function TutorialSpotlight({ rect, padding }: Props) {
+  const left = Math.max(0, rect.x - padding);
+  const top = Math.max(0, rect.y - padding);
+  const right = Math.min(SCREEN_W, rect.x + rect.width + padding);
+  const bottom = Math.min(SCREEN_H, rect.y + rect.height + padding);
+
   return (
-    <View
-      pointerEvents="none"
-      style={[
-        styles.hole,
-        {
-          left: rect.x - padding - DIM,
-          top: rect.y - padding - DIM,
-          width: rect.width + padding * 2 + DIM * 2,
-          height: rect.height + padding * 2 + DIM * 2,
-        },
-      ]}
-    />
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <View style={[styles.dim, { left: 0, right: 0, top: 0, height: top }]} />
+      <View style={[styles.dim, { left: 0, right: 0, top: bottom, bottom: 0 }]} />
+      <View style={[styles.dim, { left: 0, top, width: left, height: bottom - top }]} />
+      <View style={[styles.dim, { left: right, right: 0, top, height: bottom - top }]} />
+      {/* Highlight ring marks the target and softens the hole's square corners */}
+      <View
+        style={[
+          styles.ring,
+          { left: left - 2, top: top - 2, width: right - left + 4, height: bottom - top + 4 },
+        ]}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  hole: {
+  dim: {
     position: 'absolute',
-    borderColor: 'rgba(0,0,0,0.75)',
-    borderWidth: DIM,
-    // Inner corner radius = borderRadius - borderWidth → rounds the hole by
-    // RADIUS.lg while the outer edge stays offscreen.
-    borderRadius: DIM + RADIUS.lg,
+    backgroundColor: DIM_COLOR,
+  },
+  ring: {
+    position: 'absolute',
+    borderRadius: RADIUS.lg,
+    borderWidth: 2,
+    borderColor: COLORS.purple,
   },
 });
