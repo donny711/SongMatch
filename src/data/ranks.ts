@@ -10,26 +10,29 @@ export interface RankDefinition {
 }
 
 export const RANKS: RankDefinition[] = [
+  // Curve assumes a regular user banks ~15-25 likes per day of active
+  // swiping: first promotions land within days, Gold within weeks,
+  // Diamond rewards months of use, Legend stays aspirational.
   // ── Silver ─────────────────────────────────────────────────────────────
   { id: 'silver_1', name: 'Silver I',    label: 'SILVER · I',    minLikes: 0,     color: '#94a3b8', labelColor: '#cbd5e1', bgTint: '#1e293b', timeEstimate: 'Starting rank' },
-  { id: 'silver_2', name: 'Silver II',   label: 'SILVER · II',   minLikes: 250,   color: '#94a3b8', labelColor: '#cbd5e1', bgTint: '#1e293b', timeEstimate: '~1 month'      },
-  { id: 'silver_3', name: 'Silver III',  label: 'SILVER · III',  minLikes: 500,   color: '#94a3b8', labelColor: '#cbd5e1', bgTint: '#1e293b', timeEstimate: '~2 months'     },
-  { id: 'silver_4', name: 'Silver IV',   label: 'SILVER · IV',   minLikes: 750,   color: '#94a3b8', labelColor: '#cbd5e1', bgTint: '#1e293b', timeEstimate: '~3 months'     },
+  { id: 'silver_2', name: 'Silver II',   label: 'SILVER · II',   minLikes: 25,    color: '#94a3b8', labelColor: '#cbd5e1', bgTint: '#1e293b', timeEstimate: '~1 day'        },
+  { id: 'silver_3', name: 'Silver III',  label: 'SILVER · III',  minLikes: 75,    color: '#94a3b8', labelColor: '#cbd5e1', bgTint: '#1e293b', timeEstimate: '~4 days'       },
+  { id: 'silver_4', name: 'Silver IV',   label: 'SILVER · IV',   minLikes: 150,   color: '#94a3b8', labelColor: '#cbd5e1', bgTint: '#1e293b', timeEstimate: '~1 week'       },
   // ── Gold ───────────────────────────────────────────────────────────────
-  { id: 'gold_1',   name: 'Gold I',      label: 'GOLD · I',      minLikes: 1000,  color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~4 months'     },
-  { id: 'gold_2',   name: 'Gold II',     label: 'GOLD · II',     minLikes: 2500,  color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~6 months'     },
-  { id: 'gold_3',   name: 'Gold III',    label: 'GOLD · III',    minLikes: 5000,  color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~8 months'     },
-  { id: 'gold_4',   name: 'Gold IV',     label: 'GOLD · IV',     minLikes: 7500,  color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~10 months'    },
+  { id: 'gold_1',   name: 'Gold I',      label: 'GOLD · I',      minLikes: 300,   color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~2 weeks'      },
+  { id: 'gold_2',   name: 'Gold II',     label: 'GOLD · II',     minLikes: 500,   color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~1 month'      },
+  { id: 'gold_3',   name: 'Gold III',    label: 'GOLD · III',    minLikes: 750,   color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~6 weeks'      },
+  { id: 'gold_4',   name: 'Gold IV',     label: 'GOLD · IV',     minLikes: 1000,  color: '#fbbf24', labelColor: '#fcd34d', bgTint: '#451a03', timeEstimate: '~2 months'     },
   // ── Diamond ────────────────────────────────────────────────────────────
-  { id: 'diamond_1', name: 'Diamond I',   label: 'DIAMOND · I',   minLikes: 10000, color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~1 year'       },
-  { id: 'diamond_2', name: 'Diamond II',  label: 'DIAMOND · II',  minLikes: 15000, color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~1.5 years'    },
-  { id: 'diamond_3', name: 'Diamond III', label: 'DIAMOND · III', minLikes: 20000, color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~2 years'      },
-  { id: 'diamond_4', name: 'Diamond IV',  label: 'DIAMOND · IV',  minLikes: 30000, color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~3 years'      },
+  { id: 'diamond_1', name: 'Diamond I',   label: 'DIAMOND · I',   minLikes: 1500,  color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~3 months'     },
+  { id: 'diamond_2', name: 'Diamond II',  label: 'DIAMOND · II',  minLikes: 2250,  color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~4 months'     },
+  { id: 'diamond_3', name: 'Diamond III', label: 'DIAMOND · III', minLikes: 3000,  color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~6 months'     },
+  { id: 'diamond_4', name: 'Diamond IV',  label: 'DIAMOND · IV',  minLikes: 4000,  color: '#38bdf8', labelColor: '#7dd3fc', bgTint: '#0c2340', timeEstimate: '~8 months'     },
   // ── Legend ─────────────────────────────────────────────────────────────
-  { id: 'legend_1',  name: 'Legend I',    label: 'LEGEND · I',    minLikes: 40000, color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: '~4 years'      },
-  { id: 'legend_2',  name: 'Legend II',   label: 'LEGEND · II',   minLikes: 50000, color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: '~5 years'      },
-  { id: 'legend_3',  name: 'Legend III',  label: 'LEGEND · III',  minLikes: 65000, color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: '~6 years'      },
-  { id: 'legend_4',  name: 'Legend IV',   label: 'LEGEND · IV',   minLikes: 80000, color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: 'Top 0.1%'      },
+  { id: 'legend_1',  name: 'Legend I',    label: 'LEGEND · I',    minLikes: 5500,  color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: '~1 year'       },
+  { id: 'legend_2',  name: 'Legend II',   label: 'LEGEND · II',   minLikes: 7500,  color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: '~1.5 years'    },
+  { id: 'legend_3',  name: 'Legend III',  label: 'LEGEND · III',  minLikes: 10000, color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: '~2 years'      },
+  { id: 'legend_4',  name: 'Legend IV',   label: 'LEGEND · IV',   minLikes: 15000, color: '#a78bfa', labelColor: '#c4b5fd', bgTint: '#1e0a3c', timeEstimate: 'Top 0.1%'      },
 ];
 
 export function getRankForLikes(likedCount: number): RankDefinition {
