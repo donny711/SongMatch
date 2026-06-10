@@ -74,6 +74,9 @@ workflows:
             echo "SENTRY_AUTH_TOKEN/SENTRY_PROJECT not set — disabling source map upload"
             export SENTRY_DISABLE_AUTO_UPLOAD=true
           fi
+          # A failed Sentry upload (network, quota) must never block a release;
+          # it prints the error and continues with unsymbolicated traces.
+          export SENTRY_ALLOW_FAILURE=true
           xcode-project build-ipa \
             --workspace "$CM_BUILD_DIR/ios/SongMatch.xcworkspace" \
             --scheme "SongMatch" 2>&1 | tee /tmp/xcodebuild_full.log
