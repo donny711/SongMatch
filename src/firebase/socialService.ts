@@ -7,11 +7,9 @@ import {
   where,
   orderBy,
   limit,
-  runTransaction,
-  increment,
-  serverTimestamp,
 } from 'firebase/firestore';
-import { db } from './config';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from './config';
 import type { UserProfile } from './profileService';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -57,43 +55,17 @@ export interface SongLikerUser {
 
 // ── Follow / Unfollow ──────────────────────────────────────────────────────
 
+// Follow/unfollow go through Cloud Functions: security rules make users/{uid}
+// owner-write-only, so a client can never update the other user's
+// followerCount — a client-side transaction always fails permission-denied.
+// The callable runs with the Admin SDK and uses context.auth.uid as follower.
 export async function callFollowUser(followerId: string, followingId: string): Promise<void> {
   if (followerId === followingId) throw new Error('Cannot follow yourself');
-
-  const followRef = doc(db, 'follows', `${followerId}_${followingId}`);
-  const followerRef = doc(db, 'users', followerId);
-  const followingRef = doc(db, 'users', followingId);
-
-  await runTransaction(db, async (tx) => {
-    const [followSnap, targetSnap] = await Promise.all([
-      tx.get(followRef),
-      tx.get(followingRef),
-    ]);
-
-    if (followSnap.exists()) return; // already following
-
-    const targetData = targetSnap.data() as UserProfile | undefined;
-    if (targetData?.isPrivate) throw new Error('User is private');
-
-    tx.set(followRef, { followerId, followingId, createdAt: serverTimestamp() });
-    tx.update(followerRef, { followingCount: increment(1) });
-    tx.update(followingRef, { followerCount: increment(1) });
-  });
+  await httpsCallable(functions, 'followUser')({ followingId });
 }
 
-export async function callUnfollowUser(followerId: string, followingId: string): Promise<void> {
-  const followRef = doc(db, 'follows', `${followerId}_${followingId}`);
-  const followerRef = doc(db, 'users', followerId);
-  const followingRef = doc(db, 'users', followingId);
-
-  await runTransaction(db, async (tx) => {
-    const followSnap = await tx.get(followRef);
-    if (!followSnap.exists()) return; // not following
-
-    tx.delete(followRef);
-    tx.update(followerRef, { followingCount: increment(-1) });
-    tx.update(followingRef, { followerCount: increment(-1) });
-  });
+export async function callUnfollowUser(_followerId: string, followingId: string): Promise<void> {
+  await httpsCallable(functions, 'unfollowUser')({ followingId });
 }
 
 // ── Relationship queries ───────────────────────────────────────────────────

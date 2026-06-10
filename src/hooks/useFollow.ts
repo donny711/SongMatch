@@ -24,7 +24,8 @@ export function useFollow(theirUid: string) {
     try {
       await callFollowUser(myUid, theirUid);
       useProfileStore.getState().grantMilestone('ms_first_follow').catch(() => {});
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.log('[follow] failed:', e);
       setIsFollowing(false);
     }
   }, [myUid, theirUid]);
@@ -34,7 +35,8 @@ export function useFollow(theirUid: string) {
     setIsFollowing(false);
     try {
       await callUnfollowUser(myUid, theirUid);
-    } catch {
+    } catch (e) {
+      if (__DEV__) console.log('[unfollow] failed:', e);
       setIsFollowing(true);
     }
   }, [myUid, theirUid]);
