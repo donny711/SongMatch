@@ -16,8 +16,6 @@ import { FeedSegment } from './people';
 import { usePlayerStore } from '../../src/store/playerStore';
 import { useDeckStore } from '../../src/store/deckStore';
 import { useRecommendations } from '../../src/hooks/useRecommendations';
-import { useSubscriptionStore } from '../../src/store/subscriptionStore';
-import { useInterstitialAd } from '../../src/hooks/useInterstitialAd';
 import { COLORS, SPACING, RADIUS, GLOW } from '../../src/theme';
 import type { RecommendationCard } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
@@ -81,25 +79,6 @@ export default function HomeScreen() {
   } = useDeckStore();
   const { isFetching, isShifting } = useRecommendations();
   const stopAudio = useCallback(() => usePlayerStore.getState().setActivePreviewUri(null), []);
-
-  // Subscription
-  const isPro = useSubscriptionStore((s) => s.isPro);
-
-  // Interstitial
-  const { status: interstitialStatus, show: showInterstitial } = useInterstitialAd();
-  const prevFetchingRef = useRef(false);
-  const batchCountRef = useRef(0); // skip interstitial on first load
-
-  // Show interstitial each time a new batch loads
-  useEffect(() => {
-    if (prevFetchingRef.current && !isFetching && activeTab === 'foryou') {
-      batchCountRef.current += 1;
-      if (batchCountRef.current > 1 && !isPro && interstitialStatus === 'ready') {
-        showInterstitial();
-      }
-    }
-    prevFetchingRef.current = isFetching;
-  }, [isFetching]);
 
   // ── Toast (liked feedback) ─────────────────────────────────
   const toastOpacity = useSharedValue(0);

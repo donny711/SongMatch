@@ -9,7 +9,6 @@ import {
   Alert,
   Linking,
   NativeModules,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -29,17 +28,6 @@ import { auth } from '../src/firebase/config';
 import { useAuthStore } from '../src/store/authStore';
 import { TokenStorage } from '../src/auth/TokenStorage';
 import { useTutorialStore } from '../src/store/tutorialStore';
-
-const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
-const BANNER_AD_UNIT_ID = Platform.select({
-  ios: process.env.EXPO_PUBLIC_ADMOB_BANNER_IOS ?? 'ca-app-pub-3940256099942544/2934735716',
-  android: process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID ?? 'ca-app-pub-3940256099942544/6300978111',
-  default: 'ca-app-pub-3940256099942544/6300978111',
-})!;
-
-function SettingsBanner() {
-  if (!ADS_AVAILABLE) return null;
-}
 
 // ── Reusable row ───────────────────────────────────────────────────────────────
 
@@ -494,9 +482,6 @@ export default function SettingsScreen() {
             />
           </SectionCard>
         </View>
-
-        {/* ── Banner (free only) ── */}
-        {!isPro && <SettingsBanner />}
 
         <Text style={styles.footer}>SongMatch • built with ♥</Text>
       </ScrollView>

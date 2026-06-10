@@ -8,7 +8,6 @@ import {
   ScrollView,
   Share,
   NativeModules,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,21 +34,8 @@ import { RankBadge } from '../../src/components/profile/RankBadge';
 import { getRankForLikes, getNextRank, getProgressToNext } from '../../src/data/ranks';
 
 const BANNER_HEIGHT = 180;
-const ADS_AVAILABLE = false; // disabled: react-native-google-mobile-ads crashes on iOS 26
-const BANNER_AD_UNIT_ID = Platform.select({
-  ios: process.env.EXPO_PUBLIC_ADMOB_BANNER_IOS ?? 'ca-app-pub-3940256099942544/2934735716',
-  android: process.env.EXPO_PUBLIC_ADMOB_BANNER_ANDROID ?? 'ca-app-pub-3940256099942544/6300978111',
-  default: 'ca-app-pub-3940256099942544/6300978111',
-})!;
 
-// ── AdMob Banner ──────────────────────────────────────────────────────────────
-
-function ProfileBanner() {
-  if (!ADS_AVAILABLE) return null;
-  return null;
-}
-
-// ── Share SongMatch card (Pro) ─────────────────────────────────────────────────
+// ── Share SongMatch card ───────────────────────────────────────────────────────
 
 function ShareCard() {
   const handleShare = async () => {
@@ -516,16 +502,10 @@ export default function ProfileScreen() {
           <MusicPlatforms />
         </View>
 
-        {/* ── Invite / Ad ── */}
+        {/* ── Invite ── */}
         <View style={styles.section}>
-          {isPro ? (
-            <>
-              <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Invite</Text>
-              <ShareCard />
-            </>
-          ) : (
-            <ProfileBanner />
-          )}
+          <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Invite</Text>
+          <ShareCard />
         </View>
       </View>
       </View>

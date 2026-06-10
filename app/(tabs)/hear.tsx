@@ -304,10 +304,8 @@ export default function HearScreen() {
   const searchInputRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
   const { addLikedTrack, addSkippedTrack, incrementLiked, incrementSkipped, likedTracks, artistSkipCounts } = useDeckStore();
-  const isPro = useSubscriptionStore((s) => s.isPro);
   const searchesRemaining = useSubscriptionStore((s) => s.searchesRemaining);
   const recordSearch = useSubscriptionStore((s) => s.recordSearch);
-  const refreshDaily = useSubscriptionStore((s) => s.refreshDaily);
 
   // Pulse ring animation values
   const scale1 = useSharedValue(1);
@@ -1003,20 +1001,6 @@ const styles = StyleSheet.create({
     ...GLOW.green,
   },
 
-  // Search counter
-  searchCounterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    alignSelf: 'flex-start',
-    marginBottom: SPACING.md,
-  },
-  searchCounterText: {
-    color: COLORS.textMuted,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-
   // Limit reached card
   limitCard: {
     marginTop: SPACING.lg,
@@ -1046,28 +1030,6 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontSize: 14,
     textAlign: 'center',
-  },
-  limitAdBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.purple,
-    paddingVertical: 12,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.full,
-    shadowColor: COLORS.purple,
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  limitAdBtnDisabled: {
-    opacity: 0.5,
-  },
-  limitAdBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
   },
   limitProBtn: {
     borderRadius: RADIUS.full,
@@ -1131,27 +1093,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
     lineHeight: 20,
-  },
-  limitModalAdBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: COLORS.purple,
-    paddingVertical: 13,
-    paddingHorizontal: SPACING.lg,
-    borderRadius: RADIUS.full,
-    alignSelf: 'stretch',
-    justifyContent: 'center',
-    shadowColor: COLORS.purple,
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
-    elevation: 6,
-  },
-  limitModalAdBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
   },
   limitModalProBtn: {
     borderRadius: RADIUS.full,

@@ -31,12 +31,9 @@ interface SubscriptionState {
   searchesRemaining: number;
 
   initialize: (uid: string) => Promise<void>;
-  refreshFromStore: () => Promise<void>;
   purchase: (tier: ProTier) => Promise<void>;
   restore: () => Promise<void>;
   recordSearch: () => Promise<boolean>;
-  grantSearchBonus: () => Promise<void>;
-  restoreSearches: (n: number) => Promise<void>;
   refreshDaily: () => Promise<void>;
   syncFromFirestore: (uid: string) => Promise<void>;
 }
@@ -78,8 +75,6 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     });
   },
 
-  refreshFromStore: async () => {},
-
   purchase: async (_tier: ProTier) => {
     Alert.alert('Coming Soon', 'Pro subscriptions are not available yet. Stay tuned!');
   },
@@ -100,20 +95,6 @@ export const useSubscriptionStore = create<SubscriptionState>((set, get) => ({
     await saveDailyState(daily);
     set({ dailySearchCount: newCount, searchesRemaining: FREE_DAILY_LIMIT - newCount });
     return true;
-  },
-
-  grantSearchBonus: async () => {},
-
-  restoreSearches: async (n: number) => {
-    const { dailySearchCount } = get();
-    const newCount = Math.max(0, dailySearchCount - n);
-    const daily: DailySearchState = {
-      count: newCount,
-      date: todayISO(),
-      bonusGranted: get().dailyBonusGranted,
-    };
-    await saveDailyState(daily);
-    set({ dailySearchCount: newCount, searchesRemaining: FREE_DAILY_LIMIT - newCount });
   },
 
   refreshDaily: async () => {
