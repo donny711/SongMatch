@@ -1,7 +1,7 @@
 import React from 'react';
-import { Dimensions, StyleSheet } from 'react-native';
-import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import { Dimensions, StyleSheet, View } from 'react-native';
 import { RADIUS } from '../../theme';
+import type { TargetRect } from './TutorialMeasureContext';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // The dim layer is one view's border, sized to cover the screen from any
@@ -9,37 +9,30 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 const DIM = Math.max(SCREEN_W, SCREEN_H) + 100;
 
 interface Props {
-  targetX: SharedValue<number>;
-  targetY: SharedValue<number>;
-  targetW: SharedValue<number>;
-  targetH: SharedValue<number>;
+  rect: TargetRect;
   padding: number;
 }
 
 /**
- * Border-trick spotlight: a single Animated.View whose huge border paints the
- * dim overlay and whose interior is the rounded hole. Runs entirely on the UI
- * thread — the previous SVG-mask version called runOnJS + setState every
- * animation frame, re-rendering React and re-rasterizing the mask (visibly
- * choppy on device).
+ * Static border-trick spotlight: the huge border paints the dim layer and the
+ * rounded interior is the hole. Position changes are a single layout per step
+ * — no per-frame animation. Earlier versions animated the hole every frame
+ * (first via SVG-mask re-rasters, then via layout props on this giant view);
+ * both were unusably choppy on device. Step transitions are covered by the
+ * overlay/tooltip opacity fades, which stay on the GPU.
  */
-export function TutorialSpotlight({ targetX, targetY, targetW, targetH, padding }: Props) {
-  const holeStyle = useAnimatedStyle(() => ({
-    left: targetX.value - padding - DIM,
-    top: targetY.value - padding - DIM,
-    width: targetW.value + padding * 2 + DIM * 2,
-    height: targetH.value + padding * 2 + DIM * 2,
-  }));
-
+export function TutorialSpotlight({ rect, padding }: Props) {
   return (
-    <Animated.View
+    <View
       pointerEvents="none"
       style={[
         styles.hole,
-        // Inner corner radius = borderRadius - borderWidth, so this rounds
-        // the hole by RADIUS.lg while the outer edge stays offscreen.
-        { borderWidth: DIM, borderRadius: DIM + RADIUS.lg },
-        holeStyle,
+        {
+          left: rect.x - padding - DIM,
+          top: rect.y - padding - DIM,
+          width: rect.width + padding * 2 + DIM * 2,
+          height: rect.height + padding * 2 + DIM * 2,
+        },
       ]}
     />
   );
@@ -49,5 +42,9 @@ const styles = StyleSheet.create({
   hole: {
     position: 'absolute',
     borderColor: 'rgba(0,0,0,0.75)',
+    borderWidth: DIM,
+    // Inner corner radius = borderRadius - borderWidth → rounds the hole by
+    // RADIUS.lg while the outer edge stays offscreen.
+    borderRadius: DIM + RADIUS.lg,
   },
 });

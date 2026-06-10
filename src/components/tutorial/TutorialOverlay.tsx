@@ -21,7 +21,6 @@ import { TutorialSpotlight } from './TutorialSpotlight';
 import { TUTORIAL_STEPS, TOTAL_STEPS } from './tutorialSteps';
 import { COLORS, SPACING, RADIUS } from '../../theme';
 
-const SPRING = { damping: 14, stiffness: 200, mass: 0.85 };
 const SCREEN_H = Dimensions.get('window').height;
 // Reserve space so the tooltip never lands under the Skip/dots/Next bar
 // or off the top edge, whatever the measured target's position is.
@@ -32,70 +31,63 @@ export function TutorialOverlay() {
   const { measure } = useTutorialMeasure();
   const insets = useSafeAreaInsets();
   const [visible, setVisible] = useState(false);
+  // Spotlight hole position is plain React state: one layout per step, no
+  // per-frame animation — animating the hole (SVG mask or layout props on the
+  // giant dim view) re-rasterized the full-screen layer every frame and was
+  // unusably choppy on device. Polish comes from the opacity fades only.
+  const [rect, setRect] = useState<TargetRect | null>(null);
+  const [tooltipTop, setTooltipTop] = useState(0);
 
   const overlayOpacity = useSharedValue(0);
   const tooltipOpacity = useSharedValue(0);
   const tooltipScale = useSharedValue(0.86);
-  const tooltipY = useSharedValue(0);
-
-  const targetX = useSharedValue(0);
-  const targetY = useSharedValue(0);
-  const targetW = useSharedValue(0);
-  const targetH = useSharedValue(0);
 
   const measureTarget = useCallback(async (stepIdx: number, firstShow = false) => {
     const step = TUTORIAL_STEPS[stepIdx];
     if (!step) return;
 
-    let rect: TargetRect | null = null;
+    let measured: TargetRect | null = null;
     for (let attempt = 0; attempt < 5; attempt++) {
-      rect = await measure(step.targetId);
-      if (rect) break;
+      measured = await measure(step.targetId);
+      if (measured) break;
       await new Promise((r) => setTimeout(r, 400));
     }
 
-    if (!rect) {
+    if (!measured) {
       // Layout measurement failed — hide overlay without marking complete so it retries next launch.
       abort();
       return;
     }
 
     const padding = step.padding ?? 8;
-
-    if (firstShow) {
-      // Snap straight to the measured rect, then fade in. Springing from
-      // 0,0 (or fading in before measuring) flashes a mispositioned overlay.
-      targetX.value = rect.x;
-      targetY.value = rect.y;
-      targetW.value = rect.width;
-      targetH.value = rect.height;
-      setVisible(true);
-      overlayOpacity.value = withTiming(1, { duration: 340 });
-    } else {
-      targetX.value = withSpring(rect.x, SPRING);
-      targetY.value = withSpring(rect.y, SPRING);
-      targetW.value = withSpring(rect.width, SPRING);
-      targetH.value = withSpring(rect.height, SPRING);
-    }
-
     const rawTooltipY =
       step.tooltipPosition === 'above'
-        ? rect.y - padding - 80
-        : rect.y + rect.height + padding + 16;
+        ? measured.y - padding - 80
+        : measured.y + measured.height + padding + 16;
     // Clamp on-screen: the swipe-card steps put "below" tooltips past the
     // action buttons on shorter devices.
-    const tooltipTarget = Math.min(
+    const clampedTooltipY = Math.min(
       Math.max(rawTooltipY, insets.top + 8),
       SCREEN_H - insets.bottom - TOOLTIP_RESERVED_BOTTOM,
     );
 
-    tooltipOpacity.value = withTiming(0, { duration: 120 }, () => {
-      tooltipY.value = tooltipTarget;
+    setRect(measured);
+    setTooltipTop(clampedTooltipY);
+
+    if (firstShow) {
+      setVisible(true);
+      overlayOpacity.value = withTiming(1, { duration: 340 });
       tooltipScale.value = 0.86;
       tooltipOpacity.value = withTiming(1, { duration: 220 });
       tooltipScale.value = withSpring(1, { damping: 13, stiffness: 170 });
-    });
-  }, [abort, measure, insets.top, insets.bottom, targetX, targetY, targetW, targetH, overlayOpacity, tooltipOpacity, tooltipScale, tooltipY]);
+    } else {
+      tooltipOpacity.value = withTiming(0, { duration: 120 }, () => {
+        tooltipScale.value = 0.86;
+        tooltipOpacity.value = withTiming(1, { duration: 220 });
+        tooltipScale.value = withSpring(1, { damping: 13, stiffness: 170 });
+      });
+    }
+  }, [abort, measure, insets.top, insets.bottom, overlayOpacity, tooltipOpacity, tooltipScale]);
 
   // Show/hide overlay — measurement gates visibility, so a failed measure
   // never flashes an unpositioned overlay.
@@ -123,7 +115,6 @@ export function TutorialOverlay() {
   const tooltipStyle = useAnimatedStyle(() => ({
     opacity: tooltipOpacity.value,
     transform: [{ scale: tooltipScale.value }],
-    top: tooltipY.value,
   }));
 
   if (!visible) return null;
@@ -133,16 +124,10 @@ export function TutorialOverlay() {
 
   return (
     <Animated.View style={[styles.overlay, overlayStyle]} pointerEvents={isActive ? 'auto' : 'none'}>
-      <TutorialSpotlight
-        targetX={targetX}
-        targetY={targetY}
-        targetW={targetW}
-        targetH={targetH}
-        padding={step?.padding ?? 8}
-      />
+      {rect && <TutorialSpotlight rect={rect} padding={step?.padding ?? 8} />}
 
       {/* Tooltip */}
-      <Animated.View style={[styles.tooltip, tooltipStyle]}>
+      <Animated.View style={[styles.tooltip, { top: tooltipTop }, tooltipStyle]}>
         <View style={styles.tooltipContent}>
           <Ionicons
             name={step?.icon as any}
