@@ -181,7 +181,13 @@ export async function deleteAccount(password: string): Promise<void> {
   // Follows TOWARD me can't be deleted under the rules (only the follower
   // may); they become orphans that every list already filters out.
 
+  // My referral code(s).
+  const referralsSnap = await getDocs(
+    query(collection(db, 'referrals'), where('referrerId', '==', uid))
+  ).catch(() => null);
+
   const finalBatch = writeBatch(db);
+  for (const d of referralsSnap?.docs ?? []) finalBatch.delete(d.ref);
   if (typeof profile.username === 'string' && profile.username) {
     finalBatch.delete(doc(db, 'usernames', profile.username));
   }

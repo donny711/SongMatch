@@ -75,6 +75,9 @@ service cloud.firestore {
         && (resource.data.referrerId == request.auth.uid
             || request.resource.data.diff(resource.data).affectedKeys()
                  .hasOnly(['installedUids', 'installCount', 'updatedAt']));
+      // Account deletion cleans up the user's own referral code.
+      allow delete: if request.auth != null
+                    && resource.data.referrerId == request.auth.uid;
     }
 
     // User/content reports -- create-only for clients (reviewed in console).
