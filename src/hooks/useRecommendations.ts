@@ -180,5 +180,13 @@ export function useRecommendations() {
     }
   }, [queue.length, isFetching]);
 
-  return { isFetching, isShifting };
+  // Manual escape hatch for the empty state: a fetch that returns zero cards
+  // marks the feed exhausted, and with an empty queue the user has no way to
+  // trigger the like-based reset — so let them refetch directly.
+  const retry = useCallback(() => {
+    exhaustedRef.current = false;
+    refetch();
+  }, [refetch]);
+
+  return { isFetching, isShifting, retry };
 }

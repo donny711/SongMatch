@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { Image } from 'expo-image';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import SnippetPlayer from './SnippetPlayer';
 import type { RecommendationCard } from '../../api/types';
@@ -35,7 +36,13 @@ export default function TrackCard({ card, isTop = false }: Props) {
     <View ref={cardRef} style={styles.card}>
       {/* Full-bleed album art */}
       {track.album.cover_xl ? (
-        <Image source={{ uri: track.album.cover_xl }} style={styles.albumArt} />
+        <Image
+          source={{ uri: track.album.cover_xl }}
+          style={styles.albumArt}
+          contentFit="cover"
+          transition={120}
+          cachePolicy="disk"
+        />
       ) : (
         <View style={[styles.albumArt, styles.albumArtFallback]} />
       )}

@@ -1,5 +1,6 @@
-import React, { useRef, useImperativeHandle, forwardRef } from 'react';
+import React, { useRef, useImperativeHandle, forwardRef, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -27,6 +28,16 @@ export interface SwipeDeckRef {
 const SwipeDeck = forwardRef<SwipeDeckRef, Props>(({ queue, onSwipeLeft, onSwipeRight }, ref) => {
   const topCardRef = useRef<SwipeCardRef>(null);
   const swipeProgress = useSharedValue(0);
+
+  // Warm the disk cache for upcoming cards so album art is instant when
+  // they surface. Only the top 2 render; prefetch the next 3 behind them.
+  useEffect(() => {
+    const urls = queue
+      .slice(2, 5)
+      .map((c) => c.track?.album?.cover_xl)
+      .filter((u): u is string => !!u);
+    if (urls.length > 0) ExpoImage.prefetch(urls, { cachePolicy: 'disk' });
+  }, [queue]);
 
   useImperativeHandle(ref, () => ({
     swipeLeft: () => topCardRef.current?.swipeLeft(),

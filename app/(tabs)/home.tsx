@@ -77,7 +77,7 @@ export default function HomeScreen() {
     undoLastSwipe,
     lastSwipedCard,
   } = useDeckStore();
-  const { isFetching, isShifting } = useRecommendations();
+  const { isFetching, isShifting, retry } = useRecommendations();
   const stopAudio = useCallback(() => usePlayerStore.getState().setActivePreviewUri(null), []);
 
   // ── Toast (liked feedback) ─────────────────────────────────
@@ -250,6 +250,10 @@ export default function HomeScreen() {
                   </View>
                   <Text style={styles.stateTitle}>All caught up!</Text>
                   <Text style={styles.stateText}>More picks are on their way…</Text>
+                  <TouchableOpacity style={styles.retryBtn} onPress={retry} activeOpacity={0.85}>
+                    <Ionicons name="refresh" size={16} color="#fff" />
+                    <Text style={styles.retryText}>Try again</Text>
+                  </TouchableOpacity>
                 </View>
               )}
 
@@ -406,6 +410,22 @@ const styles = StyleSheet.create({
   },
   stateTitle: { color: COLORS.text, fontSize: 22, fontWeight: '800' },
   stateText: { color: COLORS.textMuted, fontSize: 15, textAlign: 'center', lineHeight: 22 },
+  retryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    backgroundColor: COLORS.purple,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: 13,
+    borderRadius: RADIUS.full,
+    marginTop: SPACING.sm,
+    shadowColor: COLORS.purple,
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 8,
+  },
+  retryText: { color: '#fff', fontSize: 15, fontWeight: '700' },
 
   // Toast
   toastContainer: {
