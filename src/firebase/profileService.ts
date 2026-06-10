@@ -253,6 +253,8 @@ export async function updateShowcase(
 // ── Ad reward ─────────────────────────────────────────────────────────────
 
 const AD_REWARD_POINTS = 30;
+const MP_PER_LIKE = 2;
+const MP_DAILY_CHECKIN = 20;
 const AD_MAX_PER_DAY = 5;
 
 export async function grantAdReward(uid: string): Promise<{ granted: boolean; remaining: number }> {
@@ -335,7 +337,13 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
     });
 
     if (!trackSnap.exists()) {
-      tx.update(userRef(uid), { likedCount: increment(1) });
+      // Recurring MP income: milestones are one-time, so likes are the
+      // steady earn path (rides this transaction — no extra write).
+      tx.update(userRef(uid), {
+        likedCount: increment(1),
+        points: increment(MP_PER_LIKE),
+        totalEarned: increment(MP_PER_LIKE),
+      });
     }
 
     if (!likerSnap.exists()) {
@@ -484,12 +492,13 @@ export async function updateStreak(uid: string): Promise<{ currentStreak: number
       updatedAt: serverTimestamp(),
     };
 
-    // Check streak milestones
-    let pointsGranted = 0;
+    // Daily check-in bonus: first open of the day always pays out, so MP
+    // keeps flowing after the one-time milestones are exhausted.
+    let pointsGranted = MP_DAILY_CHECKIN;
     const earned: string[] = data.earnedMilestones ?? [];
     const streakMilestones = [3, 7, 14, 30];
 
-    let totalMilestonePoints = 0;
+    let totalMilestonePoints = MP_DAILY_CHECKIN;
     for (const days of streakMilestones) {
       if (newStreak >= days) {
         const msId = `ms_streak_${days}`;
