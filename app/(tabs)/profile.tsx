@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ScrollView,
   Share,
-  NativeModules,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +17,6 @@ import { useDeckStore } from '../../src/store/deckStore';
 import { useProfileStore } from '../../src/store/profileStore';
 import { useSubscriptionStore } from '../../src/store/subscriptionStore';
 import { TokenStorage } from '../../src/auth/TokenStorage';
-import { useSoundCloudAuth } from '../../src/auth/useSoundCloudAuth';
 import { AvatarWithFrame } from '../../src/components/profile/AvatarWithFrame';
 import { ProfileBackground, ProfileThemeBackground } from '../../src/components/profile/ProfileBackground';
 import { BadgeRow } from '../../src/components/profile/BadgeRow';
@@ -170,28 +168,15 @@ function PlatformRow({
 }
 
 function MusicPlatforms() {
-  const { promptAsync } = useSoundCloudAuth();
   const user = useAuthStore((s) => s.user);
   const accessToken = useAuthStore((s) => s.accessToken);
   const logout = useAuthStore((s) => s.logout);
-  const connectedPlatforms = useAuthStore((s) => s.connectedPlatforms);
-  const soundCloudUser = useAuthStore((s) => s.soundCloudUser);
-  const removePlatform = useAuthStore((s) => s.removePlatform);
-  const setSoundCloudUser = useAuthStore((s) => s.setSoundCloudUser);
 
   const handleSpotifyDisconnect = async () => {
     await TokenStorage.clearTokens();
     logout();
     await useDeckStore.getState().loadForUser('anonymous');
   };
-
-  const handleSoundCloudDisconnect = async () => {
-    await TokenStorage.clearSoundCloudTokens();
-    setSoundCloudUser(null);
-    removePlatform('soundcloud');
-  };
-
-  const scConnected = connectedPlatforms.includes('soundcloud');
 
   return (
     <View style={styles.platformCard}>
@@ -231,7 +216,7 @@ function MusicPlatforms() {
 
 export default function ProfileScreen() {
   const user = useAuthStore((s) => s.user);
-  const { likedTracks, skippedCount, likedCount } = useDeckStore();
+  const { likedTracks, skippedCount } = useDeckStore();
   const insets = useSafeAreaInsets();
   const isPro = useSubscriptionStore((s) => s.isPro);
   const [statsRowHeight, setStatsRowHeight] = React.useState(96);

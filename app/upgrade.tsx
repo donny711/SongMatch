@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { COLORS, SPACING, RADIUS } from '../src/theme';
+import { COLORS, SPACING } from '../src/theme';
 
 export default function UpgradeScreen() {
   const insets = useSafeAreaInsets();

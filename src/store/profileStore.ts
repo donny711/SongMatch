@@ -302,7 +302,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     try {
       const { currentStreak: newStreak } = await updateStreak(uid);
       if (newStreak > prevStreak) {
-        console.log('[streak] incremented', prevStreak, '→', newStreak);
+        if (__DEV__) console.log('[streak] incremented', prevStreak, '→', newStreak);
         set({ streakAnimFrom: prevStreak });
       }
     } catch {

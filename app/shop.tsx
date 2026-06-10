@@ -14,7 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useProfileStore } from '../src/store/profileStore';
 import { useDeckStore } from '../src/store/deckStore';
-import { CATALOG_BY_TYPE, SHOP_ITEMS_BY_ID, type ShopItem, type ShopItemType } from '../src/data/shopCatalog';
+import { CATALOG_BY_TYPE, type ShopItem, type ShopItemType } from '../src/data/shopCatalog';
 import { RANKS } from '../src/data/ranks';
 import { RankBadge } from '../src/components/profile/RankBadge';
 import { ShopItemCard } from '../src/components/shop/ShopItemCard';

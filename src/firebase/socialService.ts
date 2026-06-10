@@ -8,7 +8,6 @@ import {
   orderBy,
   limit,
   runTransaction,
-  deleteDoc,
   increment,
   serverTimestamp,
 } from 'firebase/firestore';

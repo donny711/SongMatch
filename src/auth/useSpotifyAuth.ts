@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import * as AuthSession from 'expo-auth-session';
 import { useAuthRequest, ResponseType } from 'expo-auth-session';
 import { router } from 'expo-router';
 import {

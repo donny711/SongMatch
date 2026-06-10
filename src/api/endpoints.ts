@@ -212,7 +212,7 @@ export async function getRecommendationsForSeeds(
     }
   }
 
-  console.log(`[SongMatch] recs: radio=${radioFillCount} lastfm=${output.length - radioFillCount} total=${output.length}`);
+  if (__DEV__) console.log(`[SongMatch] recs: radio=${radioFillCount} lastfm=${output.length - radioFillCount} total=${output.length}`);
 
   // Sort: radio tracks (1.0) surface first, then by Last.fm similarity score.
   output.sort((a, b) => (matchById.get(b.id) ?? 0) - (matchById.get(a.id) ?? 0));
@@ -268,9 +268,9 @@ export async function getSongSimilarRecs(
   const artistCandidates = await Promise.all(
     similarArtists.slice(0, 8).map((a) => getArtistTopTracks(a, 8))
   );
-  similarArtists.slice(0, 8).forEach((artist, i) => {
+  artistCandidates.forEach((tracks, i) => {
     const artistScore = 0.4 - i * 0.02;
-    artistCandidates[i].forEach((t, j) => add(t.name, t.artist, artistScore - j * 0.01));
+    tracks.forEach((t, j) => add(t.name, t.artist, artistScore - j * 0.01));
   });
 
   // Signal 3: genre/tag top tracks (score ~0.22)

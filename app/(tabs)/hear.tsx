@@ -469,7 +469,7 @@ export default function HearScreen() {
       const cards = await getSongSimilarRecs(seed.artist, seed.title, 15, seenIds, skipFilteredKeys, track.id);
       setRecQueue(cards);
     } catch (e) {
-      console.log('[Recs] error:', e);
+      if (__DEV__) console.log('[Recs] error:', e);
     } finally {
       setRecsLoading(false);
     }

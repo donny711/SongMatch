@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -21,7 +20,6 @@ import { TutorialSpotlight } from './TutorialSpotlight';
 import { TUTORIAL_STEPS, TOTAL_STEPS } from './tutorialSteps';
 import { COLORS, SPACING, RADIUS } from '../../theme';
 
-const { height: SCREEN_H } = Dimensions.get('window');
 const SPRING = { damping: 14, stiffness: 200, mass: 0.85 };
 
 export function TutorialOverlay() {

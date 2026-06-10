@@ -12,7 +12,6 @@ import Animated, {
 import { useFocusEffect } from 'expo-router';
 import Svg, { Circle, Ellipse, Defs, LinearGradient as SvgLinearGradient, Stop, ClipPath, G } from 'react-native-svg';
 import { SHOP_ITEMS_BY_ID, type ShopItem } from '../../data/shopCatalog';
-import { COLORS } from '../../theme';
 
 interface Props {
   uri: string | null;

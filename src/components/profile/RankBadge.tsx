@@ -11,8 +11,6 @@ import { View, Image, StyleSheet } from 'react-native';
 
 const SPRITE = require('../../../assets/images/rank_badges.png');
 const CELLS  = 4;
-const SRC_SIZE = 1254;          // full image dimension (square)
-const CELL_SIZE = SRC_SIZE / CELLS;  // 313.5
 
 const TIER_ROW: Record<string, number> = {
   silver:  0,

@@ -9,6 +9,7 @@ import Animated, {
   withRepeat,
   withTiming,
   withSequence,
+  withDelay,
   Easing,
   cancelAnimation,
   type SharedValue,
@@ -58,13 +59,13 @@ function CometStreak({ color, width, top, duration, delay }: { color: string; wi
   const tx = useSharedValue(-width - 20);
   useFocusEffect(
     React.useCallback(() => {
-      tx.value = withRepeat(
+      tx.value = withDelay(delay, withRepeat(
         withSequence(
           withTiming(SCREEN_WIDTH + 20, { duration, easing: Easing.linear }),
           withTiming(-width - 20, { duration: 0 }),
         ),
         -1,
-      );
+      ));
       return () => { cancelAnimation(tx); tx.value = -width - 20; };
     }, []),
   );

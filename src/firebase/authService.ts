@@ -3,7 +3,7 @@ import {
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config';
 import { claimUsername, getOrCreateUserDoc, updateProfileFields } from './profileService';
 

@@ -3,7 +3,6 @@ import {
   getDoc,
   setDoc,
   updateDoc,
-  deleteDoc,
   writeBatch,
   onSnapshot,
   serverTimestamp,

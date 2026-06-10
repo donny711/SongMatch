@@ -14,7 +14,6 @@ import {
   limit,
 } from 'firebase/firestore';
 import { db } from './config';
-import { saveSubscriptionToFirestore } from './subscriptionService';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 

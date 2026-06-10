@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { checkIsFollowing, callFollowUser, callUnfollowUser } from '../firebase/socialService';
 import { useProfileStore } from '../store/profileStore';
-import { useToastStore } from '../store/toastStore';
 
 export function useFollow(theirUid: string) {
   const myUid = useProfileStore((s) => s.uid);

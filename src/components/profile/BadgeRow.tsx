@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { SHOP_ITEMS_BY_ID } from '../../data/shopCatalog';
 import { RADIUS } from '../../theme';

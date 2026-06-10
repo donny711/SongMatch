@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
-import { COLORS, SPACING, RADIUS } from '../../theme';
+import { COLORS, SPACING } from '../../theme';
 
 interface Props {
   uid: string;

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { AppState, type AppStateStatus, StyleSheet, View } from 'react-native';
+import { AppState, type AppStateStatus, StyleSheet } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

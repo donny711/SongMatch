@@ -1,4 +1,4 @@
-import { SPOTIFY_API_BASE, SPOTIFY_TOKEN_URL, SPOTIFY_CLIENT_ID, SPOTIFY_REDIRECT_URI } from '../utils/constants';
+import { SPOTIFY_API_BASE, SPOTIFY_TOKEN_URL, SPOTIFY_CLIENT_ID } from '../utils/constants';
 import { useAuthStore } from '../store/authStore';
 import * as SecureStore from 'expo-secure-store';
 

@@ -3,7 +3,7 @@ import { Animated, Text, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useToastStore } from '../../store/toastStore';
-import { COLORS, RADIUS, SPACING } from '../../theme';
+import { RADIUS, SPACING } from '../../theme';
 
 export function MPToast() {
   const current = useToastStore((s) => s.current);
