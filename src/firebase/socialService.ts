@@ -13,6 +13,12 @@ import {
 } from 'firebase/firestore';
 import { db } from './config';
 import type { UserProfile } from './profileService';
+import { useProfileStore } from '../store/profileStore';
+
+/** Central block filter — every social list drops users I've blocked. */
+function isBlocked(uid: string): boolean {
+  return useProfileStore.getState().blockedUids.includes(uid);
+}
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -149,8 +155,9 @@ export async function fetchPublicUser(uid: string): Promise<PublicUser | null> {
 }
 
 async function fetchUsersByIds(uids: string[]): Promise<PublicUser[]> {
-  if (uids.length === 0) return [];
-  const results = await Promise.all(uids.map((uid) => fetchPublicUser(uid)));
+  const visible = uids.filter((uid) => !isBlocked(uid));
+  if (visible.length === 0) return [];
+  const results = await Promise.all(visible.map((uid) => fetchPublicUser(uid)));
   return results.filter((u): u is PublicUser => u !== null);
 }
 
@@ -199,7 +206,7 @@ export async function searchUsers(term: string, myUid: string): Promise<PublicUs
     if (seen.has(snap.id)) continue;
     seen.add(snap.id);
     const data = snap.data() as UserProfile;
-    if (snap.id === myUid || data.isPrivate) continue;
+    if (snap.id === myUid || data.isPrivate || isBlocked(snap.id)) continue;
     results.push(snapToPublicUser(snap.id, data));
   }
   return results;
@@ -219,7 +226,7 @@ export async function getLeaderboard(field: LeaderboardField, count = 50): Promi
   const snaps = await getDocs(q);
   return snaps.docs
     .map((d) => snapToPublicUser(d.id, d.data() as UserProfile))
-    .filter((u) => !u.isPrivate)
+    .filter((u) => !u.isPrivate && !isBlocked(u.uid))
     .slice(0, count);
 }
 
@@ -234,7 +241,7 @@ export async function getSuggestedUsers(myArtistIds: number[], myUid: string): P
   const mySet = new Set(myArtistIds);
 
   const scored = snaps.docs
-    .filter((d) => d.id !== myUid && !(d.data() as UserProfile).isPrivate)
+    .filter((d) => d.id !== myUid && !(d.data() as UserProfile).isPrivate && !isBlocked(d.id))
     .map((d) => {
       const data = d.data() as UserProfile;
       const theirIds: number[] = data.artistIds ?? [];
@@ -255,9 +262,10 @@ export async function getSuggestedUsers(myArtistIds: number[], myUid: string): P
 // ── Activity feed ──────────────────────────────────────────────────────────
 
 export async function getFeedItems(
-  followingUids: string[],
+  uids: string[],
   count = 5
 ): Promise<FeedItem[]> {
+  const followingUids = uids.filter((uid) => !isBlocked(uid));
   if (followingUids.length === 0) return [];
 
   // Fetch user profile data and liked tracks in parallel

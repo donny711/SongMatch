@@ -201,6 +201,98 @@ export default function SettingsScreen() {
     router.navigate('/(tabs)/home');
   }, []);
 
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      'Delete Account?',
+      'This permanently deletes your profile, liked songs, followers and points. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Continue',
+          style: 'destructive',
+          onPress: () => {
+            Alert.prompt(
+              'Confirm Password',
+              'Enter your password to permanently delete your account.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                  text: 'Delete Forever',
+                  style: 'destructive',
+                  onPress: async (password?: string) => {
+                    if (!password) return;
+                    try {
+                      const { deleteAccount } = await import('../src/firebase/authService');
+                      await deleteAccount(password);
+                    } catch (e: any) {
+                      const code = e?.code ?? '';
+                      Alert.alert(
+                        'Could Not Delete Account',
+                        code === 'auth/wrong-password' || code === 'auth/invalid-credential'
+                          ? 'The password you entered is incorrect.'
+                          : 'Something went wrong. Check your connection and try again.'
+                      );
+                      return;
+                    }
+                    // Same local cleanup as logout (auth user is already gone).
+                    useDeckStore.getState().cancelArtistIdsTimer();
+                    const prevUserId = useDeckStore.getState().userId;
+                    try {
+                      await TokenStorage.clearTokens();
+                      await TokenStorage.clearSoundCloudTokens();
+                    } catch {}
+                    useAuthStore.getState().logout();
+                    useDeckStore.setState({
+                      queue: [],
+                      likedTracks: [],
+                      recentSkips: [],
+                      seenTrackIds: [],
+                      artistSkipCounts: {},
+                      likedCount: 0,
+                      skippedCount: 0,
+                      consecutiveSkips: 0,
+                      sourcePlaylist: null,
+                      targetPlaylistId: null,
+                      seedTrack: null,
+                      userId: 'anonymous',
+                      lastSwipedCard: null,
+                      lastSwipeDirection: null,
+                    });
+                    const userKeys = prevUserId !== 'anonymous'
+                      ? [
+                          `sm_liked_${prevUserId}`,
+                          `sm_stats_${prevUserId}`,
+                          `sm_skips_${prevUserId}`,
+                          `sm_seen_${prevUserId}`,
+                          `sm_artist_skips_${prevUserId}`,
+                        ]
+                      : [];
+                    await AsyncStorage.multiRemove([
+                      ONBOARDING_KEY,
+                      ONBOARDING_GENRES_KEY,
+                      'sm_onboarding_song_id',
+                      'sm_onboarding_artists',
+                      'sm_onboarding_artist_track_ids',
+                      'sm_liked_anonymous',
+                      'sm_skips_anonymous',
+                      'sm_seen_anonymous',
+                      'sm_stats_anonymous',
+                      'sm_artist_skips_anonymous',
+                      ...userKeys,
+                    ]);
+                    useDeckStore.setState({ onboardingGenres: [] });
+                    router.replace('/onboarding');
+                  },
+                },
+              ],
+              'secure-text'
+            );
+          },
+        },
+      ]
+    );
+  }, []);
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* ── Header ── */}
@@ -448,14 +540,24 @@ export default function SettingsScreen() {
           <Text style={styles.sectionTitle}>Account</Text>
           <SectionCard>
             {isLoggedIn ? (
-              <SettingRow
-                icon="log-out-outline"
-                iconColor={COLORS.pink}
-                label="Log Out"
-                sublabel="Sign out and return to login"
-                onPress={handleLogOut}
-                danger
-              />
+              <>
+                <SettingRow
+                  icon="log-out-outline"
+                  iconColor={COLORS.pink}
+                  label="Log Out"
+                  sublabel="Sign out and return to login"
+                  onPress={handleLogOut}
+                  danger
+                />
+                <SettingRow
+                  icon="trash-outline"
+                  iconColor={COLORS.pink}
+                  label="Delete Account"
+                  sublabel="Permanently erase your account and data"
+                  onPress={handleDeleteAccount}
+                  danger
+                />
+              </>
             ) : (
               <SettingRow
                 icon="log-in-outline"

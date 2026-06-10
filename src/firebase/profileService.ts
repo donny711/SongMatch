@@ -59,6 +59,7 @@ export interface UserProfile {
   followerCount: number;
   followingCount: number;
   likedCount: number;
+  blockedUids?: string[];
   displayNameLower: string;
   artistIds: number[];
   username: string | null;

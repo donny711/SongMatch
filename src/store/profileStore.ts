@@ -46,6 +46,7 @@ interface ProfileState {
   followerCount: number;
   followingCount: number;
   likedCount: number;
+  blockedUids: string[];
   username: string | null;
   gifBgUrl: string | null;
   isLoading: boolean;
@@ -102,6 +103,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   followerCount: 0,
   followingCount: 0,
   likedCount: 0,
+  blockedUids: [],
   username: null,
   gifBgUrl: null,
   isLoading: false,
@@ -183,6 +185,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       followerCount: profile.followerCount ?? 0,
       followingCount: profile.followingCount ?? 0,
       likedCount: profile.likedCount ?? 0,
+      blockedUids: profile.blockedUids ?? [],
       username: profile.username ?? null,
       gifBgUrl: profile.gifBgUrl ?? null,
     });

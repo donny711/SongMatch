@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,7 @@ import { COLORS, SPACING, RADIUS } from '../../src/theme';
 import { RankBadge } from '../../src/components/profile/RankBadge';
 import { getRankForLikes, getNextRank, getProgressToNext } from '../../src/data/ranks';
 import type { UserProfile } from '../../src/firebase/profileService';
+import { blockUser, unblockUser, reportUser, type ReportReason } from '../../src/firebase/moderationService';
 
 const BANNER_HEIGHT = 160;
 
@@ -47,6 +49,60 @@ export default function UserProfileScreen() {
   const { uid } = useLocalSearchParams<{ uid: string }>();
   const insets = useSafeAreaInsets();
   const myUid = useProfileStore((s) => s.uid);
+  const blockedUids = useProfileStore((s) => s.blockedUids);
+  const isBlockedUser = !!uid && blockedUids.includes(uid);
+
+  const submitReport = (reason: ReportReason) => {
+    if (!myUid || !uid) return;
+    reportUser(myUid, uid, reason)
+      .then(() => Alert.alert('Report Submitted', 'Thanks — we review reports within 24 hours.'))
+      .catch(() => Alert.alert('Error', 'Could not submit the report. Try again.'));
+  };
+
+  const showReportOptions = () => {
+    Alert.alert('Report User', 'Why are you reporting this account?', [
+      { text: 'Spam', onPress: () => submitReport('spam') },
+      { text: 'Inappropriate content', onPress: () => submitReport('inappropriate') },
+      { text: 'Harassment', onPress: () => submitReport('harassment') },
+      { text: 'Other', onPress: () => submitReport('other') },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const showUserOptions = () => {
+    if (!myUid || !uid) return;
+    Alert.alert('Options', undefined, [
+      { text: 'Report User', onPress: showReportOptions },
+      isBlockedUser
+        ? {
+            text: 'Unblock User',
+            onPress: () => { unblockUser(myUid, uid).catch(() => {}); },
+          }
+        : {
+            text: 'Block User',
+            style: 'destructive' as const,
+            onPress: () => {
+              Alert.alert(
+                'Block User?',
+                'You will no longer see their profile, activity, or likes anywhere in the app.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  {
+                    text: 'Block',
+                    style: 'destructive',
+                    onPress: () => {
+                      blockUser(myUid, uid)
+                        .then(() => router.back())
+                        .catch(() => Alert.alert('Error', 'Could not block this user. Try again.'));
+                    },
+                  },
+                ]
+              );
+            },
+          },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
 
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [recentLikes, setRecentLikes] = useState<LikedTrackPreview[]>([]);
@@ -146,6 +202,17 @@ export default function UserProfileScreen() {
         >
           <Ionicons name="chevron-back" size={20} color={COLORS.text} />
         </TouchableOpacity>
+        {/* Report / block — required for UGC apps (App Store guideline 1.2) */}
+        {!isOwnProfile && myUid ? (
+          <TouchableOpacity
+            style={[styles.optionsBtn, { top: insets.top + SPACING.sm }]}
+            onPress={showUserOptions}
+            activeOpacity={0.75}
+            accessibilityLabel="User options"
+          >
+            <Ionicons name="ellipsis-horizontal" size={20} color={COLORS.text} />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* ── Content area below banner (theme background fills this) ── */}
@@ -277,6 +344,16 @@ const styles = StyleSheet.create({
   backBtn: {
     position: 'absolute',
     left: SPACING.lg,
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.full,
+    backgroundColor: 'rgba(13,13,13,0.6)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  optionsBtn: {
+    position: 'absolute',
+    right: SPACING.lg,
     width: 36,
     height: 36,
     borderRadius: RADIUS.full,
