@@ -272,9 +272,9 @@ export const moderateImage = region.https.onCall(
 
       const DANGEROUS = new Set(['VERY_LIKELY', 'LIKELY']);
       const isViolating =
-        DANGEROUS.has(annotations?.adult ?? '') ||
-        DANGEROUS.has(annotations?.violence ?? '') ||
-        DANGEROUS.has(annotations?.racy ?? '');
+        DANGEROUS.has(String(annotations?.adult ?? '')) ||
+        DANGEROUS.has(String(annotations?.violence ?? '')) ||
+        DANGEROUS.has(String(annotations?.racy ?? ''));
 
       if (isViolating) {
         await ref.update({

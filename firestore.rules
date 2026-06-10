@@ -2,10 +2,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Authenticated read; owner-only write.
+    // Authenticated read; owner-only write — except the follow counter:
+    // another signed-in user may change ONLY followerCount, by exactly 1,
+    // and only while creating/deleting their own follow doc in the same
+    // atomic batch (verified via existsAfter). Replaces the Cloud Function
+    // path, which requires the Blaze plan to deploy.
     match /users/{uid} {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null
+        && request.auth.uid != uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['followerCount'])
+        && (
+          (request.resource.data.followerCount == resource.data.get('followerCount', 0) + 1
+            && existsAfter(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + uid)))
+          ||
+          (request.resource.data.followerCount == resource.data.get('followerCount', 0) - 1
+            && !existsAfter(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + uid)))
+        );
     }
 
     // Authenticated read (required for social feed); owner-only write.
