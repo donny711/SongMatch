@@ -23,7 +23,7 @@ function TutorialTabButton({ tutorialId, children, onPress, style, ...rest }: an
   const { register } = useTutorialMeasure();
   useEffect(() => { register(tutorialId, ref); }, [tutorialId, register]);
   return (
-    <Pressable ref={ref} onPress={onPress} style={style} {...rest}>
+    <Pressable ref={ref} onPress={onPress} style={style} collapsable={false} {...rest}>
       {children}
     </Pressable>
   );

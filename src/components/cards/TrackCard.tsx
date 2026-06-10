@@ -33,7 +33,9 @@ export default function TrackCard({ card, isTop = false }: Props) {
   const secs = String(duration % 60).padStart(2, '0');
 
   return (
-    <View ref={cardRef} style={styles.card}>
+    // collapsable=false: measured by the tutorial — Fabric view flattening
+    // makes measureInWindow return zeros for optimized-away views
+    <View ref={cardRef} style={styles.card} collapsable={false}>
       {/* Full-bleed album art */}
       {track.album.cover_xl ? (
         <Image
@@ -67,7 +69,7 @@ export default function TrackCard({ card, isTop = false }: Props) {
         <Text style={styles.album} numberOfLines={1}>
           {track.album.title} · {mins}:{secs}
         </Text>
-        <View ref={audioRef}>
+        <View ref={audioRef} collapsable={false}>
           <SnippetPlayer previewUrl={track.preview} autoPlay={isTop} />
         </View>
       </View>

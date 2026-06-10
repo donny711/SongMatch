@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
+  Dimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -21,6 +22,10 @@ import { TUTORIAL_STEPS, TOTAL_STEPS } from './tutorialSteps';
 import { COLORS, SPACING, RADIUS } from '../../theme';
 
 const SPRING = { damping: 14, stiffness: 200, mass: 0.85 };
+const SCREEN_H = Dimensions.get('window').height;
+// Reserve space so the tooltip never lands under the Skip/dots/Next bar
+// or off the top edge, whatever the measured target's position is.
+const TOOLTIP_RESERVED_BOTTOM = 130;
 
 export function TutorialOverlay() {
   const { isActive, currentStep, next, skip, abort } = useTutorialStore();
@@ -38,7 +43,7 @@ export function TutorialOverlay() {
   const targetW = useSharedValue(0);
   const targetH = useSharedValue(0);
 
-  const measureTarget = useCallback(async (stepIdx: number) => {
+  const measureTarget = useCallback(async (stepIdx: number, firstShow = false) => {
     const step = TUTORIAL_STEPS[stepIdx];
     if (!step) return;
 
@@ -57,15 +62,32 @@ export function TutorialOverlay() {
 
     const padding = step.padding ?? 8;
 
-    targetX.value = withSpring(rect.x, SPRING);
-    targetY.value = withSpring(rect.y, SPRING);
-    targetW.value = withSpring(rect.width, SPRING);
-    targetH.value = withSpring(rect.height, SPRING);
+    if (firstShow) {
+      // Snap straight to the measured rect, then fade in. Springing from
+      // 0,0 (or fading in before measuring) flashes a mispositioned overlay.
+      targetX.value = rect.x;
+      targetY.value = rect.y;
+      targetW.value = rect.width;
+      targetH.value = rect.height;
+      setVisible(true);
+      overlayOpacity.value = withTiming(1, { duration: 340 });
+    } else {
+      targetX.value = withSpring(rect.x, SPRING);
+      targetY.value = withSpring(rect.y, SPRING);
+      targetW.value = withSpring(rect.width, SPRING);
+      targetH.value = withSpring(rect.height, SPRING);
+    }
 
-    const tooltipTarget =
+    const rawTooltipY =
       step.tooltipPosition === 'above'
         ? rect.y - padding - 80
         : rect.y + rect.height + padding + 16;
+    // Clamp on-screen: the swipe-card steps put "below" tooltips past the
+    // action buttons on shorter devices.
+    const tooltipTarget = Math.min(
+      Math.max(rawTooltipY, insets.top + 8),
+      SCREEN_H - insets.bottom - TOOLTIP_RESERVED_BOTTOM,
+    );
 
     tooltipOpacity.value = withTiming(0, { duration: 120 }, () => {
       tooltipY.value = tooltipTarget;
@@ -73,15 +95,14 @@ export function TutorialOverlay() {
       tooltipOpacity.value = withTiming(1, { duration: 220 });
       tooltipScale.value = withSpring(1, { damping: 13, stiffness: 170 });
     });
-  }, [abort, measure, targetX, targetY, targetW, targetH, tooltipOpacity, tooltipScale, tooltipY]);
+  }, [abort, measure, insets.top, insets.bottom, targetX, targetY, targetW, targetH, overlayOpacity, tooltipOpacity, tooltipScale, tooltipY]);
 
-  // Show/hide overlay
+  // Show/hide overlay — measurement gates visibility, so a failed measure
+  // never flashes an unpositioned overlay.
   useEffect(() => {
-    if (isActive) {
-      setVisible(true);
-      overlayOpacity.value = withTiming(1, { duration: 340 });
-      setTimeout(() => measureTarget(0), 100);
-    } else if (visible) {
+    if (isActive && !visible) {
+      measureTarget(0, true);
+    } else if (!isActive && visible) {
       overlayOpacity.value = withTiming(0, { duration: 260 }, () => {
         runOnJS(setVisible)(false);
       });

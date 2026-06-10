@@ -169,10 +169,18 @@ export default function HomeScreen() {
     register('action-buttons', actionBtnRef);
   }, [register]);
 
+  const tutorialAutoStartedRef = useRef(false);
   useEffect(() => {
-    if (tutorialComplete || tutorialActive || queue.length === 0) return;
-    // Delay start so native layout has time to settle — prevents measureInWindow returning 0,0.
-    const timer = setTimeout(() => useTutorialStore.getState().start(), 600);
+    // One auto-start attempt per session. Without the guard, a measurement
+    // abort() flips isActive back to false and this effect restarts the
+    // tutorial 900ms later — an infinite appear/disappear loop on devices
+    // where measuring fails. abort() means "retry next launch", so honor that.
+    if (tutorialComplete || tutorialActive || queue.length === 0 || tutorialAutoStartedRef.current) return;
+    // Delay start so native layout + the card entry animation settle first.
+    const timer = setTimeout(() => {
+      tutorialAutoStartedRef.current = true;
+      useTutorialStore.getState().start();
+    }, 900);
     return () => clearTimeout(timer);
   }, [tutorialComplete, queue.length, tutorialActive]);
 
@@ -182,7 +190,7 @@ export default function HomeScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
       {/* TikTok-style tab switcher */}
-      <View style={styles.tabSwitcher} ref={tabSwitcherRef}>
+      <View style={styles.tabSwitcher} ref={tabSwitcherRef} collapsable={false}>
 
         {(['foryou', 'friends'] as Tab[]).map((tab) => {
           const isActive = activeTab === tab;
@@ -280,7 +288,7 @@ export default function HomeScreen() {
 
               {/* Action buttons */}
               {queue.length > 0 && (
-                <View ref={actionBtnRef} style={[styles.actions, { paddingBottom: SPACING.lg }]}>
+                <View ref={actionBtnRef} style={[styles.actions, { paddingBottom: SPACING.lg }]} collapsable={false}>
                   <ActionButton
                     style={[styles.actionBtn, styles.skipBtn]}
                     onPress={() => deckRef.current?.swipeLeft()}
