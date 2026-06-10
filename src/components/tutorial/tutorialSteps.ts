@@ -57,8 +57,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: 'tab-hear',
     targetId: 'tab-hear',
-    text: 'Explore trending music',
-    icon: 'radio-outline',
+    text: 'Record or search a song to find similar music',
+    icon: 'mic-outline',
     tooltipPosition: 'above',
     padding: 6,
     shape: 'rect',

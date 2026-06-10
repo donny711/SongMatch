@@ -1,14 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
-import Svg, { Rect, Defs, Mask } from 'react-native-svg';
-import {
-  useAnimatedReaction,
-  runOnJS,
-  type SharedValue,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { RADIUS } from '../../theme';
 
 const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+// The dim layer is one view's border, sized to cover the screen from any
+// hole position. The transparent interior is the spotlight hole.
+const DIM = Math.max(SCREEN_W, SCREEN_H) + 100;
 
 interface Props {
   targetX: SharedValue<number>;
@@ -18,47 +16,38 @@ interface Props {
   padding: number;
 }
 
+/**
+ * Border-trick spotlight: a single Animated.View whose huge border paints the
+ * dim overlay and whose interior is the rounded hole. Runs entirely on the UI
+ * thread — the previous SVG-mask version called runOnJS + setState every
+ * animation frame, re-rendering React and re-rasterizing the mask (visibly
+ * choppy on device).
+ */
 export function TutorialSpotlight({ targetX, targetY, targetW, targetH, padding }: Props) {
-  const [rect, setRect] = useState({ x: 0, y: 0, w: 0, h: 0 });
-
-  const updateRect = useCallback((x: number, y: number, w: number, h: number) => {
-    setRect({ x, y, w, h });
-  }, []);
-
-  useAnimatedReaction(
-    () => ({
-      x: targetX.value,
-      y: targetY.value,
-      w: targetW.value,
-      h: targetH.value,
-    }),
-    (cur) => {
-      runOnJS(updateRect)(cur.x, cur.y, cur.w, cur.h);
-    }
-  );
+  const holeStyle = useAnimatedStyle(() => ({
+    left: targetX.value - padding - DIM,
+    top: targetY.value - padding - DIM,
+    width: targetW.value + padding * 2 + DIM * 2,
+    height: targetH.value + padding * 2 + DIM * 2,
+  }));
 
   return (
-    <Svg style={StyleSheet.absoluteFill} width={SCREEN_W} height={SCREEN_H} pointerEvents="none">
-      <Defs>
-        <Mask id="spotlight-mask">
-          <Rect width={SCREEN_W} height={SCREEN_H} fill="white" />
-          <Rect
-            x={rect.x - padding}
-            y={rect.y - padding}
-            width={rect.w + padding * 2}
-            height={rect.h + padding * 2}
-            rx={RADIUS.lg}
-            ry={RADIUS.lg}
-            fill="black"
-          />
-        </Mask>
-      </Defs>
-      <Rect
-        width={SCREEN_W}
-        height={SCREEN_H}
-        fill="rgba(0,0,0,0.75)"
-        mask="url(#spotlight-mask)"
-      />
-    </Svg>
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.hole,
+        // Inner corner radius = borderRadius - borderWidth, so this rounds
+        // the hole by RADIUS.lg while the outer edge stays offscreen.
+        { borderWidth: DIM, borderRadius: DIM + RADIUS.lg },
+        holeStyle,
+      ]}
+    />
   );
 }
+
+const styles = StyleSheet.create({
+  hole: {
+    position: 'absolute',
+    borderColor: 'rgba(0,0,0,0.75)',
+  },
+});
