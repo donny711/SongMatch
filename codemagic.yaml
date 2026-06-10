@@ -65,7 +65,18 @@ workflows:
 
       - name: Build IPA
         script: |
-          xcode-project build-ipa             --workspace "$CM_BUILD_DIR/ios/SongMatch.xcworkspace"             --scheme "SongMatch" 2>&1 | tee /tmp/xcodebuild_full.log
+          # pipefail: without it, tee's exit code masks xcodebuild failures and
+          # the build goes green with no IPA ("Skip publishing: no IPAs found")
+          set -o pipefail
+          # Sentry's Xcode phase fails the build when upload credentials are
+          # missing — skip the upload (build still works, traces unsymbolicated)
+          if [ -z "$SENTRY_AUTH_TOKEN" ] || [ -z "$SENTRY_PROJECT" ]; then
+            echo "SENTRY_AUTH_TOKEN/SENTRY_PROJECT not set — disabling source map upload"
+            export SENTRY_DISABLE_AUTO_UPLOAD=true
+          fi
+          xcode-project build-ipa \
+            --workspace "$CM_BUILD_DIR/ios/SongMatch.xcworkspace" \
+            --scheme "SongMatch" 2>&1 | tee /tmp/xcodebuild_full.log
 
     artifacts:
       - build/ios/ipa/*.ipa
