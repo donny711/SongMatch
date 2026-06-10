@@ -585,6 +585,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={styles.footer}>SongMatch • built with ♥</Text>
+        <Text style={styles.footer}>Music previews by Deezer · music data by Last.fm</Text>
       </ScrollView>
     </View>
   );

@@ -72,6 +72,8 @@ export default function TrackCard({ card, isTop = false }: Props) {
         <View ref={audioRef} collapsable={false}>
           <SnippetPlayer previewUrl={track.preview} autoPlay={isTop} />
         </View>
+        {/* API ToS require visible attribution where the content appears */}
+        <Text style={styles.attribution}>Audio preview by Deezer</Text>
       </View>
     </View>
   );
@@ -132,5 +134,10 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     fontSize: 13,
     marginBottom: 4,
+  },
+  attribution: {
+    color: 'rgba(107,114,128,0.7)',
+    fontSize: 9,
+    marginTop: 6,
   },
 });
