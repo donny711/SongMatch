@@ -18,7 +18,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db } from './config';
-import { claimUsername, getOrCreateUserDoc, updateProfileFields } from './profileService';
+import { claimUsername, getOrCreateUserDoc } from './profileService';
 import { deleteProfileImage } from './storageService';
 
 /**
@@ -39,69 +39,31 @@ export async function signUpWithEmail(
   // Claim username in Firestore (transactional, enforces uniqueness)
   await claimUsername(uid, username.toLowerCase(), null);
 
-  // Store email on the profile doc for username-based login lookup
-  await updateProfileFields(uid, { email });
-
   return uid;
 }
 
 /**
  * Log in with email and password.
+ *
+ * Email only: the old username → email lookup read users/{uid} BEFORE auth
+ * (rules deny that, so it never worked) and required storing every user's
+ * email on a doc readable by all signed-in users — a harvestable PII leak.
  */
-export async function logInWithEmail(
-  emailOrUsername: string,
-  password: string
-): Promise<string> {
-  let email = emailOrUsername;
-
-  // If it doesn't look like an email, treat it as a username → look up email
-  if (!emailOrUsername.includes('@')) {
-    const usernameDoc = await getDoc(
-      doc(db, 'usernames', emailOrUsername.toLowerCase())
-    );
-    if (!usernameDoc.exists()) {
-      throw new Error('Username not found');
-    }
-    // Get the user's email from the users collection
-    const userId = usernameDoc.data().uid;
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
-      throw new Error('Account not found');
-    }
-    email = userDoc.data().email;
-    if (!email) {
-      throw new Error('No email associated with this account');
-    }
+export async function logInWithEmail(email: string, password: string): Promise<string> {
+  if (!email.includes('@')) {
+    throw new Error('Please log in with your email address');
   }
-
   const credential = await signInWithEmailAndPassword(auth, email, password);
   return credential.user.uid;
 }
 
 /**
- * Send a password reset email. Accepts email or username.
+ * Send a password reset email (email only — see logInWithEmail).
  */
-export async function resetPassword(emailOrUsername: string): Promise<void> {
-  let email = emailOrUsername;
-
-  if (!emailOrUsername.includes('@')) {
-    const usernameDoc = await getDoc(
-      doc(db, 'usernames', emailOrUsername.toLowerCase())
-    );
-    if (!usernameDoc.exists()) {
-      throw new Error('Username not found');
-    }
-    const userId = usernameDoc.data().uid;
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
-      throw new Error('Account not found');
-    }
-    email = userDoc.data().email;
-    if (!email) {
-      throw new Error('No email associated with this account');
-    }
+export async function resetPassword(email: string): Promise<void> {
+  if (!email.includes('@')) {
+    throw new Error('Please enter your email address');
   }
-
   await sendPasswordResetEmail(auth, email);
 }
 

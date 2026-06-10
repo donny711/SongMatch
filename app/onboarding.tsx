@@ -108,7 +108,7 @@ export default function OnboardingScreen() {
   };
 
   const handleForgotPassword = () => {
-    Alert.prompt('Reset Password', 'Enter your email or username', async (input) => {
+    Alert.prompt('Reset Password', 'Enter your email address', async (input) => {
       if (!input?.trim()) return;
       try { await resetPassword(input.trim()); Alert.alert('Check your email', 'A password reset link has been sent.'); }
       catch (e: any) { Alert.alert('Error', e?.message || 'Could not send reset email'); }
@@ -271,7 +271,7 @@ export default function OnboardingScreen() {
           <Text style={styles.fieldLabel}>{authTab === 'login' ? 'Email or Username' : 'Email'}</Text>
           <View style={styles.inputWrap}>
             <Ionicons name="mail-outline" size={18} color={COLORS.textMuted} style={{ marginRight: SPACING.sm }} />
-            <TextInput style={styles.input} placeholder={authTab === 'login' ? 'Email or username' : 'your@email.com'} placeholderTextColor={COLORS.textMuted} value={email} onChangeText={(t) => { setEmail(t); setAuthError(''); }} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" keyboardAppearance="dark" />
+            <TextInput style={styles.input} placeholder="your@email.com" placeholderTextColor={COLORS.textMuted} value={email} onChangeText={(t) => { setEmail(t); setAuthError(''); }} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" keyboardAppearance="dark" />
           </View>
           <Text style={styles.fieldLabel}>Password</Text>
           <View style={styles.inputWrap}>

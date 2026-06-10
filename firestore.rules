@@ -38,13 +38,22 @@ service cloud.firestore {
                     && resource.data.followerId == request.auth.uid;
     }
 
-    // Public read; authenticated users may only update the like/unlike fields.
+    // Public read. likerCount may only move by exactly 1, in lockstep with the
+    // caller's own liker doc in the same atomic write — no count vandalism.
     match /songLikes/{trackId} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.get('likerCount', 0) <= 1;
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['likerCount', 'updatedAt']);
+             .hasOnly(['likerCount', 'updatedAt'])
+        && (
+          (request.resource.data.likerCount == resource.data.get('likerCount', 0) + 1
+            && existsAfter(/databases/$(database)/documents/songLikes/$(trackId)/likers/$(request.auth.uid)))
+          ||
+          (request.resource.data.likerCount == resource.data.get('likerCount', 0) - 1
+            && !existsAfter(/databases/$(database)/documents/songLikes/$(trackId)/likers/$(request.auth.uid)))
+        );
       allow delete: if false;
     }
 
@@ -66,15 +75,24 @@ service cloud.firestore {
                     && resource.data.uid == request.auth.uid;
     }
 
-    // Referral codes — authenticated read; owner creates; install-tracking fields only for others.
+    // Referral codes — authenticated read; owner creates. Non-owners may only
+    // register their own install, exactly once: installedUids grows by their
+    // own uid, installCount by 1 (tier flags are cosmetic UI badges).
     match /referrals/{code} {
       allow read: if request.auth != null;
       allow create: if request.auth != null
                     && request.resource.data.referrerId == request.auth.uid;
       allow update: if request.auth != null
         && (resource.data.referrerId == request.auth.uid
-            || request.resource.data.diff(resource.data).affectedKeys()
-                 .hasOnly(['installedUids', 'installCount', 'updatedAt']));
+            || (request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(['installedUids', 'installCount', 'updatedAt', 'tier1Rewarded', 'tier2Rewarded'])
+                && !(request.auth.uid in resource.data.get('installedUids', []))
+                && request.resource.data.installedUids.hasAll(resource.data.get('installedUids', []))
+                && (request.auth.uid in request.resource.data.installedUids)
+                && request.resource.data.installedUids.size()
+                     == resource.data.get('installedUids', []).size() + 1
+                && request.resource.data.installCount
+                     == resource.data.get('installCount', 0) + 1));
       // Account deletion cleans up the user's own referral code.
       allow delete: if request.auth != null
                     && resource.data.referrerId == request.auth.uid;
@@ -93,14 +111,22 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.uid == uid;
     }
 
-    // Affiliate CRM -- authenticated read; clients update install-tracking only.
+    // Affiliate CRM -- authenticated read; clients may only register their own
+    // install, exactly once (same shape as referrals above).
     match /affiliates/{code} {
       allow read: if request.auth != null;
       allow create: if false;
       allow delete: if false;
       allow update: if request.auth != null
         && request.resource.data.diff(resource.data).affectedKeys()
-             .hasOnly(['installedUids', 'installCount', 'updatedAt']);
+             .hasOnly(['installedUids', 'installCount', 'updatedAt'])
+        && !(request.auth.uid in resource.data.get('installedUids', []))
+        && request.resource.data.installedUids.hasAll(resource.data.get('installedUids', []))
+        && (request.auth.uid in request.resource.data.installedUids)
+        && request.resource.data.installedUids.size()
+             == resource.data.get('installedUids', []).size() + 1
+        && request.resource.data.installCount
+             == resource.data.get('installCount', 0) + 1;
     }
   }
 }

@@ -9,6 +9,7 @@ import {
   runTransaction,
   increment,
   arrayUnion,
+  deleteField,
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './config';
@@ -39,7 +40,6 @@ export interface UserProfile {
   uid: string;
   createdAt: unknown;
   updatedAt: unknown;
-  email: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   bannerUrl: string | null;
@@ -68,7 +68,7 @@ export interface UserProfile {
 }
 
 export type ProfileField = Partial<Pick<UserProfile,
-  'displayName' | 'avatarUrl' | 'bannerUrl' | 'avatarPending' | 'bannerPending' | 'isPrivate' | 'username' | 'gifBgUrl' | 'email'
+  'displayName' | 'avatarUrl' | 'bannerUrl' | 'avatarPending' | 'bannerPending' | 'isPrivate' | 'username' | 'gifBgUrl'
 >>;
 
 export type EquipSlot = keyof EquippedItems;
@@ -106,13 +106,20 @@ function yesterdayISO(): string {
 export async function getOrCreateUserDoc(uid: string): Promise<UserProfile> {
   const ref = userRef(uid);
   const snap = await getDoc(ref);
-  if (snap.exists()) return snap.data() as UserProfile;
+  if (snap.exists()) {
+    const data = snap.data() as UserProfile & { email?: string | null };
+    // Migration: email used to be stored here for username login, making every
+    // user's address readable by any signed-in user. Scrub it on first load.
+    if (data.email !== undefined) {
+      updateDoc(ref, { email: deleteField() }).catch(() => {});
+    }
+    return data;
+  }
 
   const newProfile = {
     uid,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
-    email: null,
     displayName: null,
     avatarUrl: null,
     bannerUrl: null,
@@ -380,8 +387,12 @@ export async function removeLikedTrackFromFirestore(uid: string, trackId: number
       likedCount: Math.max(0, currentLikedCount - 1),
     });
     if (songSnap.exists()) {
-      tx.update(songRef, { likerCount: Math.max(0, currentLikerCount - 1) });
       tx.delete(doc(db, 'songLikes', String(trackId), 'likers', uid));
+      // Rules only permit exactly old-1; when the count is already 0 the
+      // clamped write (0 == old) would be denied, so skip it.
+      if (currentLikerCount > 0) {
+        tx.update(songRef, { likerCount: currentLikerCount - 1 });
+      }
     }
   });
 }

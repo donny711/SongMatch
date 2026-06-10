@@ -114,50 +114,16 @@ export async function recordReferralInstall(
     if (newUserSnap.exists() && (newUserSnap.data() as { referredBy?: string }).referredBy) return;
 
     const newCount = data.installCount + 1;
-    // Determine which tier rewards are newly unlocked BEFORE building the update object
-    let grantTier1 = false;
-    let grantTier2 = false;
-
-    if (!data.tier1Rewarded && newCount >= TIER1_THRESHOLD) {
-      grantTier1 = true;
-      // Reward referrer
-      const referrerSubRef = doc(db, 'subscriptions', data.referrerId);
-      tx.set(referrerSubRef, {
-        pendingDiscount: 0.30,
-        pendingDiscountMonths: 3,
-        pendingDiscountReason: 'referral_tier1',
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-      // Reward all friends (previous installedUids + current newUid)
-      const allFriendUids = [...data.installedUids, newUid];
-      for (const friendUid of allFriendUids) {
-        const friendSubRef = doc(db, 'subscriptions', friendUid);
-        tx.set(friendSubRef, {
-          pendingDiscount: 0.30,
-          pendingDiscountMonths: 3,
-          pendingDiscountReason: 'referral_friend_tier1',
-          updatedAt: serverTimestamp(),
-        }, { merge: true });
-      }
-    }
-
-    if (!data.tier2Rewarded && newCount >= TIER2_THRESHOLD) {
-      grantTier2 = true;
-      const referrerSubRef = doc(db, 'subscriptions', data.referrerId);
-      tx.set(referrerSubRef, {
-        freeMonthGranted: true,
-        freeMonthReason: 'referral_tier2',
-        updatedAt: serverTimestamp(),
-      }, { merge: true });
-    }
-
-    // Build the update object with all flags included so tx.update captures them
+    // Tier flags drive UI badges only. The subscription-discount rewards that
+    // used to be written here targeted OTHER users' subscriptions docs, which
+    // the rules deny (owner-write-only) — so the whole install transaction
+    // failed at every tier threshold. Paid plans are disabled anyway.
     const updates: Record<string, unknown> = {
       installedUids: arrayUnion(newUid),
       installCount: increment(1),
       updatedAt: serverTimestamp(),
-      ...(grantTier1 && { tier1Rewarded: true }),
-      ...(grantTier2 && { tier2Rewarded: true }),
+      ...(!data.tier1Rewarded && newCount >= TIER1_THRESHOLD && { tier1Rewarded: true }),
+      ...(!data.tier2Rewarded && newCount >= TIER2_THRESHOLD && { tier2Rewarded: true }),
     };
 
     tx.update(codeRef, updates);
