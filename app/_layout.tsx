@@ -138,6 +138,11 @@ function RootLayout() {
         if (!earnedMilestones.includes('ms_first_launch')) {
           useProfileStore.getState().grantMilestone('ms_first_launch');
         }
+        // Catch-up for users whose Spotify was connected before this milestone
+        // existed (or whose OAuth-callback grant failed) — idempotent.
+        if (spotifyUserId) {
+          useProfileStore.getState().grantMilestone('ms_connect_spotify').catch(() => {});
+        }
         // Check streak on launch
         useProfileStore.getState().checkAndUpdateStreak();
         // Initialize subscription store

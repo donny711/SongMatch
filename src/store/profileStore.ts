@@ -187,10 +187,22 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       gifBgUrl: profile.gifBgUrl ?? null,
     });
 
-    // Follower milestone checks (fire-and-forget, idempotent)
+    // Reconcile every state-derived milestone from the server profile.
+    // Action-time grants can be lost for good (offline, app killed, exact-count
+    // triggers like ms_liked_10 never refiring at 11) — this self-heals them on
+    // each snapshot. grantMilestone early-returns when already earned, so the
+    // steady-state cost is zero.
+    const grant = (id: string) => get().grantMilestone(id).catch(() => {});
     const fc = profile.followerCount ?? 0;
-    if (fc >= 1) get().grantMilestone('ms_first_follower').catch(() => {});
-    if (fc >= 10) get().grantMilestone('ms_followers_10').catch(() => {});
+    if (fc >= 1) grant('ms_first_follower');
+    if (fc >= 10) grant('ms_followers_10');
+    if ((profile.followingCount ?? 0) >= 1) grant('ms_first_follow');
+    const lc = profile.likedCount ?? 0;
+    for (const n of [10, 25, 50, 100, 250]) {
+      if (lc >= n) grant(`ms_liked_${n}`);
+    }
+    if (profile.avatarUrl) grant('ms_set_avatar');
+    if (profile.username) grant('ms_set_username');
   },
 
   updateDisplayName: async (name) => {

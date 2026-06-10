@@ -34,7 +34,10 @@ const CATEGORIES: Category[] = [
     label: 'Platforms',
     color: '#E879F9',
     icon: 'apps',
-    milestoneIds: ['ms_connect_spotify', 'ms_connect_soundcloud', 'ms_two_platforms'],
+    // SoundCloud connect is disabled ("Soon") — don't list tasks the user
+    // cannot complete. Re-add ms_connect_soundcloud + ms_two_platforms when
+    // the platform goes live.
+    milestoneIds: ['ms_connect_spotify'],
   },
   {
     label: 'Songs',
@@ -219,7 +222,11 @@ export default function EarnMPScreen() {
   const currentStreak = useProfileStore((s) => s.currentStreak);
   const followerCount = useProfileStore((s) => s.followerCount);
   const likedCount = useDeckStore((s) => s.likedCount);
-  const totalPossible = MILESTONES.reduce((s, m) => s + m.pointsReward, 0);
+  // Sum only the milestones actually shown — hidden (unobtainable) ones would
+  // make 100% impossible.
+  const visibleIds = new Set(CATEGORIES.flatMap((c) => c.milestoneIds));
+  const totalPossible = MILESTONES.filter((m) => visibleIds.has(m.id))
+    .reduce((s, m) => s + m.pointsReward, 0);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
