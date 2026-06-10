@@ -14,6 +14,7 @@ interface TutorialState {
   skip: () => void;
   complete: () => void;
   replay: () => void;
+  prime: () => void;
   load: () => Promise<void>;
   abort: () => void;
 }
@@ -47,6 +48,13 @@ export const useTutorialStore = create<TutorialState>((set, get) => ({
   replay: () => {
     AsyncStorage.removeItem(TUTORIAL_KEY);
     set({ isComplete: false, isActive: true, currentStep: 0 });
+  },
+
+  // Clears tutorial state after onboarding so home.tsx auto-start can fire once
+  // the queue is loaded. Does not set isActive — avoids measuring before cards render.
+  prime: () => {
+    AsyncStorage.removeItem(TUTORIAL_KEY);
+    set({ isComplete: false, isActive: false });
   },
 
   // Hides the overlay without marking complete — tutorial retries on next launch.

@@ -410,7 +410,7 @@ export default function OnboardingScreen() {
           <Text style={styles.taglineText}>{streakCount <= 1 ? 'Your streak begins!' : 'Welcome back!'}</Text>
         </Animated.View>
         <View style={[styles.streakBtnWrap, { bottom: insets.bottom + SPACING.xl }]}>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => { useProfileStore.getState().clearStreakAnim(); if (isNewSignUp) useTutorialStore.getState().replay(); router.replace('/(tabs)/home'); }} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={() => { useProfileStore.getState().clearStreakAnim(); if (isNewSignUp) useTutorialStore.getState().prime(); router.replace('/(tabs)/home'); }} activeOpacity={0.85}>
             <Text style={styles.primaryBtnText}>{"Let's Go"}</Text><Ionicons name="arrow-forward" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
