@@ -29,7 +29,6 @@ interface DeckState {
   addLikedTrack: (track: DeezerTrack) => void;
   removeLikedTrack: (id: number) => void;
   addSkippedTrack: (track: DeezerTrack) => void;
-  markSeen: (id: number) => void;
   setSourcePlaylist: (playlist: SpotifyPlaylist | null) => void;
   setTargetPlaylistId: (id: string | null) => void;
   setSeedTrack: (track: { name: string; artist: string } | null) => void;
@@ -149,13 +148,6 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     AsyncStorage.setItem(skipsKey(userId), JSON.stringify(recentSkips));
     AsyncStorage.setItem(seenKey(userId), JSON.stringify(seenTrackIds));
     AsyncStorage.setItem(artistSkipsKey(userId), JSON.stringify(artistSkipCounts));
-  },
-  markSeen: (id) => {
-    set((s) => ({
-      seenTrackIds: s.seenTrackIds.includes(id)
-        ? s.seenTrackIds
-        : [id, ...s.seenTrackIds].slice(0, 500),
-    }));
   },
   setSourcePlaylist: (playlist) => set({ sourcePlaylist: playlist }),
   setTargetPlaylistId: (id) => set({ targetPlaylistId: id }),

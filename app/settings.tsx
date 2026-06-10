@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -303,7 +303,7 @@ export default function SettingsScreen() {
               sublabel="22 icons — Pro exclusive"
               right={isPro ? undefined : (
                 <View style={styles.proBadge}>
-                  <Ionicons name="crown" size={10} color="#ffd700" />
+                  <MaterialCommunityIcons name="crown" size={10} color="#ffd700" />
                   <Text style={styles.proBadgeText}>PRO</Text>
                 </View>
               )}

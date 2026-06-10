@@ -189,6 +189,7 @@ export async function getRecommendationsForSeeds(
     candidateIdx++;
     if (seenIds.has(track.id)) continue;
     if (outputIds.has(track.id)) continue;
+    if (!track.preview) continue; // no 30s preview — card would have a dead play button
     const artistKey = track.artist.name.toLowerCase();
     // Radio results are audio-fingerprint similarity — don't suppress liked artists,
     // the user wants MORE of what they like. Last.fm text-search is discovery mode,
@@ -292,6 +293,7 @@ export async function getSongSimilarRecs(
   const accept = (track: DeezerTrack): boolean => {
     if (output.length >= limit) return false;
     if (seenIds.has(track.id) || outputIds.has(track.id)) return false;
+    if (!track.preview) return false; // no 30s preview — card would have a dead play button
     const artistKey = track.artist.name.toLowerCase();
     if (artistKey === seedArtistKey) return false;
     if (filteredArtistKeys.has(artistKey)) return false;

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Svg, { Defs, LinearGradient as SvgGrad, Stop, Rect as SvgRect } from 'react-native-svg';
 import { useSubscriptionStore } from '../src/store/subscriptionStore';
@@ -64,7 +64,7 @@ function IconCard({ icon, isActive, canUse, onPress }: {
         <IconPreview icon={icon} />
         {!canUse && (
           <View style={styles.lockBadge}>
-            <Ionicons name="crown" size={10} color="#ffd700" />
+            <MaterialCommunityIcons name="crown" size={10} color="#ffd700" />
           </View>
         )}
         {isActive && <View style={styles.activeDot} />}

@@ -5,5 +5,6 @@
     "paths": {
       "@/*": ["./src/*"]
     }
-  }
+  },
+  "exclude": ["node_modules", "functions", "worker", "**/__tests__/*"]
 }

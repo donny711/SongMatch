@@ -4,7 +4,7 @@ import LottieView from 'lottie-react-native';
 import { COLORS, SPACING } from '../theme';
 
 interface Props {
-  animationSource: object;
+  animationSource: React.ComponentProps<typeof LottieView>['source'];
   title: string;
   subtitle: string;
 }

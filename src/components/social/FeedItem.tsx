@@ -11,7 +11,7 @@ import Animated, {
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AvatarWithFrame } from '../profile/AvatarWithFrame';
 import { useDeckStore } from '../../store/deckStore';
 import { usePlayerStore } from '../../store/playerStore';
@@ -252,7 +252,7 @@ export function FeedItem({ item }: Props) {
                   {item.displayName ?? "SongMatch User"}
                 </Text>
               </TouchableOpacity>
-              {item.isPro && <Ionicons name="crown" size={10} color="#ffd700" />}
+              {item.isPro && <MaterialCommunityIcons name="crown" size={10} color="#ffd700" />}
               <View style={styles.likedBadge}>
                 <Ionicons name="heart" size={9} color={COLORS.green} />
                 <Text style={styles.likedText}>liked</Text>

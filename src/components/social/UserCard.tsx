@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { AvatarWithFrame } from '../profile/AvatarWithFrame';
 import { FollowButton } from './FollowButton';
@@ -31,7 +31,7 @@ export function UserCard({ user, rank, scoreLabel, onPress }: Props) {
           <Text style={styles.name} numberOfLines={1}>
             {user.displayName ?? 'SongMatch User'}
           </Text>
-          {user.isPro && <Ionicons name="crown" size={11} color="#ffd700" />}
+          {user.isPro && <MaterialCommunityIcons name="crown" size={11} color="#ffd700" />}
         </View>
         <View style={styles.meta}>
           {scoreLabel ? (

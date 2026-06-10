@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { AvatarWithFrame } from '../profile/AvatarWithFrame';
 import type { PublicUser, LeaderboardField } from '../../firebase/socialService';
@@ -48,7 +48,7 @@ export function LeaderboardRow({ user, rank, field }: Props) {
           <Text style={styles.name} numberOfLines={1}>
             {user.displayName ?? 'SongMatch User'}
           </Text>
-          {user.isPro && <Ionicons name="crown" size={11} color="#ffd700" />}
+          {user.isPro && <MaterialCommunityIcons name="crown" size={11} color="#ffd700" />}
         </View>
         <Text style={styles.score}>
           {fmtN(value)} {FIELD_LABELS[field]}
