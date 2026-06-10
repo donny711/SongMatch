@@ -48,7 +48,8 @@ export interface SpotifyPlaylist {
 export interface SpotifyUser {
   id: string;
   display_name: string | null;
-  email: string;
+  // Only present with the user-read-email scope, which we no longer request.
+  email?: string;
   images: SpotifyImage[] | null;
   product: 'free' | 'premium' | string;
   followers: { total: number };

@@ -184,7 +184,7 @@ function MusicPlatforms() {
         icon="musical-notes"
         color={COLORS.purple}
         name="Spotify"
-        subtitle={accessToken && user ? (user.display_name ?? user.email) : undefined}
+        subtitle={accessToken && user ? (user.display_name ?? user.id) : undefined}
         avatarUri={user?.images?.[0]?.url}
         isConnected={!!(accessToken && user)}
         actionLabel={accessToken && user ? 'Disconnect' : 'Connect'}
@@ -338,8 +338,8 @@ export default function ProfileScreen() {
             {profileUsername && (
               <Text style={styles.usernameText}>@{profileUsername}</Text>
             )}
-            {user?.email && !profileDisplayName && !profileUsername && (
-              <Text style={styles.subName}>{user.email}</Text>
+            {user?.display_name && !profileDisplayName && !profileUsername && (
+              <Text style={styles.subName}>{user.display_name}</Text>
             )}
             <BadgeRow
               badge1={equippedItems.badge1}

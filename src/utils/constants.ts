@@ -3,18 +3,13 @@ import { makeRedirectUri } from 'expo-auth-session';
 export const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID ?? '';
 export const SPOTIFY_REDIRECT_URI = makeRedirectUri({ native: 'songmatch://callback' });
 
+// Request ONLY scopes with live call sites — unused scopes are the top
+// rejection reason in Spotify's extended-quota review.
 export const SPOTIFY_SCOPES = [
-  'user-read-private',
-  'user-read-email',
-  'playlist-read-private',
-  'playlist-read-collaborative',
-  'playlist-modify-public',
-  'playlist-modify-private',
-  'user-library-read',
-  'user-library-modify',
-  'user-top-read',
-  'user-follow-modify',
-  'user-follow-read',
+  'user-read-private',           // /me — account display name for the profile screen
+  'playlist-read-private',       // playlist browser + playlist-seeded recommendations
+  'playlist-read-collaborative', // include collaborative playlists in the browser
+  'user-top-read',               // top tracks as recommendation seeds
 ].join(' ');
 
 export const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize';
