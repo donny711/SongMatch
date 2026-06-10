@@ -16,10 +16,14 @@ interface Props {
 }
 
 export default function TrackCard({ card, isTop = false }: Props) {
+  const cardRef = useRef<View>(null);
   const audioRef = useRef<View>(null);
   const { register } = useTutorialMeasure();
   useEffect(() => {
-    if (isTop) register('audio-player', audioRef);
+    if (isTop) {
+      register('swipe-card', cardRef);
+      register('audio-player', audioRef);
+    }
   }, [isTop, register]);
 
   const track = card.track;
@@ -28,7 +32,7 @@ export default function TrackCard({ card, isTop = false }: Props) {
   const secs = String(duration % 60).padStart(2, '0');
 
   return (
-    <View style={styles.card}>
+    <View ref={cardRef} style={styles.card}>
       {/* Full-bleed album art */}
       {track.album.cover_xl ? (
         <Image source={{ uri: track.album.cover_xl }} style={styles.albumArt} />

@@ -181,7 +181,6 @@ export default function HomeScreen() {
   // Tutorial measurement refs
   const tabSwitcherRef = useRef<View>(null);
   const actionBtnRef = useRef<View>(null);
-  const swipeCardRef = useRef<View>(null);
   const { register } = useTutorialMeasure();
   const tutorialActive = useTutorialStore((s) => s.isActive);
   const tutorialComplete = useTutorialStore((s) => s.isComplete);
@@ -189,7 +188,6 @@ export default function HomeScreen() {
   useEffect(() => {
     register('tab-switcher', tabSwitcherRef);
     register('action-buttons', actionBtnRef);
-    register('swipe-card', swipeCardRef);
   }, [register]);
 
   useEffect(() => {
