@@ -329,8 +329,13 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
 
   // Single transaction: read both existence flags first, then write only what's new.
   // Prevents likedCount and likerCount drift on re-like after reinstall/cache clear.
+  const songRef = doc(db, 'songLikes', String(track.id));
   await runTransaction(db, async (tx) => {
-    const [trackSnap, likerSnap] = await Promise.all([tx.get(trackRef), tx.get(likerRef)]);
+    const [trackSnap, likerSnap, songSnap] = await Promise.all([
+      tx.get(trackRef),
+      tx.get(likerRef),
+      tx.get(songRef),
+    ]);
 
     tx.set(trackRef, {
       trackId: track.id,
@@ -356,13 +361,20 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
 
     if (!likerSnap.exists()) {
       tx.set(likerRef, { uid, likedAt: serverTimestamp() });
-      tx.set(doc(db, 'songLikes', String(track.id)), {
-        trackId: track.id,
-        title: track.title,
-        artistName: track.artist.name,
-        coverUrl: track.album.cover_xl,
-        likerCount: increment(1),
-      }, { merge: true });
+      if (songSnap.exists()) {
+        // Counter only: rules allow exactly ±1 on likerCount, and re-sending
+        // metadata would put any drifted field (e.g. a changed cover URL)
+        // into affectedKeys and get the write denied.
+        tx.update(songRef, { likerCount: increment(1) });
+      } else {
+        tx.set(songRef, {
+          trackId: track.id,
+          title: track.title,
+          artistName: track.artist.name,
+          coverUrl: track.album.cover_xl,
+          likerCount: increment(1),
+        });
+      }
     }
   });
 }
