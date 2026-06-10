@@ -84,7 +84,11 @@ function yesterdayISO() {
     return d.toISOString().slice(0, 10);
 }
 // ── grantMilestonePoints ───────────────────────────────────────────────────
-exports.grantMilestonePoints = region.https.onCall(async (data) => {
+exports.grantMilestonePoints = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid)
+        throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, milestoneId } = data;
     const reward = MILESTONE_REWARDS[milestoneId];
     if (!reward)
@@ -116,7 +120,11 @@ exports.grantMilestonePoints = region.https.onCall(async (data) => {
     });
 });
 // ── purchaseItem ────────────────────────────────────────────────────────────
-exports.purchaseItem = region.https.onCall(async (data) => {
+exports.purchaseItem = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid)
+        throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, itemId } = data;
     const cost = ITEM_COSTS[itemId];
     if (cost === undefined)
@@ -144,7 +152,11 @@ exports.purchaseItem = region.https.onCall(async (data) => {
 });
 // ── equipItem ──────────────────────────────────────────────────────────────
 const VALID_SLOTS = ['avatarFrame', 'profileBackground', 'badge1', 'badge2', 'badge3', 'cardTheme'];
-exports.equipItem = region.https.onCall(async (data) => {
+exports.equipItem = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid)
+        throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, slot, itemId } = data;
     if (!VALID_SLOTS.includes(slot)) {
         throw new functions.https.HttpsError('invalid-argument', 'Invalid slot');
@@ -166,7 +178,11 @@ exports.equipItem = region.https.onCall(async (data) => {
     return { success: true };
 });
 // ── updateStreak ────────────────────────────────────────────────────────────
-exports.updateStreak = region.https.onCall(async (data) => {
+exports.updateStreak = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid)
+        throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid } = data;
     const today = todayISO();
     const yesterday = yesterdayISO();
@@ -226,7 +242,11 @@ exports.updateStreak = region.https.onCall(async (data) => {
 // Called by the client after uploading to Supabase Storage.
 // Downloads the image from the public URL, runs Vision SafeSearch,
 // then updates Firestore. The client deletes from Supabase if rejected.
-exports.moderateImage = region.https.onCall(async (data) => {
+exports.moderateImage = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    if (context.auth.uid !== data.uid)
+        throw new functions.https.HttpsError('permission-denied', 'UID mismatch');
     const { uid, imageUrl, type } = data;
     const isAvatar = type === 'avatar';
     const urlKey = isAvatar ? 'avatarUrl' : 'bannerUrl';
@@ -245,9 +265,9 @@ exports.moderateImage = region.https.onCall(async (data) => {
         const [result] = await client.safeSearchDetection({ image: { content: imageBuffer } });
         const annotations = result.safeSearchAnnotation;
         const DANGEROUS = new Set(['VERY_LIKELY', 'LIKELY']);
-        const isViolating = DANGEROUS.has(annotations?.adult ?? '') ||
-            DANGEROUS.has(annotations?.violence ?? '') ||
-            DANGEROUS.has(annotations?.racy ?? '');
+        const isViolating = DANGEROUS.has(String(annotations?.adult ?? '')) ||
+            DANGEROUS.has(String(annotations?.violence ?? '')) ||
+            DANGEROUS.has(String(annotations?.racy ?? ''));
         if (isViolating) {
             await ref.update({
                 [pendingKey]: null,
@@ -277,8 +297,11 @@ exports.moderateImage = region.https.onCall(async (data) => {
     }
 });
 // ── followUser ─────────────────────────────────────────────────────────────
-exports.followUser = region.https.onCall(async (data) => {
-    const { followerId, followingId } = data;
+exports.followUser = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    const followerId = context.auth.uid; // always use auth UID, not data.followerId
+    const { followingId } = data;
     if (!followerId || !followingId) {
         throw new functions.https.HttpsError('invalid-argument', 'Missing UIDs');
     }
@@ -305,8 +328,11 @@ exports.followUser = region.https.onCall(async (data) => {
     return { success: true, alreadyFollowing: false };
 });
 // ── unfollowUser ───────────────────────────────────────────────────────────
-exports.unfollowUser = region.https.onCall(async (data) => {
-    const { followerId, followingId } = data;
+exports.unfollowUser = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    const followerId = context.auth.uid; // always use auth UID, not data.followerId
+    const { followingId } = data;
     if (!followerId || !followingId) {
         throw new functions.https.HttpsError('invalid-argument', 'Missing UIDs');
     }
@@ -353,7 +379,9 @@ const LASTFM_TTL = {
     'track.gettoptags': 172800, // 48h
     'tag.gettoptracks': 86400, // 24h
 };
-exports.lastfmProxy = region.https.onCall(async (data) => {
+exports.lastfmProxy = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
     const { method, params } = data;
     if (!method)
         throw new functions.https.HttpsError('invalid-argument', 'method required');
@@ -376,8 +404,11 @@ exports.lastfmProxy = region.https.onCall(async (data) => {
     return json;
 });
 // ── deezerProxy ────────────────────────────────────────────────────────────
-exports.deezerProxy = region.https.onCall(async (data) => {
-    const { action, query, id, limit = 20 } = data;
+exports.deezerProxy = region.https.onCall(async (data, context) => {
+    if (!context.auth)
+        throw new functions.https.HttpsError('unauthenticated', 'Login required');
+    const { action, query, id } = data;
+    const limit = Math.min(data.limit ?? 20, 50);
     if (!action)
         throw new functions.https.HttpsError('invalid-argument', 'action required');
     let url;
