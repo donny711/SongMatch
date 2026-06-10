@@ -28,6 +28,7 @@ import { FollowStats } from '../../src/components/profile/FollowStats';
 import { Image as ExpoImage } from 'expo-image';
 import { SHOP_ITEMS_BY_ID } from '../../src/data/shopCatalog';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
+import { SPOTIFY_PUBLIC } from '../../src/utils/constants';
 import { RankBadge } from '../../src/components/profile/RankBadge';
 import { getRankForLikes, getNextRank, getProgressToNext } from '../../src/data/ranks';
 
@@ -180,19 +181,39 @@ function MusicPlatforms() {
 
   return (
     <View style={styles.platformCard}>
-      <PlatformRow
-        icon="musical-notes"
-        color={COLORS.purple}
-        name="Spotify"
-        subtitle={accessToken && user ? (user.display_name ?? user.id) : undefined}
-        avatarUri={user?.images?.[0]?.url}
-        isConnected={!!(accessToken && user)}
-        actionLabel={accessToken && user ? 'Disconnect' : 'Connect'}
-        onAction={accessToken && user
-          ? handleSpotifyDisconnect
-          : () => router.navigate('/(auth)/login')}
-        divider
-      />
+      {/* Connect is gated while Spotify's dev mode caps us at 5 allowlisted
+          users — see SPOTIFY_PUBLIC. Connected accounts keep full controls. */}
+      {accessToken && user ? (
+        <PlatformRow
+          icon="musical-notes"
+          color={COLORS.purple}
+          name="Spotify"
+          subtitle={user.display_name ?? user.id}
+          avatarUri={user.images?.[0]?.url}
+          isConnected
+          actionLabel="Disconnect"
+          onAction={handleSpotifyDisconnect}
+          divider
+        />
+      ) : SPOTIFY_PUBLIC ? (
+        <PlatformRow
+          icon="musical-notes"
+          color={COLORS.purple}
+          name="Spotify"
+          actionLabel="Connect"
+          onAction={() => router.navigate('/(auth)/login')}
+          divider
+        />
+      ) : (
+        <PlatformRow
+          icon="musical-notes"
+          color={COLORS.purple}
+          name="Spotify"
+          actionLabel="Soon"
+          actionDisabled
+          divider
+        />
+      )}
       <PlatformRow
         icon="cloud"
         color="#FF5500"

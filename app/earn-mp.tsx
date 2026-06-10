@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { useProfileStore } from '../src/store/profileStore';
 import { useDeckStore } from '../src/store/deckStore';
 import { MILESTONES, type Milestone } from '../src/data/milestones';
+import { SPOTIFY_PUBLIC } from '../src/utils/constants';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 
 // ── Category definitions ───────────────────────────────────────────────────
@@ -34,10 +35,10 @@ const CATEGORIES: Category[] = [
     label: 'Platforms',
     color: '#E879F9',
     icon: 'apps',
-    // SoundCloud connect is disabled ("Soon") — don't list tasks the user
-    // cannot complete. Re-add ms_connect_soundcloud + ms_two_platforms when
-    // the platform goes live.
-    milestoneIds: ['ms_connect_spotify'],
+    // Don't list tasks the user cannot complete: SoundCloud connect is
+    // disabled ("Soon"), and Spotify connect is gated by SPOTIFY_PUBLIC.
+    // Re-add ms_connect_soundcloud + ms_two_platforms when platforms go live.
+    milestoneIds: SPOTIFY_PUBLIC ? ['ms_connect_spotify'] : [],
   },
   {
     label: 'Songs',
@@ -267,7 +268,7 @@ export default function EarnMPScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + SPACING.xxl }]}
         showsVerticalScrollIndicator={false}
       >
-        {CATEGORIES.map((cat) => (
+        {CATEGORIES.filter((cat) => cat.milestoneIds.length > 0).map((cat) => (
           <CategorySection
             key={cat.label}
             cat={cat}

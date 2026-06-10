@@ -1,5 +1,11 @@
 import { makeRedirectUri } from 'expo-auth-session';
 
+// Spotify's Feb 2026 policy: dev mode = 5 allowlisted users; extended quota
+// needs a registered business with 250k+ MAU. Until then the Connect button
+// is hidden (an OAuth failure in front of App Review = rejection). Already-
+// connected accounts (owner/allowlist) keep working. Flip when eligible.
+export const SPOTIFY_PUBLIC = false;
+
 export const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID ?? '';
 export const SPOTIFY_REDIRECT_URI = makeRedirectUri({ native: 'songmatch://callback' });
 
