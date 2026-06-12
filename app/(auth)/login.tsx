@@ -7,6 +7,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { useSpotifyAuth } from '../../src/auth/useSpotifyAuth';
 import { useAppleAuth } from '../../src/auth/useAppleAuth';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
+import { SPOTIFY_PUBLIC } from '../../src/utils/constants';
 
 const PERKS = [
   { icon: 'heart' as const,       color: COLORS.green,  text: 'Save liked songs to a Spotify playlist' },
@@ -65,16 +66,20 @@ export default function LoginScreen() {
 
       {/* CTAs */}
       <View style={styles.ctaGroup}>
+        {/* Gated like profile.tsx while Spotify dev mode caps us at 5 users —
+            this screen stays deep-linkable, so the CTA itself must be gated. */}
         <TouchableOpacity
-          style={[styles.button, !request && styles.buttonDisabled]}
+          style={[styles.button, (!request || !SPOTIFY_PUBLIC) && styles.buttonDisabled]}
           onPress={() => promptAsync()}
-          disabled={!request}
+          disabled={!request || !SPOTIFY_PUBLIC}
           accessibilityLabel="Connect with Spotify"
           accessibilityRole="button"
           activeOpacity={0.85}
         >
           <Ionicons name="musical-notes" size={20} color="#fff" />
-          <Text style={styles.buttonText}>Connect with Spotify</Text>
+          <Text style={styles.buttonText}>
+            {SPOTIFY_PUBLIC ? 'Connect with Spotify' : 'Spotify — coming soon'}
+          </Text>
         </TouchableOpacity>
 
         {appleAvailable && (

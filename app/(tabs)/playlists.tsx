@@ -9,6 +9,7 @@ import { getMyPlaylists } from '../../src/api/endpoints';
 import { useDeckStore } from '../../src/store/deckStore';
 import { useAuthStore } from '../../src/store/authStore';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
+import { SPOTIFY_PUBLIC } from '../../src/utils/constants';
 import type { SpotifyPlaylist } from '../../src/api/types';
 import LottieEmptyState from '../../src/components/LottieEmptyState';
 const emptyPlaylistsAnim = require('../../assets/lottie/empty-playlists.json');
@@ -43,17 +44,23 @@ export default function PlaylistsScreen() {
         </View>
         <LottieEmptyState
           animationSource={emptyPlaylistsAnim}
-          title="Connect Spotify"
-          subtitle="Link your Spotify account to seed recommendations from your playlists and save liked songs."
+          title={SPOTIFY_PUBLIC ? 'Connect Spotify' : 'Spotify coming soon'}
+          subtitle={
+            SPOTIFY_PUBLIC
+              ? 'Link your Spotify account to seed recommendations from your playlists and save liked songs.'
+              : 'Playlist seeding will unlock once Spotify connections open up. Your liked songs keep working in the meantime.'
+          }
         />
-        <TouchableOpacity
-          style={styles.connectBtn}
-          onPress={() => router.navigate('/(auth)/login')}
-          accessibilityLabel="Connect Spotify"
-          accessibilityRole="button"
-        >
-          <Text style={styles.connectBtnText}>Connect Spotify</Text>
-        </TouchableOpacity>
+        {SPOTIFY_PUBLIC && (
+          <TouchableOpacity
+            style={styles.connectBtn}
+            onPress={() => router.navigate('/(auth)/login')}
+            accessibilityLabel="Connect Spotify"
+            accessibilityRole="button"
+          >
+            <Text style={styles.connectBtnText}>Connect Spotify</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
