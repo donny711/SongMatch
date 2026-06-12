@@ -585,7 +585,22 @@ export default function SettingsScreen() {
         </View>
 
         <Text style={styles.footer}>SongMatch • built with ♥</Text>
-        <Text style={styles.footer}>Music previews by Deezer · music data by Last.fm</Text>
+        {/* Linked credits required by Deezer trademark guidelines + Last.fm API ToS 2.7 */}
+        <Text style={styles.footer}>
+          Music previews by{' '}
+          <Text style={styles.footerLink} onPress={() => Linking.openURL('https://www.deezer.com')}>
+            Deezer
+          </Text>
+          {' '}· music data by{' '}
+          <Text style={styles.footerLink} onPress={() => Linking.openURL('https://www.last.fm')}>
+            Last.fm
+          </Text>
+        </Text>
+        {/* Required by Deezer developer terms: users must be informed that
+            streaming is limited to strictly private use within a family scope */}
+        <Text style={styles.footer}>
+          Previews are for private, personal listening only.
+        </Text>
       </ScrollView>
     </View>
   );
@@ -700,6 +715,10 @@ const styles = StyleSheet.create({
     color: COLORS.textMuted,
     fontSize: 12,
     textAlign: 'center',
+  },
+  footerLink: {
+    color: COLORS.textSub,
+    textDecorationLine: 'underline',
   },
 
   // Subscription
