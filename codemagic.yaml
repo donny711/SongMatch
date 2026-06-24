@@ -5,7 +5,7 @@ workflows:
     instance_type: mac_mini_m2
 
     integrations:
-      app_store_connect: "Codemagic v2"
+      app_store_connect: "Songmatch v2"
 
     environment:
       ios_signing:
