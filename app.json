@@ -1,6 +1,6 @@
 {
   "expo": {
-    "owner": "d00nny711",
+    "owner": "donny7111",
     "name": "SongMatch",
     "slug": "SongMatch",
     "version": "1.0.0",
@@ -39,7 +39,9 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
     "web": {
@@ -162,7 +164,7 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "adc8701a-14db-4a95-8ecb-28ce80db846c"
+        "projectId": "ad74bc1a-8f4a-498b-87b9-a1c5c778ab94"
       }
     }
   }
