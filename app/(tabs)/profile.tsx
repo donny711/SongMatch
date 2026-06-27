@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -23,7 +22,6 @@ import { BadgeRow } from '../../src/components/profile/BadgeRow';
 import { MatchPointsDisplay } from '../../src/components/profile/MatchPointsDisplay';
 import { StreakIndicator } from '../../src/components/profile/StreakIndicator';
 import { ShowcaseSection } from '../../src/components/profile/ShowcaseSection';
-import { SquadSection } from '../../src/components/referral/SquadSection';
 import { FollowStats } from '../../src/components/profile/FollowStats';
 import { Image as ExpoImage } from 'expo-image';
 import { SHOP_ITEMS_BY_ID } from '../../src/data/shopCatalog';
@@ -33,62 +31,6 @@ import { RankBadge } from '../../src/components/profile/RankBadge';
 import { getRankForLikes, getNextRank, getProgressToNext } from '../../src/data/ranks';
 
 const BANNER_HEIGHT = 180;
-
-// ── Share SongMatch card ───────────────────────────────────────────────────────
-
-function ShareCard() {
-  const handleShare = async () => {
-    await Share.share({
-      message: 'Check out SongMatch — the best music discovery app! https://songmatch.net',
-      url: 'https://songmatch.net',
-    });
-  };
-  return (
-    <TouchableOpacity style={shareCardStyles.card} onPress={handleShare} activeOpacity={0.85}>
-      <LinearGradient
-        colors={['rgba(167,139,250,0.12)', 'rgba(232,121,249,0.08)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={shareCardStyles.grad}
-      >
-        <View style={shareCardStyles.iconWrap}>
-          <Ionicons name="share-social" size={18} color={COLORS.purple} />
-        </View>
-        <View style={shareCardStyles.text}>
-          <Text style={shareCardStyles.title}>Share SongMatch</Text>
-          <Text style={shareCardStyles.sub}>Invite friends & earn rewards</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-
-const shareCardStyles = StyleSheet.create({
-  card: {
-    borderRadius: RADIUS.lg,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(167,139,250,0.25)',
-  },
-  grad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: SPACING.md,
-    gap: SPACING.md,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.sm,
-    backgroundColor: 'rgba(167,139,250,0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  text: { flex: 1, gap: 2 },
-  title: { color: COLORS.text, fontSize: 14, fontWeight: '700' },
-  sub: { color: COLORS.textMuted, fontSize: 12 },
-});
 
 // ── SoundCloud platform card ────────────────────────────────────────────────
 
@@ -442,7 +384,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-
       <View style={styles.sections}>
         {/* ── Stats ── */}
         <View
@@ -499,20 +440,12 @@ export default function ProfileScreen() {
           accentColor={profileUiAccent}
         />
 
-        {/* Squad */}
-        {uid && <SquadSection uid={uid} viewerUid={uid} isOwnProfile />}
-
         {/* ── Music Platforms ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Music Platforms</Text>
           <MusicPlatforms />
         </View>
 
-        {/* ── Invite ── */}
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Invite</Text>
-          <ShareCard />
-        </View>
       </View>
       </View>
     </ScrollView>
