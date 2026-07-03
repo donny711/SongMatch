@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   FlatList,
-  Image,
   TouchableOpacity,
   Modal,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { openTrackOnPlatform } from '../../src/utils/platformLinks';
 import { getSongLikerCount } from '../../src/firebase/socialService';
 import { resolveTracksToSpotifyUris } from '../../src/api/endpoints';
 import GradientText from '../../src/components/GradientText';
+import AppleArtwork from '../../src/components/AppleArtwork';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
 import type { DeezerTrack } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
@@ -46,7 +46,7 @@ function LikedTrackRow({ item, index, onRemove }: { item: DeezerTrack; index: nu
   return (
     <View style={styles.row}>
       <Text style={styles.rowIndex}>{index + 1}</Text>
-      <Image source={{ uri: item.album.cover_xl }} style={styles.cover} />
+      <AppleArtwork track={item} style={styles.cover} />
       <View style={styles.info}>
         <Text style={styles.trackTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.artist} numberOfLines={1}>{item.artist.name}</Text>

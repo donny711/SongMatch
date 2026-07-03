@@ -18,6 +18,7 @@ import { primeNotificationPermission } from '../src/notifications/notificationSe
 import { syncReengagementNotifications } from '../src/notifications/coordinator';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 import GradientText from '../src/components/GradientText';
+import AppleArtwork from '../src/components/AppleArtwork';
 import { GENRE_ARTISTS, GENRE_COLORS, GENRES } from '../src/utils/genres';
 import type { DeezerTrack } from '../src/api/types';
 import { db, auth } from '../src/firebase/config';
@@ -338,10 +339,10 @@ export default function OnboardingScreen() {
           {searching && <ActivityIndicator color={COLORS.purple} style={{ marginTop: SPACING.sm }} />}
           {searchEmpty && !searching && <Text style={styles.noResultsText}>No results - try another track name</Text>}
           {searchResult && !searching && (
-            <View style={styles.resultCard}><Image source={{ uri: searchResult.album.cover_xl }} style={styles.resultArt} /><View style={styles.resultInfo}><Text style={styles.resultTitle} numberOfLines={1}>{searchResult.title}</Text><Text style={styles.resultArtist} numberOfLines={1}>{searchResult.artist.name}</Text></View><TouchableOpacity style={styles.useBtn} onPress={() => { setSelectedSong(searchResult); setSearchResult(null); setSearchQuery(''); }} activeOpacity={0.85}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity></View>
+            <View style={styles.resultCard}><AppleArtwork track={searchResult} style={styles.resultArt} /><View style={styles.resultInfo}><Text style={styles.resultTitle} numberOfLines={1}>{searchResult.title}</Text><Text style={styles.resultArtist} numberOfLines={1}>{searchResult.artist.name}</Text></View><TouchableOpacity style={styles.useBtn} onPress={() => { setSelectedSong(searchResult); setSearchResult(null); setSearchQuery(''); }} activeOpacity={0.85}><Ionicons name="checkmark" size={18} color="#fff" /></TouchableOpacity></View>
           )}
           {selectedSong && !searchResult && (
-            <View style={styles.resultCard}><Image source={{ uri: selectedSong.album.cover_xl }} style={styles.resultArt} /><View style={styles.resultInfo}><Text style={styles.resultTitle} numberOfLines={1}>{selectedSong.title}</Text><Text style={styles.resultArtist} numberOfLines={1}>{selectedSong.artist.name}</Text></View><TouchableOpacity onPress={() => setSelectedSong(null)} hitSlop={8}><Ionicons name="close-circle" size={22} color={COLORS.textMuted} /></TouchableOpacity></View>
+            <View style={styles.resultCard}><AppleArtwork track={selectedSong} style={styles.resultArt} /><View style={styles.resultInfo}><Text style={styles.resultTitle} numberOfLines={1}>{selectedSong.title}</Text><Text style={styles.resultArtist} numberOfLines={1}>{selectedSong.artist.name}</Text></View><TouchableOpacity onPress={() => setSelectedSong(null)} hitSlop={8}><Ionicons name="close-circle" size={22} color={COLORS.textMuted} /></TouchableOpacity></View>
           )}
           <Text style={[styles.fieldLabel, { marginTop: SPACING.lg }]}>{"Favourite Artists "}<Text style={{ color: COLORS.textMuted, fontWeight: '400' }}>({favoriteArtists.length}/5)</Text></Text>
           {favoriteArtists.length < 5 && (

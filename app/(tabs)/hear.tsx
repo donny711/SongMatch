@@ -10,7 +10,6 @@ import {
   Modal,
   Pressable,
   Keyboard,
-  Image,
   Dimensions,
 } from 'react-native';
 import Animated, {
@@ -28,6 +27,7 @@ import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, 
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import { router } from 'expo-router';
+import AppleArtwork from '../../src/components/AppleArtwork';
 import { searchDeezer } from '../../src/api/deezerClient';
 import { recognizeSong } from '../../src/api/auddClient';
 import { getSongSimilarRecs } from '../../src/api/endpoints';
@@ -112,11 +112,7 @@ function SeedTrackCard({
       {/* Card */}
       <View style={seedStyles.cardArea}>
         <View style={seedStyles.card}>
-          {track.album.cover_xl ? (
-            <Image source={{ uri: track.album.cover_xl }} style={seedStyles.albumArt} />
-          ) : (
-            <View style={[seedStyles.albumArt, seedStyles.albumArtFallback]} />
-          )}
+          <AppleArtwork track={track} style={seedStyles.albumArt} />
           <Svg style={StyleSheet.absoluteFill} width={SEED_CARD_W} height={SEED_CARD_H}>
             <Defs>
               <SvgGradient id='seedGrad' x1='0' y1='0' x2='0' y2='1'>

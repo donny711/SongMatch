@@ -16,6 +16,7 @@ import { useDeckStore } from '../src/store/deckStore';
 import { useProfileStore } from '../src/store/profileStore';
 import type { DeezerTrack } from '../src/api/types';
 import type { ShowcaseArtist } from '../src/firebase/profileService';
+import AppleArtwork from '../src/components/AppleArtwork';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 
 const MAX_SONGS = 3;
@@ -58,7 +59,7 @@ function SongRow({
       onPress={onToggle}
       activeOpacity={0.7}
     >
-      <Image source={{ uri: track.album.cover_xl }} style={styles.rowArt} />
+      <AppleArtwork track={track} style={styles.rowArt} />
       <View style={styles.rowText}>
         <Text style={styles.rowTitle} numberOfLines={1}>{track.title}</Text>
         <Text style={styles.rowSub} numberOfLines={1}>{track.artist.name}</Text>
