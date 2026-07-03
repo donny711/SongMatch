@@ -6,12 +6,7 @@ import { useSettingsStore } from '../store/settingsStore';
 import { useProfileStore } from '../store/profileStore';
 import { computeNudges, MANAGED_IDS } from './reengagement';
 import { hasPermission, cancelNudges, scheduleNudge } from './notificationService';
-
-/** Local YYYY-MM-DD (matches profileService's streak date format). */
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
+import { todayISO } from '../utils/localDate';
 
 export async function syncReengagementNotifications(): Promise<void> {
   try {

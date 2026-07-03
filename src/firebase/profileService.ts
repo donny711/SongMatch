@@ -13,6 +13,7 @@ import {
   type Unsubscribe,
 } from 'firebase/firestore';
 import { db } from './config';
+import { todayISO, yesterdayISO } from '../utils/localDate';
 import { MILESTONE_MAP } from '../data/milestones';
 import { SHOP_ITEMS_BY_ID } from '../data/shopCatalog';
 import type { DeezerTrack } from '../api/types';
@@ -88,17 +89,6 @@ const DEFAULT_EQUIPPED: EquippedItems = {
 
 function userRef(uid: string) {
   return doc(db, 'users', uid);
-}
-
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function yesterdayISO(): string {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 // ── CRUD ───────────────────────────────────────────────────────────────────

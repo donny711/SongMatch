@@ -22,6 +22,7 @@ import {
 } from '../firebase/profileService';
 import { useToastStore } from './toastStore';
 import { registerProfileRef } from './profileRef';
+import { todayISO } from '../utils/localDate';
 import { MILESTONE_MAP } from '../data/milestones';
 import type { DeezerTrack } from '../api/types';
 import { uploadProfileImage, uploadGifBackground, deleteProfileImage } from '../firebase/storageService';
@@ -319,6 +320,11 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
     const prevStreak = get().currentStreak;
     try {
       const { currentStreak: newStreak } = await updateStreak(uid);
+      // Reflect the check-in locally right away: notification scheduling runs
+      // immediately after this and must see checkedInToday=true (lastActiveDate
+      // otherwise only updates once the Firestore snapshot round-trips, which
+      // would let the streak nudge schedule even though the user just opened).
+      set({ currentStreak: newStreak, lastActiveDate: todayISO() });
       if (newStreak > prevStreak) {
         if (__DEV__) console.log('[streak] incremented', prevStreak, '→', newStreak);
         set({ streakAnimFrom: prevStreak });
