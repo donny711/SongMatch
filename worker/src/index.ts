@@ -57,7 +57,9 @@ async function handleDeezer(url: URL, env: Env): Promise<Response> {
   else if (/^\/track\/\d+$/.test(deezerPath)) type = 'track';
   else if (deezerPath.includes('/chart'))     type = 'chart';
 
-  const cacheKey = `deezer:${deezerPath}${url.search}`;
+  // v2 prefix: v1 cached upstream error bodies (Deezer 200-with-error), poisoning
+  // radio/search results for hours — bumping the prefix flushes those entries.
+  const cacheKey = `deezer:v2:${deezerPath}${url.search}`;
   return proxyWithCache(upstream, cacheKey, ttlFor(type), env);
 }
 
@@ -73,7 +75,7 @@ async function handleLastFm(url: URL, env: Env): Promise<Response> {
   const track  = params.get('track')  ?? '';
   const tag    = params.get('tag')    ?? '';
   const limit  = params.get('limit')  ?? '';
-  const cacheKey = `lastfm:${method}:${artist}:${track}:${tag}:${limit}`.toLowerCase();
+  const cacheKey = `lastfm:v2:${method}:${artist}:${track}:${tag}:${limit}`.toLowerCase();
 
   return proxyWithCache(upstream, cacheKey, ttlFor('lastfm'), env);
 }
@@ -97,10 +99,23 @@ async function proxyWithCache(
   }
 
   const body = await res.text();
-  await env.CACHE.put(cacheKey, body, { expirationTtl: ttl });
+
+  // Deezer (and occasionally Last.fm) return errors as HTTP 200 with an
+  // { "error": ... } body. Never cache those — a transient rate limit or a
+  // removed endpoint would otherwise be served for hours.
+  let isErrorBody = false;
+  try {
+    const parsed = JSON.parse(body);
+    isErrorBody = parsed != null && typeof parsed === 'object' && 'error' in parsed;
+  } catch {
+    isErrorBody = true; // non-JSON from an API that should return JSON — don't cache
+  }
+  if (!isErrorBody) {
+    await env.CACHE.put(cacheKey, body, { expirationTtl: ttl });
+  }
 
   return new Response(body, {
-    headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'MISS' },
+    headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': isErrorBody ? 'BYPASS' : 'MISS' },
   });
 }
 

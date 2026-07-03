@@ -56,7 +56,15 @@ export async function getDeezerChart(limit = 20): Promise<DeezerTrack[]> {
 }
 
 export async function getDeezerRadio(trackId: number, limit = 40): Promise<DeezerTrack[]> {
-  const url = `${DEEZER_API}/track/${trackId}/radio?limit=${limit}`;
+  // Deezer removed /track/{id}/radio (returns InvalidQueryException 600 as of
+  // 2026-07). Resolve the track's artist and use /artist/{id}/radio instead —
+  // still audio-similarity radio, one extra (worker-cached) lookup. Same
+  // signature so all callers keep passing track IDs.
+  const track = await getDeezerTrackById(trackId).catch(() => null);
+  const artistId = track?.artist?.id;
+  if (!artistId) return [];
+
+  const url = `${DEEZER_API}/artist/${artistId}/radio?limit=${limit}`;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
   try {
