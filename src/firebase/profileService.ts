@@ -344,7 +344,9 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
       artistName: track.artist.name,
       albumId: track.album.id,
       albumTitle: track.album.title,
-      coverUrl: track.album.cover_xl,
+      // Licensed Apple Music artwork (null when unmatched → placeholder/backfill).
+      coverUrl: track.artworkUrl ?? null,
+      appleMusicId: track.appleMusicId ?? null,
       previewUrl: track.preview ?? null,
       likedAt: serverTimestamp(),
     });
@@ -371,7 +373,9 @@ export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack)
           trackId: track.id,
           title: track.title,
           artistName: track.artist.name,
-          coverUrl: track.album.cover_xl,
+          // Apple artwork set at create; rules deny later coverUrl drift, so the
+          // server-side backfill (Admin SDK) fixes pre-migration song docs.
+          coverUrl: track.artworkUrl ?? null,
           likerCount: increment(1),
         });
       }
@@ -428,7 +432,8 @@ export async function runLikedTracksMigration(uid: string, likedTracks: DeezerTr
         artistName: track.artist.name,
         albumId: track.album.id,
         albumTitle: track.album.title,
-        coverUrl: track.album.cover_xl,
+        coverUrl: track.artworkUrl ?? null,
+        appleMusicId: track.appleMusicId ?? null,
         likedAt: serverTimestamp(),
       });
     }
