@@ -22,7 +22,8 @@
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
-import admin from 'firebase-admin';
+import { initializeApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DRY_RUN = process.argv.includes('--dry-run');
@@ -56,8 +57,8 @@ try {
   console.error(`Service account key not found at ${saPath}. See script header.`);
   process.exit(1);
 }
-admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-const db = admin.firestore();
+initializeApp({ credential: cert(serviceAccount) });
+const db = getFirestore();
 
 // ── Apple matching (mirrors src/api/musicKitService.ts) ─────────────────────
 const cache = new Map(); // deezer trackId -> { artworkUrl, appleMusicId }
