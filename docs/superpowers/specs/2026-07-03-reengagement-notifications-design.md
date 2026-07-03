@@ -37,15 +37,15 @@ push token**. That sidesteps the Firebase Spark-plan constraint (no Cloud Functi
 - **Coordinator** in `app/_layout.tsx` via an `AppState` listener:
   - on **background/inactive** → compute nudges from current `deckStore` + profile state and
     schedule them.
-  - on **active (foreground)** → cancel the "come back" nudges (`inactivity-3d`, `inactivity-7d`,
-    `feed-ready`); the user is here.
+  - on **active (foreground)** → cancel the "come back" nudges (`inactivity-3d`, `inactivity-7d`);
+    the user is here.
 - **Settings gate:** `notificationsEnabled: boolean` added to `settingsStore` (persisted in
   AsyncStorage `sm_settings`, mirrors `autoPlayPreviews`). A toggle row in `settings.tsx`.
   When off, the coordinator cancels everything and schedules nothing.
 
 ---
 
-## The three nudges
+## The nudges
 
 Fixed identifiers (so reschedule = replace):
 
@@ -54,14 +54,14 @@ Fixed identifiers (so reschedule = replace):
 | `inactivity-3d` | app background | now + **3 days** | "Your next favorite song is waiting 🎧" |
 | `inactivity-7d` | app background | now + **7 days** | "New music picked for you — come take a listen" |
 | `streak` | app background, **only if `currentStreak ≥ 1`** and not yet checked in today | next **8:00pm local**; if already past 8pm today, tomorrow 8pm | "🔥 Keep your {N}-day streak alive — check in before midnight" |
-| `feed-ready` | deck reaches the exhausted / "all caught up" state | now + **8 hours** | "Fresh tracks just dropped for you" |
+
+(No "feed ready" nudge: the recommendation feed is generated on demand and never truly runs dry,
+so there is no exhaustion event to notify on.)
 
 **Anti-spam by construction:**
 - Active-streak users open daily, so the app foregrounds daily → `inactivity-*` timers reset and
   never fire.
 - `streak` is skipped when `currentStreak = 0` (nothing to protect).
-- `feed-ready` only arises from an explicit exhaustion event and is canceled the moment they return
-  and swipe.
 - On every foreground the come-back nudges are canceled first, then re-scheduled on next
   background — so at most one of each id is ever pending.
 
@@ -81,13 +81,12 @@ Fixed identifiers (so reschedule = replace):
 ## Data flow
 
 1. Onboarding finishes → prime → `ensurePermission()` → `notificationsEnabled = true`.
-2. App backgrounds → coordinator reads `settingsStore.notificationsEnabled`, profile
-   `currentStreak` + `lastActiveDate` (→ `checkedInToday`), and `deckStore` exhaustion → calls
-   `reengagement.computeNudges(...)` → schedules each returned nudge.
+2. App backgrounds → coordinator reads `settingsStore.notificationsEnabled` and profile
+   `currentStreak` + `lastActiveDate` (→ `checkedInToday`) → calls `reengagement.computeNudges(...)`
+   → schedules each returned nudge.
 3. App foregrounds → cancel come-back nudges. `updateStreak()` (existing) runs on first open of the
    day, which the coordinator uses to decide the `streak` nudge next time it backgrounds.
-4. Deck exhausts → schedule `feed-ready`. User swipes again → cancel `feed-ready`.
-5. Tap a notification → handler routes to the home deck.
+4. Tap a notification → handler routes to the home deck.
 
 ---
 
@@ -103,8 +102,8 @@ Fixed identifiers (so reschedule = replace):
 ## Testing
 
 - **Unit (no device):** `reengagement.computeNudges` — table of `{state} → {expected nudge ids +
-  triggers}`: streak skipped at 0, streak included ≥1, 8pm-vs-next-day rollover, come-back nudges
-  present, `feed-ready` only when exhausted, empty set when disabled.
+  triggers}`: streak skipped at 0, streak included ≥1, 8pm-vs-next-day rollover, both inactivity
+  nudges present, empty set when disabled.
 - **Manual device:** permission prime after onboarding; background the app and fast-forward device
   clock / use short test intervals to confirm delivery; tap routes to deck; settings toggle
   cancels all.
@@ -120,6 +119,5 @@ Fixed identifiers (so reschedule = replace):
 4. `app/_layout.tsx` — AppState coordinator + `configureHandler()` on mount.
 5. `app/onboarding.tsx` — permission prime on completion.
 6. `app/settings.tsx` (or the settings screen) — toggle row.
-7. Deck exhaustion hook (`useRecommendations` / home empty-state) — fire `feed-ready` schedule.
 
 No server, no APNs, no Firestore changes.
