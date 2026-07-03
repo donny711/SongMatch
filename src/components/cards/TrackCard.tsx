@@ -36,10 +36,11 @@ export default function TrackCard({ card, isTop = false }: Props) {
     // collapsable=false: measured by the tutorial — Fabric view flattening
     // makes measureInWindow return zeros for optimized-away views
     <View ref={cardRef} style={styles.card} collapsable={false}>
-      {/* Full-bleed album art */}
-      {track.album.cover_xl ? (
+      {/* Full-bleed album art — licensed Apple Music artwork only; never the
+          unlicensed Deezer cover. Unmatched tracks show the placeholder. */}
+      {track.artworkUrl ? (
         <Image
-          source={{ uri: track.album.cover_xl }}
+          source={{ uri: track.artworkUrl }}
           style={styles.albumArt}
           contentFit="cover"
           transition={120}

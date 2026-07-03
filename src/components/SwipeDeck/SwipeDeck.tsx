@@ -34,7 +34,7 @@ const SwipeDeck = forwardRef<SwipeDeckRef, Props>(({ queue, onSwipeLeft, onSwipe
   useEffect(() => {
     const urls = queue
       .slice(2, 5)
-      .map((c) => c.track?.album?.cover_xl)
+      .map((c) => c.track?.artworkUrl)
       .filter((u): u is string => !!u);
     if (urls.length > 0) ExpoImage.prefetch(urls, { cachePolicy: 'disk' });
   }, [queue]);

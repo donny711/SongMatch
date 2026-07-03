@@ -33,11 +33,17 @@ interface Props {
 function SongCard({ track }: { track: DeezerTrack }) {
   return (
     <View style={[styles.songCard, { width: SONG_CARD_W, height: SONG_CARD_H }]}>
-      <Image
-        source={{ uri: track.album.cover_xl }}
-        style={StyleSheet.absoluteFill}
-        resizeMode="cover"
-      />
+      {/* Licensed Apple Music artwork only; backfill populates artworkUrl on
+          pre-migration showcase entries. */}
+      {track.artworkUrl ? (
+        <Image
+          source={{ uri: track.artworkUrl }}
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: '#1F1F28' }]} />
+      )}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.95)']}
         locations={[0.35, 1]}

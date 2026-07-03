@@ -232,7 +232,11 @@ export function FeedItem({ item }: Props) {
         </Animated.View>
 
         <View style={styles.content}>
-          <Image source={{ uri: item.coverUrl }} style={styles.albumArt} />
+          {item.coverUrl ? (
+            <Image source={{ uri: item.coverUrl }} style={styles.albumArt} />
+          ) : (
+            <View style={[styles.albumArt, { backgroundColor: '#1F1F28' }]} />
+          )}
 
           <View style={styles.info}>
             <View style={styles.userRow}>

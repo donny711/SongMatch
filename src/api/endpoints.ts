@@ -1,6 +1,7 @@
 import { spotifyFetch } from './spotifyClient';
 import { getSimilarTracks, getArtistSimilar, getArtistTopTracks, getTrackTags, getTagTopTracks, getArtistTags } from './lastfmClient';
 import { searchDeezer, getDeezerRadio } from './deezerClient';
+import { resolveArtworkForTracks } from './musicKitService';
 import type {
   SpotifyUser,
   SpotifyPaginated,
@@ -216,7 +217,10 @@ export async function getRecommendationsForSeeds(
 
   // Sort: radio tracks (1.0) surface first, then by Last.fm similarity score.
   output.sort((a, b) => (matchById.get(b.id) ?? 0) - (matchById.get(a.id) ?? 0));
-  return output.map((track) => ({ type: 'track' as const, track }));
+
+  // Swap Deezer covers for licensed Apple Music artwork before display.
+  const enriched = await resolveArtworkForTracks(output);
+  return enriched.map((track) => ({ type: 'track' as const, track }));
 }
 
 /**
@@ -330,5 +334,7 @@ export async function getSongSimilarRecs(
     }
   }
 
-  return output.map((track) => ({ type: 'track' as const, track }));
+  // Swap Deezer covers for licensed Apple Music artwork before display.
+  const enriched = await resolveArtworkForTracks(output);
+  return enriched.map((track) => ({ type: 'track' as const, track }));
 }
