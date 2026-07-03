@@ -13,7 +13,7 @@ const STOREFRONT = 'us';
 const APPLE_PROXY = MUSIC_PROXY_URL ? `${MUSIC_PROXY_URL}/apple` : '';
 
 const DEFAULT_ART_SIZE = 1000;
-const CACHE_PREFIX = 'applematch_v1_';
+const CACHE_PREFIX = 'applematch_v2_'; // v2: v1 cached transient failures as permanent misses
 const ARTIST_CACHE_PREFIX = 'appleartist_v1_';
 
 export interface Artwork {
@@ -36,15 +36,13 @@ export function buildArtworkUrl(template: string, size = DEFAULT_ART_SIZE): stri
 
 // ── Apple catalog lookups (via Worker proxy) ────────────────────────────────
 
-async function appleGet(path: string): Promise<any | null> {
-  if (!APPLE_PROXY) return null;
-  try {
-    const res = await fetch(`${APPLE_PROXY}${path}`);
-    if (!res.ok) return null;
-    return await res.json();
-  } catch {
-    return null;
-  }
+// Throws on any failure (no proxy, non-2xx, network, bad JSON) so the caller can
+// tell a real "no match" apart from a transient failure and avoid caching the latter.
+async function appleGet(path: string): Promise<any> {
+  if (!APPLE_PROXY) throw new Error('music proxy not configured');
+  const res = await fetch(`${APPLE_PROXY}${path}`);
+  if (!res.ok) throw new Error(`apple ${res.status}`);
+  return await res.json();
 }
 
 async function searchByIsrc(isrc: string): Promise<AppleSong | null> {
@@ -105,28 +103,30 @@ export async function resolveArtwork(track: DeezerTrack): Promise<Artwork> {
   const cached = await readCache(track.id);
   if (cached) return cached;
 
-  let result: Artwork = EMPTY;
+  try {
+    let isrc = track.isrc;
+    if (!isrc) {
+      const full = await getDeezerTrackById(track.id).catch(() => null);
+      isrc = full?.isrc;
+    }
 
-  let isrc = track.isrc;
-  if (!isrc) {
-    const full = await getDeezerTrackById(track.id).catch(() => null);
-    isrc = full?.isrc;
-  }
+    let song = isrc ? await searchByIsrc(isrc) : null;
+    if (!song) song = await searchByText(track.title, track.artist.name);
 
-  let song = isrc ? await searchByIsrc(isrc) : null;
-  if (!song) song = await searchByText(track.title, track.artist.name);
-
-  if (song) {
-    const template = song.attributes?.artwork?.url ?? null;
-    result = {
-      appleMusicId: song.id ?? null,
+    const template = song?.attributes?.artwork?.url ?? null;
+    const result: Artwork = {
+      appleMusicId: song?.id ?? null,
       artworkTemplate: template,
       artworkUrl: template ? buildArtworkUrl(template) : null,
     };
+    // Cache only a COMPLETED lookup (a real match or a genuine no-match from
+    // Apple). Transient failures throw below and are NOT cached, so they retry
+    // next time instead of being remembered as a permanent miss.
+    await writeCache(track.id, result);
+    return result;
+  } catch {
+    return EMPTY;
   }
-
-  await writeCache(track.id, result);
-  return result;
 }
 
 // ── Artist artwork ───────────────────────────────────────────────────────────
@@ -156,11 +156,16 @@ export async function resolveArtistArtwork(name: string): Promise<string | null>
   }
 
   let url: string | null = null;
-  const data = await appleGet(
-    `/v1/catalog/${STOREFRONT}/search?term=${encodeURIComponent(trimmed)}&types=artists&limit=1`
-  );
-  const tmpl = data?.results?.artists?.data?.[0]?.attributes?.artwork?.url ?? null;
-  if (tmpl) url = buildArtworkUrl(tmpl, 300);
+  try {
+    const data = await appleGet(
+      `/v1/catalog/${STOREFRONT}/search?term=${encodeURIComponent(trimmed)}&types=artists&limit=1`
+    );
+    const tmpl = data?.results?.artists?.data?.[0]?.attributes?.artwork?.url ?? null;
+    if (tmpl) url = buildArtworkUrl(tmpl, 300);
+  } catch {
+    // transient failure — return null without caching so it retries next time
+    return null;
+  }
 
   artistMem.set(key, url);
   try {

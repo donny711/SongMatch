@@ -1,8 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, Dimensions } from 'react-native';
-import { Image } from 'expo-image';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import SnippetPlayer from './SnippetPlayer';
+import AppleArtwork from '../AppleArtwork';
 import type { RecommendationCard } from '../../api/types';
 import { COLORS } from '../../theme';
 import { useTutorialMeasure } from '../tutorial/TutorialMeasureContext';
@@ -37,18 +37,10 @@ export default function TrackCard({ card, isTop = false }: Props) {
     // makes measureInWindow return zeros for optimized-away views
     <View ref={cardRef} style={styles.card} collapsable={false}>
       {/* Full-bleed album art — licensed Apple Music artwork only; never the
-          unlicensed Deezer cover. Unmatched tracks show the placeholder. */}
-      {track.artworkUrl ? (
-        <Image
-          source={{ uri: track.artworkUrl }}
-          style={styles.albumArt}
-          contentFit="cover"
-          transition={120}
-          cachePolicy="disk"
-        />
-      ) : (
-        <View style={[styles.albumArt, styles.albumArtFallback]} />
-      )}
+          unlicensed Deezer cover. Uses the enriched track.artworkUrl when
+          present and otherwise resolves lazily (self-heals if enrichment was
+          skipped/failed); unmatched tracks show the placeholder. */}
+      <AppleArtwork track={track} style={styles.albumArt} />
 
       {/* Gradient overlay — top transparent → bottom rich purple-dark */}
       <Svg style={StyleSheet.absoluteFill} width={CARD_WIDTH} height={CARD_HEIGHT}>
