@@ -108,25 +108,19 @@ describe('recordReferralInstall', () => {
     expect(mockTx.set).not.toHaveBeenCalled();
   });
 
-  it('triggers tier 1 on 3rd install: rewards referrer + all 3 friends', async () => {
+  it('sets the tier 1 flag on the 3rd install (no subscription writes)', async () => {
     setupSnaps(
       { referrerId: 'r1', installedUids: ['uid0', 'uid1'], installCount: 2, tier1Rewarded: false, tier2Rewarded: false },
       {},
     );
     await recordReferralInstall('uid2', 'CODE');
-    expect(mockTx.set).toHaveBeenCalledWith(
-      expect.objectContaining({ path: 'subscriptions/r1' }),
-      expect.objectContaining({ pendingDiscount: 0.30, pendingDiscountMonths: 3, pendingDiscountReason: 'referral_tier1' }),
-      { merge: true },
+    // Tier flags drive UI badges only; the subscription-discount rewards were
+    // removed (they wrote to other users' subscription docs, denied by rules).
+    expect(mockTx.update).toHaveBeenCalledWith(
+      expect.objectContaining({ path: 'referrals/CODE' }),
+      expect.objectContaining({ tier1Rewarded: true }),
     );
-    for (const uid of ['uid0', 'uid1', 'uid2']) {
-      expect(mockTx.set).toHaveBeenCalledWith(
-        expect.objectContaining({ path: `subscriptions/${uid}` }),
-        expect.objectContaining({ pendingDiscount: 0.30, pendingDiscountMonths: 3, pendingDiscountReason: 'referral_friend_tier1' }),
-        { merge: true },
-      );
-    }
-    expect(mockTx.set).toHaveBeenCalledTimes(4);
+    expect(mockTx.set).not.toHaveBeenCalled();
   });
 
   it('does not re-reward tier 1 when already rewarded', async () => {
@@ -138,18 +132,17 @@ describe('recordReferralInstall', () => {
     expect(mockTx.set).not.toHaveBeenCalled();
   });
 
-  it('triggers tier 2 on 7th install: grants referrer free month', async () => {
+  it('sets the tier 2 flag on the 7th install (no subscription writes)', async () => {
     setupSnaps(
       { referrerId: 'r1', installedUids: ['uid0','uid1','uid2','uid3','uid4','uid5'], installCount: 6, tier1Rewarded: true, tier2Rewarded: false },
       {},
     );
     await recordReferralInstall('uid6', 'CODE');
-    expect(mockTx.set).toHaveBeenCalledWith(
-      expect.objectContaining({ path: 'subscriptions/r1' }),
-      expect.objectContaining({ freeMonthGranted: true, freeMonthReason: 'referral_tier2' }),
-      { merge: true },
+    expect(mockTx.update).toHaveBeenCalledWith(
+      expect.objectContaining({ path: 'referrals/CODE' }),
+      expect.objectContaining({ tier2Rewarded: true }),
     );
-    expect(mockTx.set).toHaveBeenCalledTimes(1);
+    expect(mockTx.set).not.toHaveBeenCalled();
   });
 
   it('does not re-reward tier 2 when already rewarded', async () => {
