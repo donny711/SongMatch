@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import type { DeezerTrack } from '../../api/types';
 import type { ShowcaseArtist } from '../../firebase/profileService';
+import AppleArtistArtwork from '../AppleArtistArtwork';
 import { COLORS, SPACING, RADIUS } from '../../theme';
 
 const SCREEN_W = Dimensions.get('window').width;
@@ -68,10 +69,7 @@ function ArtistBubble({ artist }: { artist: ShowcaseArtist }) {
   return (
     <View style={styles.artistBubble}>
       <View style={styles.artistRing}>
-        <Image
-          source={{ uri: artist.coverUrl }}
-          style={styles.artistCircle}
-        />
+        <AppleArtistArtwork name={artist.name} style={styles.artistCircle} initialSize={22} />
       </View>
       <Text style={styles.artistName} numberOfLines={2}>{artist.name}</Text>
     </View>

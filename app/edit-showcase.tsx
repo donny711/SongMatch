@@ -2,7 +2,6 @@ import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
-  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
@@ -17,6 +16,7 @@ import { useProfileStore } from '../src/store/profileStore';
 import type { DeezerTrack } from '../src/api/types';
 import type { ShowcaseArtist } from '../src/firebase/profileService';
 import AppleArtwork from '../src/components/AppleArtwork';
+import AppleArtistArtwork from '../src/components/AppleArtistArtwork';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 
 const MAX_SONGS = 3;
@@ -33,7 +33,9 @@ function buildArtistList(likedTracks: DeezerTrack[]): ShowcaseArtist[] {
       seen.set(track.artist.id, {
         id: track.artist.id,
         name: track.artist.name,
-        coverUrl: track.album.cover_xl,
+        // Vestigial (avatars now resolve Apple artist art by name); keep it
+        // non-Deezer so nothing unlicensed is ever persisted.
+        coverUrl: track.artworkUrl ?? '',
       });
     }
   }
@@ -90,7 +92,7 @@ function ArtistRow({
       onPress={onToggle}
       activeOpacity={0.7}
     >
-      <Image source={{ uri: artist.coverUrl }} style={styles.rowArtCircle} />
+      <AppleArtistArtwork name={artist.name} style={styles.rowArtCircle} />
       <View style={styles.rowText}>
         <Text style={styles.rowTitle} numberOfLines={1}>{artist.name}</Text>
       </View>

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator, Image, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, TextInput, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,6 +19,7 @@ import { syncReengagementNotifications } from '../src/notifications/coordinator'
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 import GradientText from '../src/components/GradientText';
 import AppleArtwork from '../src/components/AppleArtwork';
+import AppleArtistArtwork from '../src/components/AppleArtistArtwork';
 import { GENRE_ARTISTS, GENRE_COLORS, GENRES } from '../src/utils/genres';
 import type { DeezerTrack } from '../src/api/types';
 import { db, auth } from '../src/firebase/config';
@@ -356,7 +357,7 @@ export default function OnboardingScreen() {
             <View style={{ gap: 4, marginBottom: SPACING.sm }}>
               {artistResults.map((a) => (
                 <TouchableOpacity key={a.name} style={styles.artistResultRow} onPress={() => addArtist(a)} activeOpacity={0.75}>
-                  {a.picture ? <Image source={{ uri: a.picture }} style={styles.artistThumb} /> : <View style={[styles.artistThumb, { backgroundColor: COLORS.border }]} />}
+                  <AppleArtistArtwork name={a.name} style={styles.artistThumb} initialSize={16} />
                   <Text style={styles.artistResultName} numberOfLines={1}>{a.name}</Text>
                   <Ionicons name="add-circle" size={22} color={COLORS.green} />
                 </TouchableOpacity>
@@ -367,7 +368,7 @@ export default function OnboardingScreen() {
             <View style={{ gap: 6, marginTop: SPACING.sm }}>
               {favoriteArtists.map((a) => (
                 <View key={a.name} style={styles.artistChip}>
-                  {a.picture ? <Image source={{ uri: a.picture }} style={styles.artistChipImg} /> : <View style={[styles.artistChipImg, { backgroundColor: COLORS.border }]} />}
+                  <AppleArtistArtwork name={a.name} style={styles.artistChipImg} initialSize={14} />
                   <Text style={styles.artistChipName} numberOfLines={1}>{a.name}</Text>
                   <TouchableOpacity onPress={() => removeArtist(a.name)} hitSlop={8}><Ionicons name="close-circle" size={20} color={COLORS.textMuted} /></TouchableOpacity>
                 </View>

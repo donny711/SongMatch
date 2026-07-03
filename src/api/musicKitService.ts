@@ -14,6 +14,7 @@ const APPLE_PROXY = MUSIC_PROXY_URL ? `${MUSIC_PROXY_URL}/apple` : '';
 
 const DEFAULT_ART_SIZE = 1000;
 const CACHE_PREFIX = 'applematch_v1_';
+const ARTIST_CACHE_PREFIX = 'appleartist_v1_';
 
 export interface Artwork {
   appleMusicId: string | null;
@@ -126,6 +127,48 @@ export async function resolveArtwork(track: DeezerTrack): Promise<Artwork> {
 
   await writeCache(track.id, result);
   return result;
+}
+
+// ── Artist artwork ───────────────────────────────────────────────────────────
+
+const artistMem = new Map<string, string | null>();
+
+/**
+ * Resolve licensed Apple Music **artist** artwork by name (there is no ISRC for
+ * artists, so this is a name search). Returns an interpolated URL or null when
+ * Apple has no match. Cached — including misses — so a name is looked up once.
+ */
+export async function resolveArtistArtwork(name: string): Promise<string | null> {
+  const trimmed = name?.trim();
+  if (!trimmed) return null;
+  const key = `${ARTIST_CACHE_PREFIX}${trimmed.toLowerCase()}`;
+
+  if (artistMem.has(key)) return artistMem.get(key)!;
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (raw !== null) {
+      const v = JSON.parse(raw) as string | null;
+      artistMem.set(key, v);
+      return v;
+    }
+  } catch {
+    // fall through to a live lookup
+  }
+
+  let url: string | null = null;
+  const data = await appleGet(
+    `/v1/catalog/${STOREFRONT}/search?term=${encodeURIComponent(trimmed)}&types=artists&limit=1`
+  );
+  const tmpl = data?.results?.artists?.data?.[0]?.attributes?.artwork?.url ?? null;
+  if (tmpl) url = buildArtworkUrl(tmpl, 300);
+
+  artistMem.set(key, url);
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(url));
+  } catch {
+    // best-effort cache
+  }
+  return url;
 }
 
 /**
