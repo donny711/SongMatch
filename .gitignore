@@ -42,3 +42,7 @@ functions/.env
 # generated native folders
 /ios
 /android
+
+# Firebase Admin service-account key (never commit)
+serviceAccount.json
+*-adminsdk-*.json
