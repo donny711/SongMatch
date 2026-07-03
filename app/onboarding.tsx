@@ -13,6 +13,9 @@ import { getRecommendationsForSeeds } from '../src/api/endpoints';
 import { useDeckStore } from '../src/store/deckStore';
 import { useProfileStore } from '../src/store/profileStore';
 import { useTutorialStore } from '../src/store/tutorialStore';
+import { useSettingsStore } from '../src/store/settingsStore';
+import { primeNotificationPermission } from '../src/notifications/notificationService';
+import { syncReengagementNotifications } from '../src/notifications/coordinator';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 import GradientText from '../src/components/GradientText';
 import { GENRE_ARTISTS, GENRE_COLORS, GENRES } from '../src/utils/genres';
@@ -410,7 +413,7 @@ export default function OnboardingScreen() {
           <Text style={styles.taglineText}>{streakCount <= 1 ? 'Your streak begins!' : 'Welcome back!'}</Text>
         </Animated.View>
         <View style={[styles.streakBtnWrap, { bottom: insets.bottom + SPACING.xl }]}>
-          <TouchableOpacity style={styles.primaryBtn} onPress={() => { useProfileStore.getState().clearStreakAnim(); if (isNewSignUp) useTutorialStore.getState().prime(); router.replace('/(tabs)/home'); }} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.primaryBtn} onPress={async () => { useProfileStore.getState().clearStreakAnim(); if (isNewSignUp) useTutorialStore.getState().prime(); const granted = await primeNotificationPermission(); if (granted) { useSettingsStore.getState().setNotificationsEnabled(true); syncReengagementNotifications(); } router.replace('/(tabs)/home'); }} activeOpacity={0.85}>
             <Text style={styles.primaryBtnText}>{"Let's Go"}</Text><Ionicons name="arrow-forward" size={18} color="#fff" />
           </TouchableOpacity>
         </View>

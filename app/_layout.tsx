@@ -21,6 +21,8 @@ import { useReferral } from '../src/hooks/useReferral';
 import { TutorialMeasureProvider } from '../src/components/tutorial/TutorialMeasureContext';
 import { TutorialOverlay } from '../src/components/tutorial/TutorialOverlay';
 import { useTutorialStore } from '../src/store/tutorialStore';
+import { configureHandler, addTapListener } from '../src/notifications/notificationService';
+import { syncReengagementNotifications } from '../src/notifications/coordinator';
 
 Sentry.init({
   // DSN is public by design (it can only receive crash reports); env var
@@ -34,6 +36,9 @@ Sentry.init({
 
 // Load tutorial state from AsyncStorage on app start
 useTutorialStore.getState().load();
+
+// How local notifications present while the app is foregrounded.
+configureHandler();
 
 async function prefetchRecommendations() {
   const { likedTracks, seenTrackIds, artistSkipCounts, onboardingSongId, onboardingArtistTrackIds, appendQueue } =
@@ -143,8 +148,8 @@ function RootLayout() {
         if (spotifyUserId) {
           useProfileStore.getState().grantMilestone('ms_connect_spotify').catch(() => {});
         }
-        // Check streak on launch
-        useProfileStore.getState().checkAndUpdateStreak();
+        // Check streak on launch, then schedule re-engagement notifications.
+        useProfileStore.getState().checkAndUpdateStreak().then(syncReengagementNotifications);
         // Initialize subscription store
         if (uid) {
           useSubscriptionStore.getState().initialize(uid).catch(() => {});
@@ -167,15 +172,22 @@ function RootLayout() {
       Sentry.captureException(err);
     });
 
-    // Check streak whenever app comes back to foreground
+    // Keep streak + re-engagement notifications in sync with app state.
     const sub = AppState.addEventListener('change', (nextState) => {
       if (appState.current.match(/inactive|background/) && nextState === 'active') {
-        useProfileStore.getState().checkAndUpdateStreak();
+        // Foreground: refresh streak, then reschedule from the fresh state.
+        useProfileStore.getState().checkAndUpdateStreak().then(syncReengagementNotifications);
+      } else if (nextState.match(/inactive|background/)) {
+        // Backgrounding: (re)schedule the come-back + streak nudges from now.
+        syncReengagementNotifications();
       }
       appState.current = nextState;
     });
 
-    return () => sub.remove();
+    // All nudges deep-link to the discovery deck.
+    const tapSub = addTapListener(() => router.navigate('/(tabs)/home'));
+
+    return () => { sub.remove(); tapSub.remove(); };
   }, []);
 
   return (

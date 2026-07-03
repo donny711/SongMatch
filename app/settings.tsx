@@ -27,6 +27,8 @@ import { auth } from '../src/firebase/config';
 import { useAuthStore } from '../src/store/authStore';
 import { TokenStorage } from '../src/auth/TokenStorage';
 import { useTutorialStore } from '../src/store/tutorialStore';
+import { ensurePermission } from '../src/notifications/notificationService';
+import { syncReengagementNotifications } from '../src/notifications/coordinator';
 
 // ── Reusable row ───────────────────────────────────────────────────────────────
 
@@ -83,13 +85,34 @@ function Divider() {
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { onboardingGenres, clearSeenTracks, clearHistory } = useDeckStore();
-  const { genreShiftAfter, autoPlayPreviews, setGenreShiftAfter, setAutoPlayPreviews } =
+  const { genreShiftAfter, autoPlayPreviews, notificationsEnabled, setGenreShiftAfter, setAutoPlayPreviews, setNotificationsEnabled } =
     useSettingsStore();
   const isPrivate = useProfileStore((s) => s.isPrivate);
   const togglePrivate = useProfileStore((s) => s.togglePrivate);
   const isPro = useSubscriptionStore((s) => s.isPro);
   const tier = useSubscriptionStore((s) => s.tier);
   const isLoggedIn = !!auth.currentUser;
+
+  const handleToggleNotifications = useCallback(async (value: boolean) => {
+    if (value) {
+      const granted = await ensurePermission();
+      if (!granted) {
+        Alert.alert(
+          'Turn on notifications',
+          'Enable notifications for SongMatch in your device Settings to get reminders.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            { text: 'Open Settings', onPress: () => Linking.openSettings() },
+          ]
+        );
+        return; // leave the toggle off
+      }
+      setNotificationsEnabled(true);
+    } else {
+      setNotificationsEnabled(false);
+    }
+    await syncReengagementNotifications();
+  }, [setNotificationsEnabled]);
 
   const handleRedoQuiz = useCallback(() => {
     Alert.alert(
@@ -491,6 +514,28 @@ export default function SettingsScreen() {
                 onValueChange={setAutoPlayPreviews}
                 trackColor={{ false: COLORS.border, true: `${COLORS.purple}88` }}
                 thumbColor={autoPlayPreviews ? COLORS.purple : COLORS.textMuted}
+              />
+            </View>
+          </SectionCard>
+        </View>
+
+        {/* ── Notifications ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Notifications</Text>
+          <SectionCard>
+            <View style={styles.row}>
+              <View style={[styles.rowIcon, { backgroundColor: `${COLORS.orange}22` }]}>
+                <Ionicons name="notifications-outline" size={16} color={COLORS.orange} />
+              </View>
+              <View style={styles.rowText}>
+                <Text style={styles.rowLabel}>Reminders</Text>
+                <Text style={styles.rowSub}>Streak alerts & nudges to discover music</Text>
+              </View>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleToggleNotifications}
+                trackColor={{ false: COLORS.border, true: `${COLORS.orange}88` }}
+                thumbColor={notificationsEnabled ? COLORS.orange : COLORS.textMuted}
               />
             </View>
           </SectionCard>

@@ -37,6 +37,7 @@ interface ProfileState {
   totalEarned: number;
   currentStreak: number;
   longestStreak: number;
+  lastActiveDate: string; // YYYY-MM-DD of last streak check-in (for notif scheduling)
   earnedMilestones: string[];
   ownedItems: string[];
   equippedItems: EquippedItems;
@@ -85,6 +86,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
   totalEarned: 0,
   currentStreak: 0,
   longestStreak: 0,
+  lastActiveDate: '',
   earnedMilestones: [],
   ownedItems: ['theme_default'],
   equippedItems: {
@@ -176,6 +178,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       totalEarned: profile.totalEarned,
       currentStreak: profile.currentStreak,
       longestStreak: profile.longestStreak,
+      lastActiveDate: profile.lastActiveDate ?? '',
       earnedMilestones: profile.earnedMilestones,
       ownedItems: profile.ownedItems,
       equippedItems: profile.equippedItems,

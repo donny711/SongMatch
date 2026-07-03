@@ -6,14 +6,16 @@ export type GenreShiftAfter = 3 | 5 | 10;
 interface SettingsState {
   genreShiftAfter: GenreShiftAfter;
   autoPlayPreviews: boolean;
+  notificationsEnabled: boolean;
   setGenreShiftAfter: (v: GenreShiftAfter) => void;
   setAutoPlayPreviews: (v: boolean) => void;
+  setNotificationsEnabled: (v: boolean) => void;
   load: () => Promise<void>;
 }
 
 const SETTINGS_KEY = 'sm_settings';
 
-async function persist(patch: Partial<Pick<SettingsState, 'genreShiftAfter' | 'autoPlayPreviews'>>) {
+async function persist(patch: Partial<Pick<SettingsState, 'genreShiftAfter' | 'autoPlayPreviews' | 'notificationsEnabled'>>) {
   const raw = await AsyncStorage.getItem(SETTINGS_KEY);
   const current = raw ? JSON.parse(raw) : {};
   await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({ ...current, ...patch }));
@@ -22,6 +24,7 @@ async function persist(patch: Partial<Pick<SettingsState, 'genreShiftAfter' | 'a
 export const useSettingsStore = create<SettingsState>((set) => ({
   genreShiftAfter: 5,
   autoPlayPreviews: true,
+  notificationsEnabled: false, // off until the user accepts the post-onboarding prime
 
   setGenreShiftAfter: (v) => {
     set({ genreShiftAfter: v });
@@ -33,6 +36,11 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     persist({ autoPlayPreviews: v });
   },
 
+  setNotificationsEnabled: (v) => {
+    set({ notificationsEnabled: v });
+    persist({ notificationsEnabled: v });
+  },
+
   load: async () => {
     const raw = await AsyncStorage.getItem(SETTINGS_KEY);
     if (!raw) return;
@@ -41,6 +49,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       set({
         genreShiftAfter: saved.genreShiftAfter ?? 5,
         autoPlayPreviews: saved.autoPlayPreviews ?? true,
+        notificationsEnabled: saved.notificationsEnabled ?? false,
       });
     } catch {}
   },
