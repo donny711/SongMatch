@@ -6,5 +6,10 @@ compatibility_date = "2025-01-01"
 binding = "CACHE"
 id = "fd83b40bff0b44ce8963a13b0f84af26"
 
-# Store LASTFM_API_KEY as a secret (never in this file):
+# Store secrets (never in this file):
 #   wrangler secret put LASTFM_API_KEY
+#
+# MusicKit developer-token signing — the .p8 private key + identifiers:
+#   wrangler secret put MUSICKIT_TEAM_ID       # Apple Team ID
+#   wrangler secret put MUSICKIT_KEY_ID        # MusicKit Key ID
+#   wrangler secret put MUSICKIT_PRIVATE_KEY   # full .p8 PEM contents (paste incl. BEGIN/END lines)
