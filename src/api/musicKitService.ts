@@ -1,0 +1,152 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDeezerTrackById } from './deezerClient';
+import { MUSIC_PROXY_URL } from '../utils/constants';
+import type { DeezerTrack } from './types';
+
+// Apple Music catalog is storefront-scoped; SongMatch queries the US storefront
+// (largest catalog, safest for ISRC/text matching). See migration design doc.
+const STOREFRONT = 'us';
+
+// All Apple calls go through the Cloudflare Worker proxy, which injects the
+// developer token server-side and caches responses in KV. In local dev without
+// the proxy configured, artwork resolution is a no-op (components fall back).
+const APPLE_PROXY = MUSIC_PROXY_URL ? `${MUSIC_PROXY_URL}/apple` : '';
+
+const DEFAULT_ART_SIZE = 1000;
+const CACHE_PREFIX = 'applematch_v1_';
+
+export interface Artwork {
+  appleMusicId: string | null;
+  artworkTemplate: string | null; // e.g. https://.../{w}x{h}bb.jpg
+  artworkUrl: string | null;       // template interpolated at DEFAULT_ART_SIZE
+}
+
+const EMPTY: Artwork = { appleMusicId: null, artworkTemplate: null, artworkUrl: null };
+
+interface AppleSong {
+  id: string;
+  attributes?: { artwork?: { url?: string } };
+}
+
+/** Interpolate Apple's `{w}x{h}` artwork template to a concrete pixel size. */
+export function buildArtworkUrl(template: string, size = DEFAULT_ART_SIZE): string {
+  return template.replace('{w}', String(size)).replace('{h}', String(size));
+}
+
+// ── Apple catalog lookups (via Worker proxy) ────────────────────────────────
+
+async function appleGet(path: string): Promise<any | null> {
+  if (!APPLE_PROXY) return null;
+  try {
+    const res = await fetch(`${APPLE_PROXY}${path}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function searchByIsrc(isrc: string): Promise<AppleSong | null> {
+  const data = await appleGet(
+    `/v1/catalog/${STOREFRONT}/songs?filter[isrc]=${encodeURIComponent(isrc)}&limit=1`
+  );
+  return data?.data?.[0] ?? null;
+}
+
+async function searchByText(title: string, artist: string): Promise<AppleSong | null> {
+  const term = encodeURIComponent(`${title} ${artist}`);
+  const data = await appleGet(
+    `/v1/catalog/${STOREFRONT}/search?term=${term}&types=songs&limit=1`
+  );
+  return data?.results?.songs?.data?.[0] ?? null;
+}
+
+// ── Cache: in-memory Map + AsyncStorage (mirrors the tag cache pattern) ──────
+
+const mem = new Map<string, Artwork>();
+
+async function readCache(id: number): Promise<Artwork | null> {
+  const key = `${CACHE_PREFIX}${id}`;
+  const hit = mem.get(key);
+  if (hit) return hit;
+  try {
+    const raw = await AsyncStorage.getItem(key);
+    if (!raw) return null;
+    const val = JSON.parse(raw) as Artwork;
+    mem.set(key, val);
+    return val;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCache(id: number, val: Artwork): Promise<void> {
+  const key = `${CACHE_PREFIX}${id}`;
+  mem.set(key, val);
+  try {
+    await AsyncStorage.setItem(key, JSON.stringify(val));
+  } catch {
+    // best-effort cache; never block on storage
+  }
+}
+
+// ── Public API ──────────────────────────────────────────────────────────────
+
+/**
+ * Resolve a Deezer track to its licensed Apple Music artwork.
+ *
+ * ISRC-first: fetches the ISRC from Deezer /track/{id} when the track doesn't
+ * already carry one, matches the Apple catalog exactly, and only falls back to
+ * a fuzzy title+artist search when no ISRC match exists. Results (including
+ * misses) are cached so we never repeat a lookup for the same track.
+ */
+export async function resolveArtwork(track: DeezerTrack): Promise<Artwork> {
+  const cached = await readCache(track.id);
+  if (cached) return cached;
+
+  let result: Artwork = EMPTY;
+
+  let isrc = track.isrc;
+  if (!isrc) {
+    const full = await getDeezerTrackById(track.id).catch(() => null);
+    isrc = full?.isrc;
+  }
+
+  let song = isrc ? await searchByIsrc(isrc) : null;
+  if (!song) song = await searchByText(track.title, track.artist.name);
+
+  if (song) {
+    const template = song.attributes?.artwork?.url ?? null;
+    result = {
+      appleMusicId: song.id ?? null,
+      artworkTemplate: template,
+      artworkUrl: template ? buildArtworkUrl(template) : null,
+    };
+  }
+
+  await writeCache(track.id, result);
+  return result;
+}
+
+/**
+ * Enrich a batch of tracks with Apple artwork, bounded concurrency so we don't
+ * fire dozens of simultaneous lookups. Tracks with no catalog match are
+ * returned unchanged (UI applies a placeholder).
+ */
+export async function resolveArtworkForTracks(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
+  const BATCH = 6;
+  const out: DeezerTrack[] = [];
+  for (let i = 0; i < tracks.length; i += BATCH) {
+    const slice = tracks.slice(i, i + BATCH);
+    const arts = await Promise.all(slice.map((t) => resolveArtwork(t).catch(() => EMPTY)));
+    slice.forEach((t, j) => {
+      const a = arts[j];
+      out.push(
+        a.artworkUrl
+          ? { ...t, artworkUrl: a.artworkUrl, appleMusicId: a.appleMusicId ?? undefined }
+          : t
+      );
+    });
+  }
+  return out;
+}

@@ -89,6 +89,11 @@ export interface DeezerTrack {
   preview: string;
   duration: number;
   link: string;
+  isrc?: string;          // present on Deezer /track/{id}; used to match Apple catalog
+  // Apple Music artwork enrichment (populated by musicKitService; album.cover_xl
+  // is the legacy Deezer fallback only). appleMusicId kept for Firestore/rollback.
+  artworkUrl?: string;
+  appleMusicId?: string;
 }
 
 // ── Shared card type ──────────────────────────────────────────────────────────
