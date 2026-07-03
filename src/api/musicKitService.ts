@@ -12,6 +12,12 @@ const STOREFRONT = 'us';
 // the proxy configured, artwork resolution is a no-op (components fall back).
 const APPLE_PROXY = MUSIC_PROXY_URL ? `${MUSIC_PROXY_URL}/apple` : '';
 
+// Artwork is impossible without the proxy (the Apple token lives server-side).
+// Surface that loudly in dev instead of silently rendering placeholders.
+if (__DEV__ && !APPLE_PROXY) {
+  console.warn('[artwork] EXPO_PUBLIC_MUSIC_PROXY_URL is not set — Apple artwork disabled, all covers will be placeholders');
+}
+
 const DEFAULT_ART_SIZE = 1000;
 const CACHE_PREFIX = 'applematch_v2_'; // v2: v1 cached transient failures as permanent misses
 const ARTIST_CACHE_PREFIX = 'appleartist_v1_';
@@ -119,12 +125,16 @@ export async function resolveArtwork(track: DeezerTrack): Promise<Artwork> {
       artworkTemplate: template,
       artworkUrl: template ? buildArtworkUrl(template) : null,
     };
+    if (__DEV__ && !result.artworkUrl) {
+      console.log(`[artwork] NO MATCH: "${track.title}" — ${track.artist.name} (isrc=${isrc ?? 'none'})`);
+    }
     // Cache only a COMPLETED lookup (a real match or a genuine no-match from
     // Apple). Transient failures throw below and are NOT cached, so they retry
     // next time instead of being remembered as a permanent miss.
     await writeCache(track.id, result);
     return result;
-  } catch {
+  } catch (e: any) {
+    if (__DEV__) console.log(`[artwork] LOOKUP FAILED: "${track.title}" — ${e?.message ?? e}`);
     return EMPTY;
   }
 }
@@ -195,6 +205,10 @@ export async function resolveArtworkForTracks(tracks: DeezerTrack[]): Promise<De
           : t
       );
     });
+  }
+  if (__DEV__) {
+    const hit = out.filter((t) => t.artworkUrl).length;
+    console.log(`[artwork] batch: ${hit}/${out.length} covers resolved (proxy=${APPLE_PROXY || 'NOT SET'})`);
   }
   return out;
 }
