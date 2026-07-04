@@ -27,7 +27,7 @@ import { auth } from '../src/firebase/config';
 import { useAuthStore } from '../src/store/authStore';
 import { TokenStorage } from '../src/auth/TokenStorage';
 import { useTutorialStore } from '../src/store/tutorialStore';
-import { ensurePermission } from '../src/notifications/notificationService';
+import { ensurePermission, sendTestNotification } from '../src/notifications/notificationService';
 import { syncReengagementNotifications } from '../src/notifications/coordinator';
 
 // ── Reusable row ───────────────────────────────────────────────────────────────
@@ -113,6 +113,16 @@ export default function SettingsScreen() {
     }
     await syncReengagementNotifications();
   }, [setNotificationsEnabled]);
+
+  const handleTestNotification = useCallback(async () => {
+    const ok = await sendTestNotification();
+    Alert.alert(
+      ok ? 'Test scheduled' : 'Notifications are off',
+      ok
+        ? 'Lock or background the app now — it arrives in about 5 seconds.'
+        : 'Turn on Reminders above (or in device Settings) first.'
+    );
+  }, []);
 
   const handleRedoQuiz = useCallback(() => {
     Alert.alert(
@@ -538,6 +548,14 @@ export default function SettingsScreen() {
                 thumbColor={notificationsEnabled ? COLORS.orange : COLORS.textMuted}
               />
             </View>
+            <Divider />
+            <SettingRow
+              icon="paper-plane-outline"
+              iconColor={COLORS.cyan}
+              label="Send test notification"
+              sublabel="Fires in ~5s — background the app to see it"
+              onPress={handleTestNotification}
+            />
           </SectionCard>
         </View>
 

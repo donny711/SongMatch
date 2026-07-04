@@ -60,6 +60,26 @@ export function primeNotificationPermission(): Promise<boolean> {
   });
 }
 
+/**
+ * Fire a one-off local notification ~5s from now to verify the on-device
+ * pipeline (permission + handler + delivery). Returns false if permission
+ * isn't granted. Exposed via a Settings button for manual QA.
+ */
+export async function sendTestNotification(): Promise<boolean> {
+  const granted = await ensurePermission();
+  if (!granted) return false;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      identifier: 'test-notification',
+      content: { title: 'SongMatch', body: "Test notification — you're all set 🎧" },
+      trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 5, repeats: false },
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function toTrigger(n: Nudge): Notifications.NotificationTriggerInput {
   if (n.trigger.type === 'delay') {
     return {
