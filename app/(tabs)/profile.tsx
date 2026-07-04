@@ -10,11 +10,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../src/store/authStore';
 import { useDeckStore } from '../../src/store/deckStore';
 import { useProfileStore } from '../../src/store/profileStore';
-import { useSubscriptionStore } from '../../src/store/subscriptionStore';
 import { TokenStorage } from '../../src/auth/TokenStorage';
 import { AvatarWithFrame } from '../../src/components/profile/AvatarWithFrame';
 import { ProfileBackground, ProfileThemeBackground } from '../../src/components/profile/ProfileBackground';
@@ -181,7 +179,6 @@ export default function ProfileScreen() {
   const user = useAuthStore((s) => s.user);
   const { likedTracks, skippedCount } = useDeckStore();
   const insets = useSafeAreaInsets();
-  const isPro = useSubscriptionStore((s) => s.isPro);
   const [statsRowHeight, setStatsRowHeight] = React.useState(96);
   const [contentHeight, setContentHeight] = React.useState(0);
 
@@ -344,43 +341,6 @@ export default function ProfileScreen() {
             <Ionicons name="storefront" size={14} color="#22D3EE" />
             <Text style={[styles.actionBtnText, { color: '#22D3EE' }]}>Shop</Text>
           </TouchableOpacity>
-          {isPro ? (
-            <TouchableOpacity
-              style={[styles.actionBtn, styles.actionBtnPro]}
-              onPress={() => router.push('/referral')}
-              activeOpacity={0.85}
-            >
-              <Ionicons name="flash" size={14} color="#A78BFA" />
-              <Text style={[styles.actionBtnText, { color: '#A78BFA' }]}>Pro</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.upgradeBtn}
-              onPress={() => router.push('/upgrade')}
-              activeOpacity={0.85}
-            >
-              {themeItem && themeItem.animationType !== 'static' ? (
-                <View style={styles.upgradeBtnGrad}>
-                  <View style={StyleSheet.absoluteFill}>
-                    <ProfileBackground backgroundId={equippedItems.cardTheme} height={60} />
-                  </View>
-                  <Ionicons name="flash" size={13} color="#fff" />
-                  <Text style={styles.upgradeBtnText}>Go Pro</Text>
-                </View>
-              ) : (
-                <LinearGradient
-                  colors={[rankCardColor, rankCardColor, '#ffffff']}
-                  locations={[0, 0.55, 1]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={styles.upgradeBtnGrad}
-                >
-                  <Ionicons name="flash" size={13} color="#fff" />
-                  <Text style={styles.upgradeBtnText}>Go Pro</Text>
-                </LinearGradient>
-              )}
-            </TouchableOpacity>
-          )}
         </View>
       </View>
 

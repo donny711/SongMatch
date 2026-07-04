@@ -204,7 +204,6 @@ function RootLayout() {
           <Stack.Screen name="user/[uid]" options={{ presentation: 'card' }} />
           <Stack.Screen name="who-liked/[trackId]" options={{ presentation: 'modal' }} />
           <Stack.Screen name="earn-mp" options={{ presentation: 'modal' }} />
-          <Stack.Screen name="upgrade" options={{ presentation: 'modal' }} />
           <Stack.Screen name="referral" options={{ presentation: 'card' }} />
         </Stack>
         <MPToast />

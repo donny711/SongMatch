@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LLM Council Report — SongMatch Launch Decision</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9f9fb; color: #1a1a2e; line-height: 1.6; }
+  .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  /* Header */
+  .header { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px 32px; margin-bottom: 28px; }
+  .header-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280; margin-bottom: 10px; }
+  .header h1 { font-size: 22px; font-weight: 800; color: #111; line-height: 1.3; margin-bottom: 10px; }
+  .header-meta { font-size: 13px; color: #6b7280; }
+
+  /* Verdict card */
+  .verdict { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 28px; }
+  .verdict h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 20px; }
+  .verdict-section { margin-bottom: 24px; }
+  .verdict-section:last-child { margin-bottom: 0; }
+  .verdict-section h3 { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .verdict-section p, .verdict-section li { font-size: 14.5px; color: #374151; line-height: 1.7; }
+  .verdict-section ul { padding-left: 18px; }
+  .verdict-section ul li { margin-bottom: 6px; }
+
+  /* Alert box */
+  .alert { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 10px; padding: 18px 20px; margin-bottom: 28px; }
+  .alert-title { font-size: 13px; font-weight: 800; color: #92400e; letter-spacing: 0.3px; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .alert p { font-size: 14px; color: #78350f; line-height: 1.65; }
+
+  /* One thing */
+  .one-thing { background: #111; border-radius: 12px; padding: 28px 32px; margin-bottom: 28px; }
+  .one-thing-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9ca3af; margin-bottom: 10px; }
+  .one-thing p { font-size: 15.5px; color: #f9fafb; line-height: 1.7; }
+
+  /* Alignment grid */
+  .alignment { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px 28px; margin-bottom: 28px; }
+  .alignment h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 18px; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .advisor-chip { border-radius: 8px; padding: 12px 10px; text-align: center; font-size: 11.5px; font-weight: 600; }
+  .chip-label { font-size: 10px; color: #6b7280; margin-bottom: 4px; }
+  .chip-name { font-weight: 700; font-size: 12px; margin-bottom: 6px; }
+  .chip-position { font-size: 11.5px; font-weight: 600; border-radius: 4px; padding: 2px 7px; display: inline-block; }
+  .pos-ship { background: #d1fae5; color: #065f46; }
+  .pos-delay { background: #fee2e2; color: #991b1b; }
+  .pos-conditional { background: #e0e7ff; color: #3730a3; }
+  .chip-bg-1 { background: #fff7ed; border: 1px solid #fed7aa; }
+  .chip-bg-2 { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .chip-bg-3 { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .chip-bg-4 { background: #fdf4ff; border: 1px solid #e9d5ff; }
+  .chip-bg-5 { background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+  /* Collapsible advisors */
+  .collapsibles { margin-bottom: 28px; }
+  .collapsibles h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 14px; }
+  details { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+  summary { padding: 14px 18px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: #111; list-style: none; user-select: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '▾'; font-size: 13px; color: #9ca3af; }
+  details[open] summary::after { content: '▴'; }
+  .detail-body { padding: 0 18px 18px; font-size: 14px; color: #374151; line-height: 1.7; border-top: 1px solid #f3f4f6; padding-top: 14px; }
+  .detail-body p { margin-bottom: 10px; }
+  .detail-body p:last-child { margin-bottom: 0; }
+  .advisor-tag { font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 2px 8px; margin-right: 8px; }
+  .tag-against { background: #fee2e2; color: #991b1b; }
+  .tag-for { background: #d1fae5; color: #065f46; }
+  .tag-conditional { background: #e0e7ff; color: #3730a3; }
+
+  /* Peer review section */
+  .peer-review { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px 28px; margin-bottom: 28px; }
+  .peer-review h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 14px; }
+  .pr-item { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
+  .pr-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .pr-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #9ca3af; margin-bottom: 4px; }
+  .pr-value { font-size: 14px; color: #374151; line-height: 1.65; }
+  .pr-unanimous { display: inline-block; font-size: 10.5px; font-weight: 700; background: #d1fae5; color: #065f46; border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
+
+  /* Footer */
+  .footer { text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-label">LLM Council Report</div>
+    <h1>Should I launch SongMatch to the App Store within 7 days?</h1>
+    <div class="header-meta">Solo developer · 3+ months of development · iOS music discovery app · June 8, 2026</div>
+  </div>
+
+  <!-- Alert: Deezer -->
+  <div class="alert">
+    <div class="alert-title">⚠ Critical Risk — Surfaced by Peer Review Only</div>
+    <p>The entire core mechanic (30-second preview swipes) runs on Deezer's API. None of the five advisors asked whether your ads + Pro subscription + App Store distribution model is permitted under Deezer's commercial use terms. If it is not, the app cannot legally ship in its current form on any timeline. This must be verified before any other launch step.</p>
+  </div>
+
+  <!-- One Thing -->
+  <div class="one-thing">
+    <div class="one-thing-label">The One Thing to Do First</div>
+    <p>Read the Deezer API Terms of Service today — specifically the commercial use, monetization, and third-party distribution clauses — and confirm that your ads + subscription + App Store distribution model is permitted. Everything else is downstream of this answer.</p>
+  </div>
+
+  <!-- Verdict -->
+  <div class="verdict">
+    <h2>Chairman's Verdict</h2>
+
+    <div class="verdict-section">
+      <h3>📋 Where the Council Agrees</h3>
+      <ul>
+        <li><strong>The naming inconsistency is a trust-killer.</strong> "SongMatch" vs "SoundMatch" appearing inconsistently signals either an abandoned rebrand or a developer who hasn't fully read their own product. App Store reviewers and users both notice this in the first 60 seconds.</li>
+        <li><strong>The disabled tutorial breaks Day 1 retention.</strong> The app has swipe mechanics, a taste profile, a social layer, streaks, a shop, and cosmetics — none of it is self-explanatory. Shipping without onboarding guarantees churn.</li>
+        <li><strong>The dual-database setup (Firebase + Supabase) is an active liability.</strong> Two billing relationships, two auth flows, two security rule sets, and a data divergence risk with no reconciliation strategy. App Review can flag this. Production will expose it.</li>
+      </ul>
+    </div>
+
+    <div class="verdict-section">
+      <h3>⚡ Where the Council Clashes</h3>
+      <p><strong>The Executor + Expansionist:</strong> These three blockers are mechanical fixes achievable in ~48 hours each. Real user data is worth more than internal polish. Ship in 7 days with those fixes done.</p>
+      <br/>
+      <p><strong>The Contrarian + First Principles Thinker:</strong> Those fixes are symptoms of a product that hasn't been fully audited. The 75-swipe daily cap is hostile monetization for an unproven app with no user base. A bad launch poisons the well. Take 2–3 more weeks.</p>
+      <br/>
+      <p>The disagreement hinges on one empirical question the council can't answer: how long do those three fixes actually take on this codebase? The Executor assumes fast. The Contrarian suspects they'll reveal deeper problems. Both could be right.</p>
+    </div>
+
+    <div class="verdict-section">
+      <h3>🔍 Blind Spots the Council Caught</h3>
+      <p><strong>Deezer API commercial terms (caught unanimously in peer review).</strong> The entire product mechanic is built on Deezer's API. Not one advisor asked about rate limits, commercial licensing, or whether AdMob ads + a paid Pro subscription tier is permitted. This is potentially the most existential risk in the product and was invisible until the peer review round.</p>
+    </div>
+
+    <div class="verdict-section">
+      <h3>✅ The Recommendation</h3>
+      <p><strong>Do not ship in 7 days.</strong></p>
+      <br/>
+      <p>Not because 7 days is the wrong number — but because there is a legal/business question that must be answered before any launch timeline is meaningful.</p>
+      <br/>
+      <p><strong>If Deezer permits this monetization structure:</strong> The Executor's plan is correct. Fix the name, consolidate the database, repair the tutorial. Ship in ~14 days — not 7, because fixing a dual-database situation correctly takes longer than an afternoon. Use TestFlight for one week before App Store submission as a buffer.</p>
+      <br/>
+      <p><strong>If Deezer does not permit this monetization structure:</strong> No timeline applies until either a commercial license is obtained, an alternative preview provider is used, or the monetization model is restructured.</p>
+      <br/>
+      <p>The Expansionist's optimism about the opportunity is not wrong — the social layer, the swipe mechanic, the early-mover position are real. But the opportunity only matters if the product survives its first 90 days.</p>
+    </div>
+  </div>
+
+  <!-- Alignment Grid -->
+  <div class="alignment">
+    <h2>Advisor Positions</h2>
+    <div class="grid">
+      <div class="advisor-chip chip-bg-1">
+        <div class="chip-label">Advisor 1</div>
+        <div class="chip-name">The Contrarian</div>
+        <span class="chip-position pos-delay">Don't ship</span>
+      </div>
+      <div class="advisor-chip chip-bg-2">
+        <div class="chip-label">Advisor 2</div>
+        <div class="chip-name">First Principles</div>
+        <span class="chip-position pos-conditional">TestFlight first</span>
+      </div>
+      <div class="advisor-chip chip-bg-3">
+        <div class="chip-label">Advisor 3</div>
+        <div class="chip-name">The Expansionist</div>
+        <span class="chip-position pos-ship">Ship it</span>
+      </div>
+      <div class="advisor-chip chip-bg-4">
+        <div class="chip-label">Advisor 4</div>
+        <div class="chip-name">The Outsider</div>
+        <span class="chip-position pos-conditional">Fix 2 things, ship</span>
+      </div>
+      <div class="advisor-chip chip-bg-5">
+        <div class="chip-label">Advisor 5</div>
+        <div class="chip-name">The Executor</div>
+        <span class="chip-position pos-ship">Ship in 7 days</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peer Review Summary -->
+  <div class="peer-review">
+    <h2>Peer Review Highlights</h2>
+    <div class="pr-item">
+      <div class="pr-label">Strongest Response <span class="pr-unanimous">Unanimous</span></div>
+      <div class="pr-value"><strong>The Executor</strong> — "The only response that converts analysis into an actionable day-by-day plan. It identifies the three real blockers, dismisses the noise, and answers the actual question asked."</div>
+    </div>
+    <div class="pr-item">
+      <div class="pr-label">Biggest Blind Spot <span class="pr-unanimous">Unanimous</span></div>
+      <div class="pr-value"><strong>The Expansionist</strong> — "Romanticizes the upside while dismissing every known defect as a '1.1 ticket.' The disabled tutorial means users will never understand the product well enough to engage socially. Optimism without friction analysis is not strategy."</div>
+    </div>
+    <div class="pr-item">
+      <div class="pr-label">What All Five Advisors Missed <span class="pr-unanimous">Unanimous</span></div>
+      <div class="pr-value"><strong>Deezer API dependency risk.</strong> Not one advisor asked about rate limits, commercial use terms, or whether the ads + subscription monetization model is permitted under the API license. The entire product mechanic disappears if this dependency breaks or is found to be non-compliant.</div>
+    </div>
+  </div>
+
+  <!-- Full Advisor Responses (collapsible) -->
+  <div class="collapsibles">
+    <h2>Full Advisor Responses</h2>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-against">Against</span>The Contrarian</span></summary>
+      <div class="detail-body">
+        <p>The naming inconsistency alone should disqualify this from shipping. "SongMatch" vs "SoundMatch" scattered through the codebase and UI isn't a cosmetic issue — it's a sign that nobody has done a full end-to-end audit of the product. App Store reviewers will catch inconsistent naming. Users will be confused about what they downloaded. It signals an unfinished product.</p>
+        <p>The dual-database situation is a ticking bomb. Firebase AND Supabase in the same app means two billing relationships, two potential points of failure, two sets of security rules to maintain, and almost certainly inconsistent data states.</p>
+        <p>One test. One. The recommendation engine — the core differentiator — has essentially zero test coverage. You're shipping a taste-profile algorithm with no confidence it works correctly across edge cases.</p>
+        <p>The disabled tutorial is not a "known issue" — it's a broken onboarding. New users will open the app, not understand the mechanic, and immediately churn. You never get a second first impression.</p>
+        <p>The real fatal flaw: 75 swipes/day free with ads is a hostile monetization structure for a brand-new, unproven app with no user base. You need people to fall in love before you charge them. Ship in 7 days? No. Take 3 more weeks.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-conditional">Conditional</span>The First Principles Thinker</span></summary>
+      <div class="detail-body">
+        <p>The question is "should I ship in 7 days?" The actual question is "what problem does shipping solve, and what problem does it create?"</p>
+        <p>If the answer is "validate whether people enjoy swipe-based music discovery" — TestFlight solves this with zero review risk and zero reputation cost.</p>
+        <p>If the answer is "start acquiring users" — a broken tutorial, a naming identity crisis, and a single test will churn every user you acquire. Your acquisition cost is wasted.</p>
+        <p>If the answer is "prove to myself this is real" — that is a psychological need, not a product decision. Ship to TestFlight. It is equally real.</p>
+        <p>Fix Supabase-or-Firebase (not both), fix the naming, re-enable onboarding, add one meaningful integration test. That is probably 2 weeks of focused work. Ship when the product answers "what is this?" in under 10 seconds. Right now it cannot.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-for">For</span>The Expansionist</span></summary>
+      <div class="detail-body">
+        <p>Ship it. Three months of work is a finished product waiting for real data. Swipe-based music discovery is not a crowded App Store category. You have a mechanic that is genuinely novel for casual listeners.</p>
+        <p>The social layer is the hidden multiplier. Friends following friends, taste profiles, cosmetics — you have accidentally built the skeleton of a music social network. Spotify tried this and killed it. You have it and are small enough to iterate fast.</p>
+        <p>The freemium + ads + Pro subscription stack means you have three monetization experiments running simultaneously from day one. Real conversion data within the first 30 days is worth more than any further polish.</p>
+        <p>The naming inconsistency and the disabled tutorial are not blockers — they are version 1.1 tickets. The actual upside scenario: music creators and micro-influencers adopt it as a taste-signaling tool, the social layer grows, and you have acquisition leverage before any competitor notices the niche. That window is open right now.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-conditional">Conditional</span>The Outsider</span></summary>
+      <div class="detail-body">
+        <p>The naming inconsistency alone would make me uninstall before finishing onboarding. "SongMatch" or "SoundMatch" — which is it? As a new user, I'd immediately wonder if I downloaded the wrong thing. That's a trust issue. First-time users have a 3-second patience window.</p>
+        <p>The disabled tutorial is the second problem I'd notice. You built a swipe-based music discovery app with a taste profile, streaks, a shop, and a social layer. None of that is self-explanatory. I'd poke around for 90 seconds, not understand why I'm swiping, and leave.</p>
+        <p>The question isn't whether your backend is ready. It's whether a stranger can download it, understand it in 60 seconds, and want to come back tomorrow. Right now the answer is probably no.</p>
+        <p>Fix the name. Fix or replace the tutorial with something — even a three-screen static walkthrough. Then ship.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-for">For</span>The Executor</span></summary>
+      <div class="detail-body">
+        <p><strong>Day 1–2:</strong> Pick a name (SongMatch or SoundMatch), do a global find-replace. Remove all Supabase code or all Firebase code — figure out which one you're actually using and delete the other.</p>
+        <p><strong>Day 3:</strong> Fix the tutorial. Find the broken measurement call, hardcode values temporarily, re-enable the overlay. A first-run experience is not optional.</p>
+        <p><strong>Day 4:</strong> App Store assets — screenshots, description, keywords. This takes longer than you think.</p>
+        <p><strong>Day 5:</strong> Submit a TestFlight build. You need 24–48 hours for App Review.</p>
+        <p><strong>Day 6–7:</strong> Buffer. Something will break. This is your margin.</p>
+        <p>What you do NOT do: write more tests before shipping, refactor the recommendation engine, add features. The 1-test problem, the dual-backend, and the naming are the only three things standing between you and submission.</p>
+      </div>
+    </details>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    LLM Council · SongMatch Launch Decision · June 8, 2026 · 5 advisors · 5 peer reviewers · 1 chairman
+  </div>
+
+</div>
+</body>
+</html>

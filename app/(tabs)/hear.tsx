@@ -24,9 +24,7 @@ import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
-import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
-import { router } from 'expo-router';
 import AppleArtwork from '../../src/components/AppleArtwork';
 import { searchDeezer } from '../../src/api/deezerClient';
 import { recognizeSong } from '../../src/api/auddClient';
@@ -626,25 +624,8 @@ export default function HearScreen() {
             <Ionicons name="time-outline" size={28} color={COLORS.pink} />
           </View>
           <Text style={styles.limitTitle}>Daily limit reached</Text>
-          <Text style={styles.limitSub}>You've used all your free searches for today.</Text>
-
-          <TouchableOpacity
-            style={styles.limitProBtn}
-            onPress={() => router.push('/upgrade')}
-            activeOpacity={0.85}
-          >
-            <LinearGradient
-              colors={['#A78BFA', '#E879F9']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.limitProBtnGrad}
-            >
-              <Ionicons name="flash" size={15} color="#fff" />
-              <Text style={styles.limitProBtnText}>Go Pro — Unlimited Searches</Text>
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <Text style={styles.limitFooter}>Come back tomorrow for more free searches.</Text>
+          <Text style={styles.limitSub}>You've used all your searches for today.</Text>
+          <Text style={styles.limitFooter}>Come back tomorrow for more searches.</Text>
         </View>
       )}
 
@@ -657,26 +638,9 @@ export default function HearScreen() {
             </View>
             <Text style={styles.limitModalTitle}>No searches left</Text>
             <Text style={styles.limitModalSub}>
-              You've used all your free searches for today.
+              You've used all your searches for today.
             </Text>
-
-            <TouchableOpacity
-              style={styles.limitModalProBtn}
-              onPress={() => { setLimitModalVisible(false); router.push('/upgrade'); }}
-              activeOpacity={0.85}
-            >
-              <LinearGradient
-                colors={['#A78BFA', '#E879F9']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={styles.limitModalProBtnGrad}
-              >
-                <Ionicons name="flash" size={15} color="#fff" />
-                <Text style={styles.limitModalProBtnText}>Upgrade to Pro</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <Text style={styles.limitModalFooter}>Come back tomorrow for more free searches.</Text>
+            <Text style={styles.limitModalFooter}>Come back tomorrow for more searches.</Text>
           </View>
         </View>
       )}

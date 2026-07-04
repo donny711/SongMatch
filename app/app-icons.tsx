@@ -4,7 +4,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import Svg, { Defs, LinearGradient as SvgGrad, Stop, Rect as SvgRect } from 'react-native-svg';
-import { useSubscriptionStore } from '../src/store/subscriptionStore';
 import { APP_ICONS, ICON_CATEGORIES, type AppIconDef } from '../src/data/appIcons';
 import { COLORS, SPACING } from '../src/theme';
 import { lightTap } from '../src/utils/haptics';
@@ -79,7 +78,6 @@ function IconCard({ icon, isActive, canUse, onPress }: {
 
 export default function AppIconsScreen() {
   const insets = useSafeAreaInsets();
-  const isPro = useSubscriptionStore((s) => s.isPro);
   const [activeIcon, setActiveIcon] = useState<string>('dark_purple');
 
   useEffect(() => {
@@ -92,7 +90,6 @@ export default function AppIconsScreen() {
 
   const handleSelect = useCallback(async (icon: AppIconDef) => {
     lightTap();
-    if (icon.pro && !isPro) { router.push('/upgrade'); return; }
     if (icon.id === activeIcon) return;
     if (!AlternateIcons) {
       Alert.alert('Not available', 'Alternate icons only work in a native build.');
@@ -104,7 +101,7 @@ export default function AppIconsScreen() {
     } catch (e: any) {
       Alert.alert('Could not change icon', e?.message ?? 'Unknown error');
     }
-  }, [isPro, activeIcon]);
+  }, [activeIcon]);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -130,7 +127,7 @@ export default function AppIconsScreen() {
                     key={icon.id}
                     icon={icon}
                     isActive={activeIcon === icon.id}
-                    canUse={!icon.pro || isPro}
+                    canUse={true}
                     onPress={() => handleSelect(icon)}
                   />
                 ))}

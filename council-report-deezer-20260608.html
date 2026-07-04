@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LLM Council Report — Deezer API Options</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f9f9fb; color: #1a1a2e; line-height: 1.6; }
+  .page { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+  .header { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px; }
+  .header-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #6b7280; margin-bottom: 10px; }
+  .header h1 { font-size: 21px; font-weight: 800; color: #111; line-height: 1.3; margin-bottom: 8px; }
+  .header-meta { font-size: 13px; color: #6b7280; }
+
+  /* Two-alert stack */
+  .alert-red { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  .alert-red .alert-title { font-size: 13px; font-weight: 800; color: #991b1b; margin-bottom: 6px; }
+  .alert-red p { font-size: 14px; color: #7f1d1d; line-height: 1.65; }
+
+  .alert-amber { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 10px; padding: 18px 20px; margin-bottom: 24px; }
+  .alert-amber .alert-title { font-size: 13px; font-weight: 800; color: #92400e; margin-bottom: 6px; }
+  .alert-amber p { font-size: 14px; color: #78350f; line-height: 1.65; }
+
+  /* One thing */
+  .one-thing { background: #111; border-radius: 12px; padding: 28px 32px; margin-bottom: 24px; }
+  .one-thing-label { font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #9ca3af; margin-bottom: 10px; }
+  .one-thing p { font-size: 15.5px; color: #f9fafb; line-height: 1.7; }
+
+  /* Verdict */
+  .verdict { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 32px; margin-bottom: 24px; }
+  .verdict h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 20px; }
+  .verdict-section { margin-bottom: 26px; }
+  .verdict-section:last-child { margin-bottom: 0; }
+  .verdict-section h3 { font-size: 15px; font-weight: 700; color: #111; margin-bottom: 8px; }
+  .verdict-section p { font-size: 14.5px; color: #374151; line-height: 1.72; margin-bottom: 10px; }
+  .verdict-section p:last-child { margin-bottom: 0; }
+
+  /* Options scorecard */
+  .scorecard { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px 28px; margin-bottom: 24px; }
+  .scorecard h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 16px; }
+  .option-row { display: flex; align-items: flex-start; gap: 14px; padding: 14px 0; border-bottom: 1px solid #f3f4f6; }
+  .option-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .option-badge { flex-shrink: 0; width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+  .badge-amber { background: #fef3c7; color: #92400e; }
+  .badge-green { background: #d1fae5; color: #065f46; }
+  .option-content h4 { font-size: 14px; font-weight: 700; color: #111; margin-bottom: 3px; }
+  .option-content p { font-size: 13.5px; color: #6b7280; line-height: 1.6; }
+  .verdict-tag { display: inline-block; font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 2px 8px; margin-left: 8px; vertical-align: middle; }
+  .tag-eliminated { background: #fee2e2; color: #991b1b; }
+  .tag-conditional { background: #fef3c7; color: #92400e; }
+  .tag-primary { background: #d1fae5; color: #065f46; }
+
+  /* Alignment grid */
+  .alignment { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px 28px; margin-bottom: 24px; }
+  .alignment h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .advisor-chip { border-radius: 8px; padding: 12px 10px; text-align: center; }
+  .chip-label { font-size: 10px; color: #6b7280; margin-bottom: 4px; }
+  .chip-name { font-weight: 700; font-size: 11.5px; margin-bottom: 6px; color: #111; }
+  .chip-position { font-size: 11px; font-weight: 600; border-radius: 4px; padding: 2px 7px; display: inline-block; }
+  .pos-3 { background: #d1fae5; color: #065f46; }
+  .pos-1 { background: #dbeafe; color: #1e40af; }
+  .pos-off { background: #fee2e2; color: #991b1b; }
+  .chip-bg-1 { background: #fff7ed; border: 1px solid #fed7aa; }
+  .chip-bg-2 { background: #f0fdf4; border: 1px solid #bbf7d0; }
+  .chip-bg-3 { background: #eff6ff; border: 1px solid #bfdbfe; }
+  .chip-bg-4 { background: #fdf4ff; border: 1px solid #e9d5ff; }
+  .chip-bg-5 { background: #f0fdf4; border: 1px solid #bbf7d0; }
+
+  /* Peer review */
+  .peer-review { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px 28px; margin-bottom: 24px; }
+  .peer-review h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 14px; }
+  .pr-item { margin-bottom: 14px; padding-bottom: 14px; border-bottom: 1px solid #f3f4f6; }
+  .pr-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .pr-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; color: #9ca3af; margin-bottom: 4px; }
+  .pr-value { font-size: 14px; color: #374151; line-height: 1.65; }
+  .pr-tag { display: inline-block; font-size: 10.5px; font-weight: 700; background: #d1fae5; color: #065f46; border-radius: 4px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
+
+  /* Collapsibles */
+  .collapsibles { margin-bottom: 24px; }
+  .collapsibles h2 { font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; margin-bottom: 14px; }
+  details { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+  summary { padding: 14px 18px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: space-between; color: #111; list-style: none; user-select: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: '▾'; font-size: 13px; color: #9ca3af; }
+  details[open] summary::after { content: '▴'; }
+  .detail-body { padding: 14px 18px 18px; font-size: 14px; color: #374151; line-height: 1.7; border-top: 1px solid #f3f4f6; }
+  .detail-body p { margin-bottom: 10px; }
+  .detail-body p:last-child { margin-bottom: 0; }
+  .advisor-tag { font-size: 10.5px; font-weight: 700; border-radius: 4px; padding: 2px 8px; margin-right: 8px; }
+  .tag-opt3 { background: #d1fae5; color: #065f46; }
+  .tag-opt1 { background: #dbeafe; color: #1e40af; }
+  .tag-lawyer { background: #fef3c7; color: #92400e; }
+
+  .footer { text-align: center; font-size: 12px; color: #9ca3af; border-top: 1px solid #e5e7eb; padding-top: 24px; margin-top: 20px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div class="header-label">LLM Council Report — Session 2</div>
+    <h1>Which option resolves the Deezer API violation: replace provider, seek partnership, or go non-commercial?</h1>
+    <div class="header-meta">SongMatch · Solo developer · June 8, 2026</div>
+  </div>
+
+  <!-- Critical alerts -->
+  <div class="alert-red">
+    <div class="alert-title">🚨 Apple Developer Account Risk — Surfaced by Peer Review</div>
+    <p>Apple's App Store Review Guidelines (5.2.2, 4.2) independently prohibit distributing audio without proper licensing — separate from Deezer's ToS. The consequence is not a rejected build. It is <strong>Apple Developer account termination</strong>, which ends your ability to ship any iOS app, ever. This risk exists regardless of whether you remove ads and subscriptions.</p>
+  </div>
+
+  <div class="alert-amber">
+    <div class="alert-title">⚠ Option 3 May Not Be Compliant Either</div>
+    <p>No one on the council verified whether App Store distribution itself triggers Deezer's commercial use clause, independent of monetization. "Commercial use" may be defined by distribution channel, not revenue. Going non-commercial may not reduce legal exposure at all — it just removes revenue.</p>
+  </div>
+
+  <!-- One Thing -->
+  <div class="one-thing">
+    <div class="one-thing-label">The One Thing to Do First</div>
+    <p>Spend $300–$500 on one hour with a music licensing attorney who understands App Store distribution. You need to confirm: (1) whether a free App Store app still violates Deezer's commercial use clause, and (2) whether Apple's guidelines independently bar this app in its current form. Every other action before that conversation is potentially wasted work or compounded legal exposure.</p>
+  </div>
+
+  <!-- Options scorecard -->
+  <div class="scorecard">
+    <h2>Options Scorecard</h2>
+    <div class="option-row">
+      <div class="option-badge badge-green">3</div>
+      <div class="option-content">
+        <h4>Go non-commercial — remove ads, remove subscription, ship free <span class="verdict-tag tag-conditional">Conditional</span></h4>
+        <p>The only option with a clear Monday-morning action (remove AdMob, remove RevenueCat, submit). Recommended by 4 of 5 advisors — but only valid if confirmed compliant under both Deezer ToS and Apple guidelines. Do this if and only if legal review confirms it resolves both exposures.</p>
+      </div>
+    </div>
+    <div class="option-row">
+      <div class="option-badge badge-amber">1</div>
+      <div class="option-content">
+        <h4>Replace Deezer with a licensed provider <span class="verdict-tag tag-conditional">Later — if traction proven</span></h4>
+        <p>Correct long-term path. Wrong first step. Spotify SDK prohibits standalone discovery apps. Apple Music API requires existing subscriptions. <strong>SoundCloud and Audiomack</strong> (missed by all advisors) offer lower-barrier commercial licensing and are the correct starting point. Pursue after you have real user data that justifies the rebuild.</p>
+      </div>
+    </div>
+    <div class="option-row">
+      <div class="option-badge badge-red">2</div>
+      <div class="option-content">
+        <h4>Apply for Deezer commercial partnership <span class="verdict-tag tag-eliminated">Eliminated</span></h4>
+        <p>Not a plan. An indie developer with zero users has no leverage. Deezer has no incentive — their own discovery features compete directly with SongMatch. Unanimously dismissed by the council.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Verdict -->
+  <div class="verdict">
+    <h2>Chairman's Verdict</h2>
+
+    <div class="verdict-section">
+      <h3>📋 Where the Council Agrees</h3>
+      <p>Stop building on Deezer. The violation is active today, not theoretical. Every advisor reached this conclusion through different reasoning — which makes it more reliable. Option 2 is unanimously eliminated. Revenue-first thinking at zero users is the wrong sequence. The Expansionist was the outlier and the peer review unanimously identified their response as the weakest — the Spotify acquisition argument collapses because Spotify's SDK explicitly prohibits standalone apps that compete with Spotify's own discovery features.</p>
+    </div>
+
+    <div class="verdict-section">
+      <h3>⚡ Where the Council Clashes</h3>
+      <p><strong>Is Option 3 a safe harbor or a quieter violation?</strong> The Contrarian says "commercial use" follows intent, not price — a free app built to monetize later may still be prohibited. The Executor says it has a clear Monday action. The Outsider calls it the only honest answer. They're all arguing about the same option without resolving the definitional question — which is why the lawyer recommendation is the actual first step.</p>
+      <p><strong>Is Option 1 viable at this scale?</strong> The Expansionist says yes (Spotify). The First Principles Thinker says no — structurally impossible for an indie dev. The peer review added a third path nobody named: SoundCloud and Audiomack, which sit between "impossible" and "fantasy."</p>
+    </div>
+
+    <div class="verdict-section">
+      <h3>🔍 Blind Spots the Council Caught</h3>
+      <p><strong>Apple Developer account termination</strong> (caught by reviewers 1, 3, 5): This is categorically more serious than Deezer API termination. Losing API access is a product problem. Losing your Apple Developer account is an existential problem for your iOS career.</p>
+      <p><strong>Option 3 compliance is unverified</strong> (reviewer 2): The council unanimously recommended Option 3 without anyone checking whether App Store distribution itself triggers Deezer's commercial use clause. That is a significant analytical gap.</p>
+      <p><strong>Alternative providers overlooked</strong> (reviewer 4): SoundCloud and Audiomack both offer developer APIs with commercial licensing at materially lower barriers than Spotify. Nobody mentioned them.</p>
+      <p><strong>Data continuity ignored</strong> (reviewer 4): If Deezer terminates access without notice, existing user taste profiles become orphaned overnight. The core product asset disappears with no warning.</p>
+    </div>
+
+    <div class="verdict-section">
+      <h3>✅ The Recommendation</h3>
+      <p>Do not choose an option until you have confirmed two facts you do not currently know:</p>
+      <p><strong>1.</strong> Does Deezer's commercial use clause apply to free App Store distribution with no monetization? If yes, Option 3 does not reduce legal risk.</p>
+      <p><strong>2.</strong> What is your exposure under Apple's App Store guidelines? Losing your developer account is permanent. Get this confirmed before submitting anything.</p>
+      <p>If legal review confirms Option 3 satisfies both: strip monetization immediately, ship, build users, then approach SoundCloud or Audiomack for commercial licensing once you have proof of traction. If Option 3 does not satisfy the compliance tests: the app cannot ship in its current form. Replace Deezer with SoundCloud or Audiomack — not Spotify.</p>
+    </div>
+  </div>
+
+  <!-- Alignment grid -->
+  <div class="alignment">
+    <h2>Advisor Positions</h2>
+    <div class="grid">
+      <div class="advisor-chip chip-bg-1">
+        <div class="chip-label">Advisor 1</div>
+        <div class="chip-name">The Contrarian</div>
+        <span class="chip-position pos-off">Get a lawyer first</span>
+      </div>
+      <div class="advisor-chip chip-bg-2">
+        <div class="chip-label">Advisor 2</div>
+        <div class="chip-name">First Principles</div>
+        <span class="chip-position pos-3">Option 3 (intentional)</span>
+      </div>
+      <div class="advisor-chip chip-bg-3">
+        <div class="chip-label">Advisor 3</div>
+        <div class="chip-name">The Expansionist</div>
+        <span class="chip-position pos-1">Option 1 (Spotify)</span>
+      </div>
+      <div class="advisor-chip chip-bg-4">
+        <div class="chip-label">Advisor 4</div>
+        <div class="chip-name">The Outsider</div>
+        <span class="chip-position pos-3">Option 3 (phase 1)</span>
+      </div>
+      <div class="advisor-chip chip-bg-5">
+        <div class="chip-label">Advisor 5</div>
+        <div class="chip-name">The Executor</div>
+        <span class="chip-position pos-3">Option 3 (now)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Peer Review -->
+  <div class="peer-review">
+    <h2>Peer Review Highlights</h2>
+    <div class="pr-item">
+      <div class="pr-label">Strongest Response</div>
+      <div class="pr-value"><strong>Split: The Outsider and The Executor</strong> (2 votes each), First Principles (1 vote). Consensus: Option 3 with sequencing logic — build traction first, monetize second.</div>
+    </div>
+    <div class="pr-item">
+      <div class="pr-label">Biggest Blind Spot <span class="pr-tag">Unanimous</span></div>
+      <div class="pr-value"><strong>The Expansionist</strong> — "Treats an acquisition fantasy as a strategy. Spotify's SDK explicitly prohibits standalone apps competing with Spotify's own discovery features. The core premise of that argument is factually wrong."</div>
+    </div>
+    <div class="pr-item">
+      <div class="pr-label">What All Advisors Missed</div>
+      <div class="pr-value">
+        • <strong>Apple Developer account termination risk</strong> (raised by 3 reviewers) — independent of Deezer, fatal if triggered<br/>
+        • <strong>Option 3 compliance unverified</strong> — App Store distribution may itself trigger Deezer's commercial use clause<br/>
+        • <strong>SoundCloud + Audiomack</strong> never considered as licensed alternatives<br/>
+        • <strong>Data continuity</strong> — what happens to user taste profiles if Deezer terminates without notice
+      </div>
+    </div>
+  </div>
+
+  <!-- Full advisor responses -->
+  <div class="collapsibles">
+    <h2>Full Advisor Responses</h2>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-lawyer">Get a lawyer</span>The Contrarian</span></summary>
+      <div class="detail-body">
+        <p>Option 3 is a trap disguised as the safe choice. Removing monetization doesn't actually solve the problem — it just makes the violation quieter. "Commercial use" typically encompasses apps distributed through commercial channels, apps that drive user acquisition for future monetization, and apps that build commercial brand equity. A free app on the App Store with the explicit intent to monetize later is still commercial use. You're not safe — you're just less obviously unsafe.</p>
+        <p>Option 2 is wishful thinking. Deezer has no incentive to negotiate a custom commercial license with an indie developer whose app competes with their own discovery features.</p>
+        <p>Option 1 has a buried fatal flaw: Spotify's SDK has been notoriously restrictive and has killed apps in review. Apple Music API requires users to have an Apple Music subscription. Neither gives you the clean "30-second preview for any user" mechanic.</p>
+        <p>The real question being avoided: is the core mechanic legally viable at commercial scale with any provider? The developer needs a music licensing lawyer before choosing any option. The three options assume the product is viable. That assumption hasn't been verified.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-opt3">Option 3 (intentional)</span>The First Principles Thinker</span></summary>
+      <div class="detail-body">
+        <p>The question is wrong. Strip everything away. Does a viable licensed audio preview solution that makes unit economics work even exist? Spotify's SDK terms prohibit standalone apps. Apple Music API requires existing subscriptions. Direct licensing for an indie developer is a multi-year legal and financial undertaking. Option 1 may be structurally impossible at this scale. Option 2 is not a plan.</p>
+        <p>Option 3 is the only honest answer — but reframe it: go non-commercial intentionally, not as a retreat. Ship it. Build real users. Build proof of concept with traction. That traction is your only negotiating leverage with any licensor. Revenue-first thinking at zero users is the wrong sequence entirely.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-opt1">Option 1 (Spotify)</span>The Expansionist</span></summary>
+      <div class="detail-body">
+        <p>Option 1, but think bigger. The taste profile data is the asset — Spotify paid $170M for The Echo Nest. Pick Spotify. Their partner SDK gives you 30-second previews legally, their developer program is mature, and Spotify has been acquiring music discovery apps. Build something Spotify wants to acquire.</p>
+        <p>Option 3 signals low ambition and removes the financial pressure that forces good product decisions. Option 2 is small thinking — Deezer is a shrinking platform. The API violation is a forcing function to upgrade your ambitions. Use it.</p>
+        <p><em>Note: Peer review unanimously flagged this as the weakest response. Spotify's SDK explicitly prohibits standalone discovery apps that compete with Spotify's own features.</em></p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-opt3">Option 3 (phase 1)</span>The Outsider</span></summary>
+      <div class="detail-body">
+        <p>Option 3 is the only honest answer right now, but not as a permanent destination. The app does not exist as a viable business yet — no users, no revenue, no proof. You cannot lose money you have never made.</p>
+        <p>Options 1 and 2 both require the app to keep running while you solve a legal problem. That is backwards. Go non-commercial immediately. Ship. Get real users. Get real feedback.</p>
+        <p>Once you have user data, Option 2 becomes a much stronger conversation with Deezer — you are showing them a live app with demonstrated traction. And Option 1 becomes easier to justify. The monetization features are paused, not lost. The legal risk is real and present. Those are not equivalent concerns.</p>
+      </div>
+    </details>
+
+    <details>
+      <summary><span><span class="advisor-tag tag-opt3">Option 3 (now)</span>The Executor</span></summary>
+      <div class="detail-body">
+        <p>Option 3 is the only one with a clear Monday morning action. Option 1: you wait for undefined SDK access timelines. Option 2: you wait for a response that statistically will not come.</p>
+        <p>Option 3: Remove AdMob SDK calls. Remove RevenueCat paywalls. Submit to App Store. Done in days, not months.</p>
+        <p>You're in violation today — Deezer can cut API access without notice, killing the app and your data entirely. Option 3 lets you ship a working, compliant product immediately. Once live and compliant, pursue Options 1 or 2 in parallel from a position of stability. Go non-commercial now. The revenue streams you're protecting don't exist if API access gets terminated tomorrow.</p>
+      </div>
+    </details>
+  </div>
+
+  <div class="footer">
+    LLM Council · SongMatch Deezer Options · June 8, 2026 · 5 advisors · 5 peer reviewers · 1 chairman
+  </div>
+
+</div>
+</body>
+</html>

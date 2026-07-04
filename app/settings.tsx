@@ -10,14 +10,12 @@ import {
   Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useDeckStore } from '../src/store/deckStore';
 import { useSettingsStore, type GenreShiftAfter } from '../src/store/settingsStore';
 import { useProfileStore } from '../src/store/profileStore';
-import { useSubscriptionStore } from '../src/store/subscriptionStore';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 import { GENRE_COLORS } from '../src/utils/genres';
 import { ONBOARDING_KEY, ONBOARDING_GENRES_KEY } from './onboarding';
@@ -89,8 +87,6 @@ export default function SettingsScreen() {
     useSettingsStore();
   const isPrivate = useProfileStore((s) => s.isPrivate);
   const togglePrivate = useProfileStore((s) => s.togglePrivate);
-  const isPro = useSubscriptionStore((s) => s.isPro);
-  const tier = useSubscriptionStore((s) => s.tier);
   const isLoggedIn = !!auth.currentUser;
 
   const handleToggleNotifications = useCallback(async (value: boolean) => {
@@ -336,64 +332,6 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Subscription ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Subscription</Text>
-          <SectionCard>
-            {isPro ? (
-              <View style={styles.row}>
-                <View style={[styles.rowIcon, { backgroundColor: 'rgba(167,139,250,0.15)' }]}>
-                  <Ionicons name="flash" size={16} color={COLORS.purple} />
-                </View>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowLabel}>SongMatch Pro</Text>
-                  <Text style={styles.rowSub}>
-                    {tier === 'monthly' ? 'Monthly plan' : tier === 'quarterly' ? 'Quarterly plan' : 'Annual plan'}
-                    {' · '}Active
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  style={styles.manageBtn}
-                  onPress={() => router.push('/referral')}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.manageBtnText}>Invite</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <TouchableOpacity
-                style={styles.upgradeRow}
-                onPress={() => router.push('/upgrade')}
-                activeOpacity={0.85}
-              >
-                <LinearGradient
-                  colors={['rgba(167,139,250,0.15)', 'rgba(232,121,249,0.10)']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.upgradeGrad}
-                >
-                  <View style={styles.upgradeLeft}>
-                    <LinearGradient
-                      colors={['#A78BFA', '#E879F9']}
-                      start={{ x: 0, y: 0 }}
-                      end={{ x: 1, y: 1 }}
-                      style={styles.upgradeIconWrap}
-                    >
-                      <Ionicons name="flash" size={16} color="#fff" />
-                    </LinearGradient>
-                    <View style={styles.rowText}>
-                      <Text style={styles.rowLabel}>Go Pro</Text>
-                      <Text style={styles.rowSub}>Unlimited · No ads · All features</Text>
-                    </View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.purple} />
-                </LinearGradient>
-              </TouchableOpacity>
-            )}
-          </SectionCard>
-        </View>
-
-
         {/* ── Appearance ── */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Appearance</Text>
@@ -402,14 +340,8 @@ export default function SettingsScreen() {
               icon="apps-outline"
               iconColor={COLORS.purple}
               label="App Icon"
-              sublabel="22 icons — Pro exclusive"
-              right={isPro ? undefined : (
-                <View style={styles.proBadge}>
-                  <MaterialCommunityIcons name="crown" size={10} color="#ffd700" />
-                  <Text style={styles.proBadgeText}>PRO</Text>
-                </View>
-              )}
-              onPress={() => isPro ? router.push('/app-icons') : router.push('/upgrade')}
+              sublabel="Choose from 22 icons"
+              onPress={() => router.push('/app-icons')}
             />
           </SectionCard>
         </View>
