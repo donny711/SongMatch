@@ -1,14 +1,11 @@
 interface Env {
   CACHE: KVNamespace;
-  LASTFM_API_KEY: string;
   // MusicKit developer-token signing (set via `wrangler secret put`):
   MUSICKIT_TEAM_ID: string;
   MUSICKIT_KEY_ID: string;
   MUSICKIT_PRIVATE_KEY: string; // PKCS#8 PEM contents of the .p8 key
 }
 
-const DEEZER_BASE = 'https://api.deezer.com';
-const LASTFM_BASE = 'https://ws.audioscrobbler.com/2.0';
 const APPLE_BASE  = 'https://api.music.apple.com';
 
 // MusicKit developer token: Apple allows up to 6 months; we rotate at ~5 so the
@@ -21,17 +18,6 @@ const CORS = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 };
 
-// Cache TTLs in seconds
-function ttlFor(type: string): number {
-  switch (type) {
-    case 'radio':  return 6 * 3600;   // radio results are stable for hours
-    case 'track':  return 24 * 3600;  // individual track metadata rarely changes
-    case 'chart':  return 6 * 3600;
-    case 'lastfm': return 24 * 3600;  // similar tracks / tags change very slowly
-    default:       return 3600;       // search: 1h
-  }
-}
-
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -39,8 +25,6 @@ export default {
 
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith('/deezer/'))  return handleDeezer(url, env);
-    if (url.pathname.startsWith('/lastfm'))  return handleLastFm(url, env);
     if (url.pathname === '/musickit/token')  return handleTokenEndpoint(env);
     if (url.pathname.startsWith('/apple/'))  return handleApple(url, env);
 
@@ -48,83 +32,11 @@ export default {
   },
 };
 
-async function handleDeezer(url: URL, env: Env): Promise<Response> {
-  const deezerPath = url.pathname.slice('/deezer'.length); // e.g. /search, /track/123/radio
-  const upstream   = `${DEEZER_BASE}${deezerPath}${url.search}`;
-
-  let type = 'search';
-  if (deezerPath.includes('/radio'))          type = 'radio';
-  else if (/^\/track\/\d+$/.test(deezerPath)) type = 'track';
-  else if (deezerPath.includes('/chart'))     type = 'chart';
-
-  // v2 prefix: v1 cached upstream error bodies (Deezer 200-with-error), poisoning
-  // radio/search results for hours — bumping the prefix flushes those entries.
-  const cacheKey = `deezer:v2:${deezerPath}${url.search}`;
-  return proxyWithCache(upstream, cacheKey, ttlFor(type), env);
-}
-
-async function handleLastFm(url: URL, env: Env): Promise<Response> {
-  const params = new URLSearchParams(url.search);
-  params.set('api_key', env.LASTFM_API_KEY);
-  params.set('format', 'json');
-  const upstream = `${LASTFM_BASE}/?${params.toString()}`;
-
-  // Cache key is stable regardless of api_key value
-  const method = params.get('method') ?? '';
-  const artist = params.get('artist') ?? '';
-  const track  = params.get('track')  ?? '';
-  const tag    = params.get('tag')    ?? '';
-  const limit  = params.get('limit')  ?? '';
-  const cacheKey = `lastfm:v2:${method}:${artist}:${track}:${tag}:${limit}`.toLowerCase();
-
-  return proxyWithCache(upstream, cacheKey, ttlFor('lastfm'), env);
-}
-
-async function proxyWithCache(
-  upstream: string,
-  cacheKey: string,
-  ttl: number,
-  env: Env,
-): Promise<Response> {
-  const cached = await env.CACHE.get(cacheKey);
-  if (cached) {
-    return new Response(cached, {
-      headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': 'HIT' },
-    });
-  }
-
-  const res = await fetch(upstream, { headers: { 'User-Agent': 'SongMatch/1.0' } });
-  if (!res.ok) {
-    return new Response(await res.text(), { status: res.status, headers: CORS });
-  }
-
-  const body = await res.text();
-
-  // Deezer (and occasionally Last.fm) return errors as HTTP 200 with an
-  // { "error": ... } body. Never cache those — a transient rate limit or a
-  // removed endpoint would otherwise be served for hours.
-  let isErrorBody = false;
-  try {
-    const parsed = JSON.parse(body);
-    isErrorBody = parsed != null && typeof parsed === 'object' && 'error' in parsed;
-  } catch {
-    isErrorBody = true; // non-JSON from an API that should return JSON — don't cache
-  }
-  if (!isErrorBody) {
-    await env.CACHE.put(cacheKey, body, { expirationTtl: ttl });
-  }
-
-  return new Response(body, {
-    headers: { ...CORS, 'Content-Type': 'application/json', 'X-Cache': isErrorBody ? 'BYPASS' : 'MISS' },
-  });
-}
-
 // ── MusicKit (Apple Music) ──────────────────────────────────────────────────
 //
 // Signs the developer token server-side so the .p8 private key never reaches
-// the client, and proxies Apple catalog calls with the same KV cache used for
-// Deezer/Last.fm (per-track ISRC lookups are stable, so caching cuts Apple
-// traffic dramatically).
+// the client, and proxies Apple catalog calls with KV caching (per-track ISRC
+// lookups are stable, so caching cuts Apple traffic dramatically).
 
 function b64url(input: ArrayBuffer | string): string {
   const bytes = typeof input === 'string' ? new TextEncoder().encode(input) : new Uint8Array(input);
