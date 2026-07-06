@@ -66,7 +66,7 @@ export default function TrackCard({ card, isTop = false }: Props) {
           <SnippetPlayer previewUrl={track.preview} autoPlay={isTop} />
         </View>
         {/* API ToS require visible attribution where the content appears */}
-        <Text style={styles.attribution}>Audio preview by Deezer</Text>
+        <Text style={styles.attribution}>Music by Apple Music</Text>
       </View>
     </View>
   );

@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getDeezerTrackById } from './deezerClient';
 import { MUSIC_PROXY_URL } from '../utils/constants';
 import type { DeezerTrack } from './types';
 
@@ -110,11 +109,7 @@ export async function resolveArtwork(track: DeezerTrack): Promise<Artwork> {
   if (cached) return cached;
 
   try {
-    let isrc = track.isrc;
-    if (!isrc) {
-      const full = await getDeezerTrackById(track.id).catch(() => null);
-      isrc = full?.isrc;
-    }
+    const isrc = track.isrc;
 
     let song = isrc ? await searchByIsrc(isrc) : null;
     if (!song) song = await searchByText(track.title, track.artist.name);

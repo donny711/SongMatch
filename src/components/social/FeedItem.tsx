@@ -15,7 +15,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { AvatarWithFrame } from '../profile/AvatarWithFrame';
 import { useDeckStore } from '../../store/deckStore';
 import { usePlayerStore } from '../../store/playerStore';
-import { getDeezerTrackById, searchDeezer } from '../../api/deezerClient';
+import { searchAppleTracks } from '../../api/appleMusicClient';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import type { AudioPlayer } from 'expo-audio';
 import type { FeedItem as FeedItemData } from '../../firebase/socialService';
@@ -39,7 +39,8 @@ function timeAgo(likedAt: { seconds: number; nanoseconds: number } | null | unde
 
 export function FeedItem({ item }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(item.previewUrl || null);
-  const [fetchingPreview, setFetchingPreview] = useState(!item.previewUrl && !!item.trackId);
+  const [fetchingPreview, setFetchingPreview] = useState(!item.previewUrl && !!(item.title && item.artistName));
+  const [resolvedCoverUrl, setResolvedCoverUrl] = useState<string | null>(item.coverUrl || null);
   const [liked, setLiked] = useState(false);
 
   const mountedRef = useRef(true);
@@ -94,7 +95,7 @@ export function FeedItem({ item }: Props) {
     }
   };
 
-  // Reset player when URL changes (e.g. after fresh Deezer fetch)
+  // Reset player when URL changes (e.g. after fresh Apple fetch)
   useEffect(() => {
     if (playerRef.current) {
       subscriptionRef.current?.remove();
@@ -121,25 +122,19 @@ export function FeedItem({ item }: Props) {
     }
   }, [activePreviewUri, previewUrl]);
 
-  // Fetch fresh preview URL from Deezer. Falls back to search-by-name if
-  // the track ID returns no preview (e.g. old tracks without stored URL).
+  // Re-fetch preview URL via Apple Music search.
   useEffect(() => {
-    if (!item.trackId) { setFetchingPreview(false); return; }
+    if (!item.title || !item.artistName) { setFetchingPreview(false); return; }
 
     const fetchPreview = async () => {
-      // Try by track ID first
-      const track = await getDeezerTrackById(item.trackId).catch(() => null);
+      const hits = await searchAppleTracks(`${item.title} ${item.artistName}`, 1).catch(() => []);
       if (!mountedRef.current) return;
 
-      const fresh = track?.preview || null;
-      if (fresh) { setPreviewUrl(fresh); return; }
-
-      // Fallback: search by title + artist name
-      if (item.title && item.artistName) {
-        const results = await searchDeezer(`${item.title} ${item.artistName}`, 1).catch(() => []);
-        if (!mountedRef.current) return;
-        const searchUrl = results[0]?.preview || null;
-        if (searchUrl) { setPreviewUrl(searchUrl); return; }
+      const fresh = hits[0] ?? null;
+      if (fresh?.preview) {
+        setPreviewUrl(fresh.preview);
+        if (!item.coverUrl && fresh.artworkUrl) setResolvedCoverUrl(fresh.artworkUrl);
+        return;
       }
 
       // Last resort: stored URL (may be expired, but let it try)
@@ -168,7 +163,7 @@ export function FeedItem({ item }: Props) {
         id: item.trackId,
         title: item.title,
         artist: { id: item.artistId, name: item.artistName },
-        album: { id: 0, title: '', cover_xl: item.coverUrl },
+        album: { id: 0, title: '', cover_xl: resolvedCoverUrl ?? '' },
         preview: previewUrl ?? '',
         duration: 0,
         link: '',
@@ -218,8 +213,8 @@ export function FeedItem({ item }: Props) {
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.card, cardStyle, liked && styles.cardLiked]}>
-        {item.coverUrl ? (
-          <Image source={{ uri: item.coverUrl }} style={styles.bgArt} blurRadius={18} />
+        {resolvedCoverUrl ? (
+          <Image source={{ uri: resolvedCoverUrl }} style={styles.bgArt} blurRadius={18} />
         ) : null}
         <View style={styles.scrim} />
 
@@ -232,8 +227,8 @@ export function FeedItem({ item }: Props) {
         </Animated.View>
 
         <View style={styles.content}>
-          {item.coverUrl ? (
-            <Image source={{ uri: item.coverUrl }} style={styles.albumArt} />
+          {resolvedCoverUrl ? (
+            <Image source={{ uri: resolvedCoverUrl }} style={styles.albumArt} />
           ) : (
             <View style={[styles.albumArt, { backgroundColor: '#1F1F28' }]} />
           )}

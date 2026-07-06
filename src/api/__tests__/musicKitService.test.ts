@@ -1,16 +1,13 @@
 jest.mock('../../utils/constants', () => ({ MUSIC_PROXY_URL: 'https://proxy.test' }));
-jest.mock('../deezerClient', () => ({ getDeezerTrackById: jest.fn() }));
 jest.mock('@react-native-async-storage/async-storage', () => ({
   getItem: jest.fn(async () => null),
   setItem: jest.fn(async () => {}),
 }));
 
 import { resolveArtwork, resolveArtworkForTracks, buildArtworkUrl } from '../musicKitService';
-import { getDeezerTrackById } from '../deezerClient';
 import type { DeezerTrack } from '../types';
 
 const TEMPLATE = 'https://is1.mzstatic.com/image/thumb/abc/{w}x{h}bb.jpg';
-const mockDeezer = getDeezerTrackById as jest.Mock;
 
 function songByIsrc(id: string, template: string) {
   return { ok: true, json: async () => ({ data: [{ id, attributes: { artwork: { url: template } } }] }) };
@@ -28,10 +25,6 @@ function track(over: Partial<DeezerTrack> = {}): DeezerTrack {
   };
 }
 
-beforeEach(() => {
-  mockDeezer.mockReset();
-});
-
 describe('buildArtworkUrl', () => {
   it('interpolates the {w}x{h} template', () => {
     expect(buildArtworkUrl(TEMPLATE, 500)).toBe('https://is1.mzstatic.com/image/thumb/abc/500x500bb.jpg');
@@ -42,7 +35,7 @@ describe('buildArtworkUrl', () => {
 });
 
 describe('resolveArtwork', () => {
-  it('matches by ISRC when the track already carries one (no Deezer fetch)', async () => {
+  it('matches by ISRC when the track already carries one', async () => {
     global.fetch = jest.fn(async (url) =>
       String(url).includes('filter[isrc]') ? songByIsrc('am1', TEMPLATE) : empty) as any;
 
@@ -50,22 +43,9 @@ describe('resolveArtwork', () => {
 
     expect(r.appleMusicId).toBe('am1');
     expect(r.artworkUrl).toBe(buildArtworkUrl(TEMPLATE));
-    expect(mockDeezer).not.toHaveBeenCalled();
-  });
-
-  it('fetches ISRC from Deezer when absent, then matches', async () => {
-    mockDeezer.mockResolvedValue({ isrc: 'ISRC2' });
-    global.fetch = jest.fn(async (url) =>
-      String(url).includes('filter[isrc]') ? songByIsrc('am2', TEMPLATE) : empty) as any;
-
-    const r = await resolveArtwork(track({ id: 202 }));
-
-    expect(mockDeezer).toHaveBeenCalledWith(202);
-    expect(r.appleMusicId).toBe('am2');
   });
 
   it('falls back to title+artist search when no ISRC match', async () => {
-    mockDeezer.mockResolvedValue(null);
     global.fetch = jest.fn(async (url) =>
       String(url).includes('/search') ? songBySearch('am3', TEMPLATE) : empty) as any;
 
@@ -75,7 +55,6 @@ describe('resolveArtwork', () => {
   });
 
   it('returns empty artwork on a total miss', async () => {
-    mockDeezer.mockResolvedValue(null);
     global.fetch = jest.fn(async () => empty) as any;
 
     const r = await resolveArtwork(track({ id: 204 }));
