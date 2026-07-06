@@ -190,17 +190,17 @@ export default function ShopScreen() {
                   <RankBadge rankId={rank.id} size={52} />
                 </View>
                 <View style={styles.rankRowText}>
-                  <Text style={[styles.rankRowLabel, { color: earned ? rank.color : COLORS.textMuted }]}>
+                  <Text style={[styles.rankRowLabel, { color: earned ? rank.color : COLORS.textMuted }]} numberOfLines={1}>
                     {rank.label}
                   </Text>
-                  <Text style={styles.rankRowReq}>
+                  <Text style={styles.rankRowReq} numberOfLines={1}>
                     {rank.minLikes === 0 ? 'Starting rank' : `${rank.minLikes.toLocaleString('en-US')} likes required`}
                   </Text>
-                  <Text style={styles.rankRowTime}>{rank.timeEstimate}</Text>
+                  <Text style={styles.rankRowTime} numberOfLines={1}>{rank.timeEstimate}</Text>
                 </View>
                 {isEquipped ? (
                   <View style={[styles.equippedChip, { backgroundColor: `${rank.color}22`, borderColor: rank.color }]}>
-                    <Text style={[styles.equippedChipText, { color: rank.color }]}>Equipped</Text>
+                    <Text style={[styles.equippedChipText, { color: rank.color }]} numberOfLines={1}>Equipped</Text>
                   </View>
                 ) : earned ? (
                   <Ionicons name="checkmark-circle" size={22} color={rank.color} />

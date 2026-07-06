@@ -121,25 +121,25 @@ export function ShopItemCard({ item, owned, equipped, canAfford, onPress }: Prop
       {/* Name — wrap to 2 lines so longer names aren't clipped */}
       <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
 
-      {/* Status chip */}
+      {/* Status chip — text never wraps/clips (numberOfLines + shrink) */}
       {equipped ? (
         <View style={[styles.chip, styles.chipEquipped]}>
           <Ionicons name="checkmark-circle" size={10} color="#A78BFA" />
-          <Text style={[styles.chipText, { color: '#A78BFA' }]}>Equipped</Text>
+          <Text style={[styles.chipText, { color: '#A78BFA' }]} numberOfLines={1}>Equipped</Text>
         </View>
       ) : owned ? (
         <View style={[styles.chip, styles.chipOwned]}>
-          <Text style={[styles.chipText, { color: COLORS.textSub }]}>Tap to equip</Text>
+          <Text style={[styles.chipText, { color: COLORS.textSub }]} numberOfLines={1}>Tap to equip</Text>
         </View>
       ) : item.cost === 0 ? (
         <View style={[styles.chip, { backgroundColor: 'rgba(167,139,250,0.15)' }]}>
           <Ionicons name="lock-open" size={10} color="#A78BFA" />
-          <Text style={[styles.chipText, { color: '#A78BFA' }]}>Free</Text>
+          <Text style={[styles.chipText, { color: '#A78BFA' }]} numberOfLines={1}>Free</Text>
         </View>
       ) : (
         <View style={[styles.chip, canAfford ? styles.chipBuy : styles.chipCantAfford]}>
           <Ionicons name="diamond" size={10} color={canAfford ? '#22D3EE' : COLORS.textMuted} />
-          <Text style={[styles.chipText, { color: canAfford ? '#22D3EE' : COLORS.textMuted }]}>
+          <Text style={[styles.chipText, { color: canAfford ? '#22D3EE' : COLORS.textMuted }]} numberOfLines={1}>
             {fmtN(item.cost)}
           </Text>
         </View>
@@ -229,10 +229,12 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.full,
     paddingHorizontal: 10,
     paddingVertical: 4,
+    maxWidth: '100%',
   },
   chipText: {
     fontSize: 12,
     fontWeight: '700',
+    flexShrink: 1,
   },
   chipEquipped: {
     backgroundColor: 'rgba(167,139,250,0.15)',
