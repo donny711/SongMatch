@@ -26,7 +26,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import AppleArtwork from '../../src/components/AppleArtwork';
-import { searchDeezer } from '../../src/api/deezerClient';
+import { searchAppleTracks } from '../../src/api/appleMusicClient';
 import { recognizeSong } from '../../src/api/auddClient';
 import { getSongSimilarRecs } from '../../src/api/endpoints';
 import { useDeckStore } from '../../src/store/deckStore';
@@ -411,7 +411,7 @@ export default function HearScreen() {
       if (!allowed) { setStage('limitReached'); return; }
       recognizedRef.current = match;
       setStage('searching');
-      const tracks = await searchDeezer(`${match.title} ${match.artist}`, 5);
+      const tracks = await searchAppleTracks(`${match.title} ${match.artist}`, 5);
       if (tracks.length > 0) { setResults(tracks); setStage('result'); }
       else setStage('error');
     } catch {
@@ -428,7 +428,7 @@ export default function HearScreen() {
     recognizedRef.current = null;
     setStage('searching');
     try {
-      const tracks = await searchDeezer(searchQuery, 5);
+      const tracks = await searchAppleTracks(searchQuery, 5);
       if (tracks.length > 0) {
         // Only burn the credit once we have real results
         const allowed = await recordSearch();
@@ -460,7 +460,7 @@ export default function HearScreen() {
           .filter(([, entry]) => entry.count >= 2)
           .map(([artist]) => artist)
       );
-      const cards = await getSongSimilarRecs(seed.artist, seed.title, 15, seenIds, skipFilteredKeys, track.id);
+      const cards = await getSongSimilarRecs(seed.artist, seed.title, 15, seenIds, skipFilteredKeys, track.appleArtistId);
       setRecQueue(cards);
     } catch (e) {
       if (__DEV__) console.log('[Recs] error:', e);

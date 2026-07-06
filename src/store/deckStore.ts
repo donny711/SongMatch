@@ -16,7 +16,7 @@ interface DeckState {
   onboardingGenres: string[];
   onboardingArtists: string[];
   onboardingSongId: number | null;
-  onboardingArtistTrackIds: number[];
+  onboardingArtistTrackIds: string[];
   sourcePlaylist: SpotifyPlaylist | null;
   targetPlaylistId: string | null;
   seedTrack: { name: string; artist: string } | null;
@@ -242,7 +242,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     const onboardingGenres: string[] = safeParse(genresRaw, []);
     const onboardingArtists: string[] = safeParse(onboardingArtistsRaw, []);
     const onboardingSongId: number | null = onboardingSongIdRaw ? Number(onboardingSongIdRaw) : null;
-    const onboardingArtistTrackIds: number[] = safeParse(onboardingArtistIdsRaw, []);
+    const onboardingArtistTrackIds: string[] = safeParse(onboardingArtistIdsRaw, []);
     // Migrate: old format stored plain numbers, new format is { count, ts }.
     const rawSkipCounts: Record<string, number | { count: number; ts: number }> = safeParse(artistSkipsRaw, {});
     let artistSkipCounts: Record<string, { count: number; ts: number }> = {};
