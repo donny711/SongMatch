@@ -258,10 +258,11 @@ const styles = StyleSheet.create({
   tabBar: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    maxHeight: 48,
+    flexGrow: 0,
   },
   tabBarContent: {
     paddingHorizontal: SPACING.lg,
+    paddingVertical: SPACING.sm,
     gap: SPACING.sm,
     alignItems: 'center',
   },
