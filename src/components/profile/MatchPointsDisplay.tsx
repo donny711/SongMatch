@@ -19,10 +19,10 @@ export function MatchPointsDisplay({ points, size = 'sm', onPress }: Props) {
   return (
     <Wrap onPress={onPress} activeOpacity={0.75} style={[styles.pill, isLg && styles.pillLg]}>
       <Ionicons name="diamond" size={isLg ? 16 : 12} color="#22D3EE" />
-      <Text style={[styles.label, isLg && styles.labelLg]}>
+      <Text style={[styles.label, isLg && styles.labelLg]} numberOfLines={1}>
         {fmtPts(points)}
       </Text>
-      <Text style={[styles.unit, isLg && styles.unitLg]}>MP</Text>
+      <Text style={[styles.unit, isLg && styles.unitLg]} numberOfLines={1}>MP</Text>
       {onPress && <Ionicons name="chevron-forward" size={10} color="rgba(34,211,238,0.5)" />}
     </Wrap>
   );
@@ -49,9 +49,11 @@ const styles = StyleSheet.create({
     color: '#22D3EE',
     fontSize: 13,
     fontWeight: '800',
+    lineHeight: 17,
   },
   labelLg: {
     fontSize: 18,
+    lineHeight: 23,
   },
   unit: {
     color: 'rgba(34,211,238,0.6)',
