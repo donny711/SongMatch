@@ -1,7 +1,7 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getRecommendationsForSeeds, getPlaylistTracks, getMyTopTracks } from '../api/endpoints';
-import { getDeezerChart } from '../api/deezerClient';
+import { getAppleCharts } from '../api/appleMusicClient';
 import { buildTasteSeeds } from '../api/tasteEngine';
 import { sampleLikedSeeds } from '../utils/sampleLikedSeeds';
 import { useDeckStore } from '../store/deckStore';
@@ -29,8 +29,6 @@ export function useRecommendations() {
     recentSkips,
     seenTrackIds,
     onboardingGenres,
-    onboardingSongId,
-    onboardingArtistTrackIds,
     consecutiveSkips,
     artistSkipCounts,
   } = useDeckStore();
@@ -58,17 +56,15 @@ export function useRecommendations() {
     );
     const filteredArtistKeys = new Set([...likedArtistKeys, ...skipFilteredKeys]);
 
-    // Deezer radio seeds: sample 3 from the 20 most recently liked tracks so consecutive
-    // fetches rotate the seed pool and don't keep hitting the same exhausted radio cache.
-    const likedIdPool = likedTracks.slice(0, 20).map(t => t.id);
-    const sampledLikedIds = likedIdPool.length <= 3
-      ? likedIdPool
-      : [...likedIdPool].sort(() => Math.random() - 0.5).slice(0, 3);
-    const deezerSeedIds = [
-      ...sampledLikedIds,
-      ...(onboardingSongId !== null && !sampledLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
-      ...onboardingArtistTrackIds.filter(id => !sampledLikedIds.includes(id) && id !== onboardingSongId),
-    ];
+    // Apple artist-id seeds: sample from recently-liked tracks' Apple artist ids.
+    const likedArtistIds = likedTracks
+      .slice(0, 20)
+      .map((t) => t.appleArtistId)
+      .filter((v): v is string => !!v);
+    const sampledArtistIds = likedArtistIds.length <= 4
+      ? likedArtistIds
+      : [...likedArtistIds].sort(() => Math.random() - 0.5).slice(0, 4);
+    const seedArtistIds = sampledArtistIds;
 
     const n = likedTracks.length;
     const seedCount = n >= 50 ? 6 : n >= 20 ? 5 : n >= 10 ? 4 : 3;
@@ -119,10 +115,10 @@ export function useRecommendations() {
       seeds = pickSeeds(top.items, seedCount);
 
     } else {
-      // Last resort: Deezer chart minus filtered artists
+      // Last resort: Apple charts minus filtered artists
       try {
-        const chart = await getDeezerChart(20);
-        seeds = [...chart]
+        const chart = await getAppleCharts(20);
+        seeds = chart
           .filter((t) => !filteredArtistKeys.has(t.artist.name.toLowerCase()))
           .sort(() => Math.random() - 0.5)
           .slice(0, 3)
@@ -136,10 +132,10 @@ export function useRecommendations() {
       ...likedTracks.map((t) => t.id),
       ...seenTrackIds,
     ]);
-    // Skip Deezer radio on genre shifts — radio seeds from liked tracks would
+    // Skip Apple artist seeds on genre shifts — seeds from liked tracks would
     // surface current-taste results first and defeat the shift intent.
-    return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, forceShift ? [] : deezerSeedIds);
-  }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, onboardingSongId, onboardingArtistTrackIds, artistSkipCounts]);
+    return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, forceShift ? [] : seedArtistIds);
+  }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, artistSkipCounts]);
 
   const { refetch, isFetching } = useQuery({
     queryKey: ['recommendations', sourcePlaylist?.id, seedTrack?.name, !!accessToken],

@@ -41,7 +41,7 @@ useTutorialStore.getState().load();
 configureHandler();
 
 async function prefetchRecommendations() {
-  const { likedTracks, seenTrackIds, artistSkipCounts, onboardingSongId, onboardingArtistTrackIds, appendQueue } =
+  const { likedTracks, seenTrackIds, artistSkipCounts, appendQueue } =
     useDeckStore.getState();
 
   if (likedTracks.length < 3) return;
@@ -60,18 +60,20 @@ async function prefetchRecommendations() {
     const seeds = sampleLikedSeeds(likedTracks, seedCount);
     if (seeds.length === 0) return;
 
-    const recentLikedIds = likedTracks.slice(0, 3).map(t => t.id);
-    const deezerSeedIds = [
-      ...recentLikedIds,
-      ...(onboardingSongId !== null && !recentLikedIds.includes(onboardingSongId) ? [onboardingSongId] : []),
-      ...onboardingArtistTrackIds.filter(id => !recentLikedIds.includes(id) && id !== onboardingSongId),
-    ];
+    // Apple artist-id seeds: sample up to 4 from recently-liked tracks.
+    const likedArtistIds = likedTracks
+      .slice(0, 20)
+      .map((t) => t.appleArtistId)
+      .filter((v): v is string => !!v);
+    const seedArtistIds = likedArtistIds.length <= 4
+      ? likedArtistIds
+      : [...likedArtistIds].sort(() => Math.random() - 0.5).slice(0, 4);
 
     const seenIds = new Set<number>([
       ...likedTracks.map((t) => t.id),
       ...seenTrackIds,
     ]);
-    const cards = await getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, deezerSeedIds);
+    const cards = await getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, seedArtistIds);
     if (cards.length > 0) appendQueue(cards);
   } catch {
     // silent — the normal in-app fetch will handle it
