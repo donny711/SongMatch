@@ -118,8 +118,8 @@ export function ShopItemCard({ item, owned, equipped, canAfford, onPress }: Prop
       {/* Preview */}
       <ItemPreview item={item} />
 
-      {/* Name */}
-      <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+      {/* Name — wrap to 2 lines so longer names aren't clipped */}
+      <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
 
       {/* Status chip */}
       {equipped ? (
@@ -220,6 +220,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
+    alignSelf: 'stretch',
   },
   chip: {
     flexDirection: 'row',
