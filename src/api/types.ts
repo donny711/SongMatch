@@ -94,7 +94,11 @@ export interface DeezerTrack {
   // is the legacy Deezer fallback only). appleMusicId kept for Firestore/rollback.
   artworkUrl?: string;
   appleMusicId?: string;
+  appleArtistId?: string; // Apple catalog artist id, for similar-artists chaining
 }
+
+/** Canonical in-app track shape. Populated from Apple Music (was Deezer). */
+export type Track = DeezerTrack;
 
 // ── Shared card type ──────────────────────────────────────────────────────────
 
