@@ -158,7 +158,11 @@ export default function ShopScreen() {
             onPress={() => setActiveCategory(cat.key)}
             activeOpacity={0.75}
           >
-            <Text style={[styles.tabText, activeCategory === cat.key && styles.tabTextActive]}>
+            <Text
+              style={[styles.tabText, activeCategory === cat.key && styles.tabTextActive]}
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.2}
+            >
               {cat.label}
             </Text>
           </TouchableOpacity>
@@ -258,7 +262,8 @@ const styles = StyleSheet.create({
   tabBar: {
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
-    maxHeight: 48,
+    height: 56, // explicit (bounds the horizontal ScrollView) + tall enough that
+                // tab labels are never vertically clipped, even with larger text
   },
   tabBarContent: {
     paddingHorizontal: SPACING.lg,
@@ -269,6 +274,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACING.md,
     paddingVertical: SPACING.sm,
     borderRadius: RADIUS.full,
+    justifyContent: 'center',
   },
   tabActive: {
     backgroundColor: 'rgba(168,85,247,0.15)',
@@ -276,6 +282,7 @@ const styles = StyleSheet.create({
   tabText: {
     color: COLORS.textSub,
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: '600',
   },
   tabTextActive: {
