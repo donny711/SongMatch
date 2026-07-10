@@ -161,6 +161,20 @@
           "organization": "songmatch-11",
           "project": "react-native"
         }
+      ],
+      [
+        "expo-shazamkit",
+        {
+          "microphonePermission": "Allow SongMatch to access your microphone to identify songs."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
       ]
     ],
     "extra": {

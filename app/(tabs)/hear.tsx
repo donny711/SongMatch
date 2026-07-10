@@ -23,11 +23,10 @@ import Animated, {
 import { useFocusEffect } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useAudioRecorder, requestRecordingPermissionsAsync, setAudioModeAsync, RecordingPresets } from 'expo-audio';
+import { startListening, stopListening, isAvailable } from 'expo-shazamkit';
 import Svg, { Defs, LinearGradient as SvgGradient, Stop, Rect } from 'react-native-svg';
 import AppleArtwork from '../../src/components/AppleArtwork';
 import { searchAppleTracks } from '../../src/api/appleMusicClient';
-import { recognizeSong } from '../../src/api/auddClient';
 import { getSongSimilarRecs } from '../../src/api/endpoints';
 import { useDeckStore } from '../../src/store/deckStore';
 import { useSubscriptionStore } from '../../src/store/subscriptionStore';
@@ -294,7 +293,6 @@ export default function HearScreen() {
   const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
   const recognizedRef = useRef<{ title: string; artist: string } | null>(null);
   const deckRef = useRef<SwipeDeckRef>(null);
-  const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const searchInputRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
   const { addLikedTrack, addSkippedTrack, incrementLiked, incrementSkipped, likedTracks, artistSkipCounts } = useDeckStore();
@@ -318,12 +316,9 @@ export default function HearScreen() {
         }
       });
       return () => {
-        // Stop any in-progress recording so the microphone is released and
-        // the iOS audio session exits record mode before the tab loses focus.
-        if (recorder.isRecording) {
-          recorder.stop().catch(() => {});
-          setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true }).catch(() => {});
-        }
+        // Stop any in-progress ShazamKit listening so the mic is released
+        // before the tab loses focus.
+        try { stopListening(); } catch {}
         setStage('idle');
         setResults([]);
         setSeedTrack(null);
@@ -381,42 +376,37 @@ export default function HearScreen() {
     opacity: opacity2.value,
   }));
 
-  const startRecording = async () => {
-    try {
-      const { granted } = await requestRecordingPermissionsAsync();
-      if (!granted) { setStage('error'); return; }
-      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
-      await recorder.prepareToRecordAsync();
-      await recorder.record();
-      setStage('recording');
-    } catch {
-      setStage('error');
-    }
-  };
-
-  const stopRecording = async () => {
+  // ShazamKit listens on the mic and matches against Apple's Shazam catalog,
+  // returning { title, artist } — which we then look up in Apple Music for
+  // playable previews + recommendations.
+  const identifySong = async () => {
     Keyboard.dismiss();
-    await recorder.stop();
-    const uri = recorder.uri;
-    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
-    if (!uri) { setStage('error'); return; }
-
     const { searchesRemaining: remaining, isPro: pro } = useSubscriptionStore.getState();
     if (!pro && remaining === 0) { setStage('limitReached'); return; }
-    setStage('recognizing');
+    if (!isAvailable()) { setStage('error'); return; }
+
+    setStage('recording'); // drives the "listening" pulse animation
     try {
-      const match = await recognizeSong(uri);
-      if (!match) { setStage('error'); return; }
+      const matches = await startListening();
+      const match = matches?.[0];
+      const title = match?.title ?? '';
+      const artist = match?.artist ?? '';
+      if (!title) { setStage('error'); return; }
       const allowed = await recordSearch();
       if (!allowed) { setStage('limitReached'); return; }
-      recognizedRef.current = match;
+      recognizedRef.current = { title, artist };
       setStage('searching');
-      const tracks = await searchAppleTracks(`${match.title} ${match.artist}`, 5);
+      const tracks = await searchAppleTracks(`${title} ${artist}`, 5);
       if (tracks.length > 0) { setResults(tracks); setStage('result'); }
       else setStage('error');
     } catch {
       setStage('error');
     }
+  };
+
+  const cancelIdentify = () => {
+    try { stopListening(); } catch {}
+    setStage('idle');
   };
 
   const handleSearch = async () => {
@@ -510,9 +500,9 @@ export default function HearScreen() {
         <Animated.View style={[styles.pulseRing, pulse2Style]} />
         <TouchableOpacity
           style={[styles.recordBtn, isRecording && styles.recordingActive]}
-          onPress={isRecording ? stopRecording : startRecording}
+          onPress={isRecording ? cancelIdentify : identifySong}
           disabled={isBusy}
-          accessibilityLabel={isRecording ? 'Stop recording' : 'Start recording'}
+          accessibilityLabel={isRecording ? 'Stop listening' : 'Identify song'}
           accessibilityRole="button"
           activeOpacity={0.85}
         >
@@ -522,7 +512,7 @@ export default function HearScreen() {
             color={isRecording ? COLORS.pink : COLORS.purple}
           />
           <Text style={[styles.recordLabel, isRecording && styles.recordLabelActive]}>
-            {isRecording ? 'Tap to stop' : 'Tap to record'}
+            {isRecording ? 'Listening…' : 'Tap to identify'}
           </Text>
         </TouchableOpacity>
       </View>
