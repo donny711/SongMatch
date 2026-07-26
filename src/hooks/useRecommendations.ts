@@ -1,26 +1,15 @@
 import { useEffect, useCallback, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getRecommendationsForSeeds, getPlaylistTracks, getMyTopTracks } from '../api/endpoints';
+import { getRecommendationsForSeeds } from '../api/endpoints';
 import { getAppleCharts } from '../api/appleMusicClient';
 import { buildTasteSeeds } from '../api/tasteEngine';
 import { sampleLikedSeeds } from '../utils/sampleLikedSeeds';
 import { useDeckStore } from '../store/deckStore';
-import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
-import type { SpotifyTrack } from '../api/types';
 import { DECK_REFETCH_AT } from '../utils/constants';
-
-function pickSeeds(tracks: SpotifyTrack[], count = 3): Array<{ name: string; artist: string }> {
-  const shuffled = [...tracks].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, count).map((t) => ({
-    name: t.name,
-    artist: t.artists[0]?.name ?? '',
-  }));
-}
 
 export function useRecommendations() {
   const {
-    sourcePlaylist,
     seedTrack,
     queue,
     setQueue,
@@ -32,7 +21,6 @@ export function useRecommendations() {
     consecutiveSkips,
     artistSkipCounts,
   } = useDeckStore();
-  const accessToken = useAuthStore((s) => s.accessToken);
   const genreShiftAfter = useSettingsStore((s) => s.genreShiftAfter);
   const exhaustedRef = useRef(false);
   const genreShiftRef = useRef(false);
@@ -41,7 +29,7 @@ export function useRecommendations() {
 
   useEffect(() => {
     exhaustedRef.current = false;
-  }, [seedTrack?.name, sourcePlaylist?.id, accessToken, likedTracks.length]);
+  }, [seedTrack?.name, likedTracks.length]);
 
   const fetchRecs = useCallback(async () => {
     const forceShift = genreShiftRef.current;
@@ -84,12 +72,6 @@ export function useRecommendations() {
       );
       seeds = tasteSeeds;
 
-    } else if (sourcePlaylist && accessToken) {
-      // User explicitly picked a Spotify playlist
-      const res = await getPlaylistTracks(sourcePlaylist.id);
-      const tracks = res.items.map((i) => i.track).filter(Boolean) as SpotifyTrack[];
-      seeds = pickSeeds(tracks, seedCount);
-
     } else if (n >= 3) {
       // PRIMARY PATH: liked-song seeds + a slice of onboarding genre seeds so
       // declared preferences stay relevant even after many likes accumulate.
@@ -108,11 +90,6 @@ export function useRecommendations() {
         likedTracks, recentSkips, onboardingGenres, false, filteredArtistKeys
       );
       seeds = tasteSeeds;
-
-    } else if (accessToken) {
-      // Bootstrap: Spotify top tracks for users with no history at all
-      const top = await getMyTopTracks();
-      seeds = pickSeeds(top.items, seedCount);
 
     } else {
       // Last resort: Apple charts minus filtered artists
@@ -135,10 +112,10 @@ export function useRecommendations() {
     // Skip Apple artist seeds on genre shifts — seeds from liked tracks would
     // surface current-taste results first and defeat the shift intent.
     return getRecommendationsForSeeds(seeds, 20, seenIds, filteredArtistKeys, forceShift ? [] : seedArtistIds);
-  }, [sourcePlaylist, seedTrack, accessToken, likedTracks, recentSkips, seenTrackIds, onboardingGenres, artistSkipCounts]);
+  }, [seedTrack, likedTracks, recentSkips, seenTrackIds, onboardingGenres, artistSkipCounts]);
 
   const { refetch, isFetching } = useQuery({
-    queryKey: ['recommendations', sourcePlaylist?.id, seedTrack?.name, !!accessToken],
+    queryKey: ['recommendations', seedTrack?.name],
     queryFn: async () => {
       const cards = await fetchRecs();
       if (cards.length === 0) exhaustedRef.current = true;

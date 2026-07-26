@@ -10,10 +10,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useAuthStore } from '../../src/store/authStore';
 import { useDeckStore } from '../../src/store/deckStore';
 import { useProfileStore } from '../../src/store/profileStore';
-import { TokenStorage } from '../../src/auth/TokenStorage';
 import { AvatarWithFrame } from '../../src/components/profile/AvatarWithFrame';
 import { ProfileBackground, ProfileThemeBackground } from '../../src/components/profile/ProfileBackground';
 import { BadgeRow } from '../../src/components/profile/BadgeRow';
@@ -24,159 +22,15 @@ import { FollowStats } from '../../src/components/profile/FollowStats';
 import { Image as ExpoImage } from 'expo-image';
 import { SHOP_ITEMS_BY_ID } from '../../src/data/shopCatalog';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
-import { SPOTIFY_PUBLIC } from '../../src/utils/constants';
 import { RankBadge } from '../../src/components/profile/RankBadge';
 import { getRankForLikes, getNextRank, getProgressToNext } from '../../src/data/ranks';
 
 const BANNER_HEIGHT = 180;
 
-// ── SoundCloud platform card ────────────────────────────────────────────────
-
-function PlatformRow({
-  icon,
-  color,
-  name,
-  subtitle,
-  avatarUri,
-  actionLabel,
-  actionDisabled,
-  onAction,
-  isConnected,
-  divider,
-}: {
-  icon: string;
-  color: string;
-  name: string;
-  subtitle?: string;
-  avatarUri?: string | null;
-  actionLabel: string;
-  actionDisabled?: boolean;
-  onAction?: () => void;
-  isConnected?: boolean;
-  divider?: boolean;
-}) {
-  return (
-    <>
-      <View style={styles.platformRow}>
-        {/* Icon / avatar */}
-        {isConnected && avatarUri ? (
-          <Image source={{ uri: avatarUri }} style={styles.platformAvatar} />
-        ) : (
-          <View style={[styles.platformIcon, { backgroundColor: `${color}20` }]}>
-            <Ionicons name={icon as any} size={16} color={color} />
-          </View>
-        )}
-
-        {/* Text */}
-        <View style={styles.platformText}>
-          <View style={styles.platformNameRow}>
-            <Text style={styles.platformName}>{name}</Text>
-            {isConnected && (
-              <View style={[styles.connectedDot, { backgroundColor: color }]} />
-            )}
-          </View>
-          {subtitle ? (
-            <Text style={styles.platformSub} numberOfLines={1}>{subtitle}</Text>
-          ) : null}
-        </View>
-
-        {/* Action button */}
-        {actionDisabled ? (
-          <View style={styles.platformBtnDisabled}>
-            <Text style={styles.platformBtnDisabledText}>{actionLabel}</Text>
-          </View>
-        ) : (
-          <TouchableOpacity
-            style={[
-              styles.platformBtn,
-              isConnected ? styles.platformBtnDisconnect : { backgroundColor: color },
-            ]}
-            onPress={onAction}
-            activeOpacity={0.8}
-          >
-            <Text style={[
-              styles.platformBtnText,
-              isConnected && styles.platformBtnTextDisconnect,
-            ]}>
-              {actionLabel}
-            </Text>
-          </TouchableOpacity>
-        )}
-      </View>
-      {divider && <View style={styles.platformDivider} />}
-    </>
-  );
-}
-
-function MusicPlatforms() {
-  const user = useAuthStore((s) => s.user);
-  const accessToken = useAuthStore((s) => s.accessToken);
-  const logout = useAuthStore((s) => s.logout);
-
-  const handleSpotifyDisconnect = async () => {
-    await TokenStorage.clearTokens();
-    logout();
-    await useDeckStore.getState().loadForUser('anonymous');
-  };
-
-  return (
-    <View style={styles.platformCard}>
-      {/* Connect is gated while Spotify's dev mode caps us at 5 allowlisted
-          users — see SPOTIFY_PUBLIC. Connected accounts keep full controls. */}
-      {accessToken && user ? (
-        <PlatformRow
-          icon="musical-notes"
-          color={COLORS.purple}
-          name="Spotify"
-          subtitle={user.display_name ?? user.id}
-          avatarUri={user.images?.[0]?.url}
-          isConnected
-          actionLabel="Disconnect"
-          onAction={handleSpotifyDisconnect}
-          divider
-        />
-      ) : SPOTIFY_PUBLIC ? (
-        <PlatformRow
-          icon="musical-notes"
-          color={COLORS.purple}
-          name="Spotify"
-          actionLabel="Connect"
-          onAction={() => router.navigate('/(auth)/login')}
-          divider
-        />
-      ) : (
-        <PlatformRow
-          icon="musical-notes"
-          color={COLORS.purple}
-          name="Spotify"
-          actionLabel="Soon"
-          actionDisabled
-          divider
-        />
-      )}
-      <PlatformRow
-        icon="cloud"
-        color="#FF5500"
-        name="SoundCloud"
-        actionLabel="Soon"
-        actionDisabled
-        divider
-      />
-      <PlatformRow
-        icon="musical-note"
-        color="#FC3C44"
-        name="Apple Music"
-        actionLabel="Soon"
-        actionDisabled
-      />
-    </View>
-  );
-}
 
 // ── Main Profile Screen ─────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
-  const user = useAuthStore((s) => s.user);
   const { likedTracks, skippedCount } = useDeckStore();
   const insets = useSafeAreaInsets();
   const [statsRowHeight, setStatsRowHeight] = React.useState(96);
@@ -199,10 +53,10 @@ export default function ProfileScreen() {
   const profileUsername = useProfileStore((s) => s.username);
 
   // Resolve display name: custom → Spotify → fallback
-  const resolvedName = profileDisplayName ?? user?.display_name ?? 'SongMatch User';
+  const resolvedName = profileDisplayName ?? 'SongMatch User';
 
   // Resolve avatar: custom approved → Spotify avatar → null
-  const resolvedAvatarUri = profileAvatarUrl ?? user?.images?.[0]?.url ?? null;
+  const resolvedAvatarUri = profileAvatarUrl ?? null;
 
   // Accent color from equipped card theme
   const themeItem = equippedItems.cardTheme ? SHOP_ITEMS_BY_ID[equippedItems.cardTheme] : null;
@@ -297,9 +151,6 @@ export default function ProfileScreen() {
             <Text style={styles.name}>{resolvedName}</Text>
             {profileUsername && (
               <Text style={styles.usernameText}>@{profileUsername}</Text>
-            )}
-            {user?.display_name && !profileDisplayName && !profileUsername && (
-              <Text style={styles.subName}>{user.display_name}</Text>
             )}
             <BadgeRow
               badge1={equippedItems.badge1}
@@ -403,7 +254,6 @@ export default function ProfileScreen() {
         {/* ── Music Platforms ── */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: profileUiAccent }]}>Music Platforms</Text>
-          <MusicPlatforms />
         </View>
 
       </View>

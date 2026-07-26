@@ -72,7 +72,6 @@ export default function HomeScreen() {
     incrementSkipped,
     addLikedTrack,
     addSkippedTrack,
-    sourcePlaylist,
     recordSwipe,
     undoLastSwipe,
     lastSwipedCard,
@@ -230,16 +229,6 @@ export default function HomeScreen() {
       {activeTab === 'foryou' && (
         <>
           <>
-              {/* Source playlist pill */}
-              {sourcePlaylist && (
-                <View style={styles.header}>
-                  <View style={styles.seedPill}>
-                    <Ionicons name="musical-notes" size={12} color={COLORS.purple} />
-                    <Text style={styles.seedText}>{sourcePlaylist.name}</Text>
-                  </View>
-                </View>
-              )}
-
               {/* Loading — skeleton card */}
               {isFetching && queue.length === 0 && (
                 <View style={styles.centeredState}>

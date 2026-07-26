@@ -22,8 +22,6 @@ import { ONBOARDING_KEY, ONBOARDING_GENRES_KEY } from './onboarding';
 import { PRIVACY_POLICY_URL } from '../src/utils/constants';
 import { signOut } from 'firebase/auth';
 import { auth } from '../src/firebase/config';
-import { useAuthStore } from '../src/store/authStore';
-import { TokenStorage } from '../src/auth/TokenStorage';
 import { useTutorialStore } from '../src/store/tutorialStore';
 import { ensurePermission } from '../src/notifications/notificationService';
 import { syncReengagementNotifications } from '../src/notifications/coordinator';
@@ -163,11 +161,6 @@ export default function SettingsScreen() {
           onPress: async () => {
             useDeckStore.getState().cancelArtistIdsTimer();
             const prevUserId = useDeckStore.getState().userId;
-            try {
-              await TokenStorage.clearTokens();
-              await TokenStorage.clearSoundCloudTokens();
-            } catch {}
-            useAuthStore.getState().logout();
             useDeckStore.setState({
               queue: [],
               likedTracks: [],
@@ -177,8 +170,6 @@ export default function SettingsScreen() {
               likedCount: 0,
               skippedCount: 0,
               consecutiveSkips: 0,
-              sourcePlaylist: null,
-              targetPlaylistId: null,
               seedTrack: null,
               userId: 'anonymous',
               lastSwipedCard: null,
@@ -256,11 +247,6 @@ export default function SettingsScreen() {
                     // Same local cleanup as logout (auth user is already gone).
                     useDeckStore.getState().cancelArtistIdsTimer();
                     const prevUserId = useDeckStore.getState().userId;
-                    try {
-                      await TokenStorage.clearTokens();
-                      await TokenStorage.clearSoundCloudTokens();
-                    } catch {}
-                    useAuthStore.getState().logout();
                     useDeckStore.setState({
                       queue: [],
                       likedTracks: [],
@@ -270,8 +256,6 @@ export default function SettingsScreen() {
                       likedCount: 0,
                       skippedCount: 0,
                       consecutiveSkips: 0,
-                      sourcePlaylist: null,
-                      targetPlaylistId: null,
                       seedTrack: null,
                       userId: 'anonymous',
                       lastSwipedCard: null,

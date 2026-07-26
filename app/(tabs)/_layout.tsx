@@ -61,7 +61,6 @@ export default function TabsLayout() {
       <Tabs.Screen name="home"      options={{ title: 'Discover' }} />
       <Tabs.Screen name="people"    options={{ title: 'People' }} />
       <Tabs.Screen name="profile"   options={{ title: 'Profile', tabBarButton: (props) => <TutorialTabButton tutorialId="tab-profile" {...props} /> }} />
-      <Tabs.Screen name="playlists" options={{ href: null }} />
     </Tabs>
   );
 }

@@ -5,16 +5,13 @@ import { Stack, router } from 'expo-router';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useAuthStore } from '../src/store/authStore';
 import { MPToast } from '../src/components/profile/MPToast';
 import { StreakCelebration } from '../src/components/profile/StreakCelebration';
-import type { SoundCloudUser } from '../src/store/authStore';
 import { useDeckStore } from '../src/store/deckStore';
 import { useSettingsStore } from '../src/store/settingsStore';
 import { useProfileStore } from '../src/store/profileStore';
 import { useSubscriptionStore } from '../src/store/subscriptionStore';
-import { TokenStorage } from '../src/auth/TokenStorage';
-import { getMe, getRecommendationsForSeeds } from '../src/api/endpoints';
+import { getRecommendationsForSeeds } from '../src/api/endpoints';
 import { sampleLikedSeeds } from '../src/utils/sampleLikedSeeds';
 import { ONBOARDING_KEY } from './onboarding';
 import { useReferral } from '../src/hooks/useReferral';
@@ -82,34 +79,8 @@ async function prefetchRecommendations() {
 
 const queryClient = new QueryClient();
 
-async function restoreSoundCloudSession() {
-  const scToken = await TokenStorage.getSoundCloudAccessToken();
-  if (!scToken) return;
-  try {
-    const meRes = await fetch('https://api.soundcloud.com/me', {
-      headers: { Authorization: `OAuth ${scToken}` },
-    });
-    if (!meRes.ok) {
-      await TokenStorage.clearSoundCloudTokens();
-      return;
-    }
-    const me = await meRes.json();
-    const user: SoundCloudUser = {
-      id: me.id,
-      username: me.username,
-      full_name: me.full_name ?? me.username,
-      avatar_url: me.avatar_url ?? null,
-    };
-    useAuthStore.getState().setSoundCloudUser(user);
-    useAuthStore.getState().addPlatform('soundcloud');
-  } catch {
-    await TokenStorage.clearSoundCloudTokens();
-  }
-}
 
 function RootLayout() {
-  const setAccessToken = useAuthStore((s) => s.setAccessToken);
-  const setUser = useAuthStore((s) => s.setUser);
   const loadForUser = useDeckStore((s) => s.loadForUser);
   const loadSettings = useSettingsStore((s) => s.load);
   const appState = useRef<AppStateStatus>(AppState.currentState);
@@ -118,37 +89,14 @@ function RootLayout() {
   useEffect(() => {
     (async () => {
       await loadSettings();
-      await useAuthStore.getState().loadPlatforms();
-
-      let spotifyUserId: string | undefined;
-      const token = await TokenStorage.getAccessToken();
-      if (token) {
-        setAccessToken(token);
-        try {
-          const user = await getMe();
-          setUser(user);
-          spotifyUserId = user.id;
-          useAuthStore.getState().addPlatform('spotify');
-          await loadForUser(user.id);
-        } catch {
-          await TokenStorage.clearTokens();
-          await loadForUser('anonymous');
-        }
-      } else {
-        await loadForUser('anonymous');
-      }
+      await loadForUser('anonymous');
 
       // Initialize Firebase profile (non-blocking)
-      useProfileStore.getState().initialize(spotifyUserId).then(() => {
+      useProfileStore.getState().initialize().then(() => {
         // Grant first-launch milestone if not yet earned
         const { earnedMilestones, uid } = useProfileStore.getState();
         if (!earnedMilestones.includes('ms_first_launch')) {
           useProfileStore.getState().grantMilestone('ms_first_launch');
-        }
-        // Catch-up for users whose Spotify was connected before this milestone
-        // existed (or whose OAuth-callback grant failed) — idempotent.
-        if (spotifyUserId) {
-          useProfileStore.getState().grantMilestone('ms_connect_spotify').catch(() => {});
         }
         // Check streak on launch, then schedule re-engagement notifications.
         useProfileStore.getState().checkAndUpdateStreak().then(syncReengagementNotifications);
@@ -157,9 +105,6 @@ function RootLayout() {
           useSubscriptionStore.getState().initialize(uid).catch(() => {});
         }
       }).catch(() => {});
-
-      // Restore SoundCloud session in the background
-      restoreSoundCloudSession();
 
       const onboarded = await AsyncStorage.getItem(ONBOARDING_KEY);
       if (!onboarded) {

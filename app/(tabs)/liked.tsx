@@ -5,18 +5,14 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Modal,
-  ActivityIndicator,
   Share,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useDeckStore } from '../../src/store/deckStore';
-import { useAuthStore } from '../../src/store/authStore';
-import { openTrackOnPlatform } from '../../src/utils/platformLinks';
+import { openTrackInAppleMusic } from '../../src/utils/platformLinks';
 import { getSongLikerCount } from '../../src/firebase/socialService';
-import { resolveTracksToSpotifyUris } from '../../src/api/endpoints';
 import GradientText from '../../src/components/GradientText';
 import AppleArtwork from '../../src/components/AppleArtwork';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
@@ -25,7 +21,6 @@ import { lightTap } from '../../src/utils/haptics';
 import LottieEmptyState from '../../src/components/LottieEmptyState';
 const emptyLikedAnim = require('../../assets/lottie/empty-liked.json');
 
-type ExportStep = 'exporting' | 'done';
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -34,7 +29,6 @@ function formatDuration(seconds: number): string {
 }
 
 function LikedTrackRow({ item, index, onRemove }: { item: DeezerTrack; index: number; onRemove: () => void }) {
-  const connectedPlatforms = useAuthStore((s) => s.connectedPlatforms);
   const [likerCount, setLikerCount] = useState(0);
 
   useEffect(() => {
@@ -65,17 +59,15 @@ function LikedTrackRow({ item, index, onRemove }: { item: DeezerTrack; index: nu
         </View>
       </View>
       <View style={styles.rowActions}>
-        {connectedPlatforms.length > 0 && (
         <TouchableOpacity
           style={styles.spotifyBtn}
-          onPress={() => { lightTap(); openTrackOnPlatform(item, connectedPlatforms); }}
-          accessibilityLabel={`Open ${item.title} in music app`}
+          onPress={() => { lightTap(); openTrackInAppleMusic(item); }}
+          accessibilityLabel={`Open ${item.title} in Apple Music`}
           accessibilityRole="button"
           activeOpacity={0.8}
         >
           <Ionicons name="musical-note" size={13} color="#fff" />
         </TouchableOpacity>
-        )}
         <TouchableOpacity
           style={styles.removeBtn}
           onPress={() => { lightTap(); onRemove(); }}
@@ -95,42 +87,10 @@ export default function LikedScreen() {
   const { likedTracks, removeLikedTrack } = useDeckStore();
   const insets = useSafeAreaInsets();
 
-  const [modalVisible, setModalVisible] = useState(false);
-  const [exportStep, setExportStep] = useState<ExportStep>('exporting');
-  const [exportProgress, setExportProgress] = useState({ done: 0, total: 0 });
-  const [exportResult, setExportResult] = useState<{ copied: number; notFound: number } | null>(null);
-
   async function openExport() {
     lightTap();
-    // No Spotify session (connect is gated publicly): the resolution loop is
-    // just N failing API calls ending in a "0 found on Spotify" modal — share
-    // the plain track list directly instead.
-    if (!useAuthStore.getState().accessToken) {
-      const trackLines = likedTracks.map(t => t.title + ' - ' + t.artist.name).join('\n');
-      await Share.share({ message: trackLines, title: 'My Liked Songs' }).catch(() => {});
-      return;
-    }
-    setExportResult(null);
-    setExportStep('exporting');
-    setExportProgress({ done: 0, total: likedTracks.length });
-    setModalVisible(true);
-    try {
-      const tracks = likedTracks.map(t => ({ title: t.title, artist: t.artist.name }));
-      const { uris, notFound } = await resolveTracksToSpotifyUris(
-        tracks,
-        (done, total) => setExportProgress({ done, total }),
-      );
-      const trackLines = likedTracks.map(t => t.title + ' - ' + t.artist.name).join('\n');
-      await Share.share({ message: trackLines, title: 'My Liked Songs' });
-      setExportResult({ copied: uris.length, notFound });
-      setExportStep('done');
-    } catch {
-      closeModal();
-    }
-  }
-
-  function closeModal() {
-    setModalVisible(false);
+    const trackLines = likedTracks.map(t => t.title + ' - ' + t.artist.name).join('\n');
+    await Share.share({ message: trackLines, title: 'My Liked Songs' }).catch(() => {});
   }
 
   return (
@@ -141,7 +101,7 @@ export default function LikedScreen() {
           <TouchableOpacity
             style={styles.saveBtn}
             onPress={openExport}
-            accessibilityLabel="Export to Spotify playlist"
+            accessibilityLabel="Share liked songs"
             accessibilityRole="button"
             activeOpacity={0.8}
           >
@@ -181,63 +141,6 @@ export default function LikedScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
-
-      <Modal
-        visible={modalVisible}
-        animationType="slide"
-        transparent
-        onRequestClose={closeModal}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.sheet, { paddingBottom: insets.bottom + SPACING.md }]}>
-            <View style={styles.sheetHandle} />
-
-            {exportStep === 'exporting' && (
-              <View style={styles.exportingContainer}>
-                <ActivityIndicator color={COLORS.green} size="large" />
-                <Text style={styles.exportingLabel}>
-                  Finding on Spotify… {exportProgress.done} / {exportProgress.total}
-                </Text>
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: exportProgress.total > 0
-                          ? `${(exportProgress.done / exportProgress.total) * 100}%`
-                          : '0%',
-                      },
-                    ]}
-                  />
-                </View>
-              </View>
-            )}
-
-            {exportStep === 'done' && exportResult && (
-              <View style={styles.doneContainer}>
-                <View style={styles.checkCircle}>
-                  <Ionicons name="checkmark" size={36} color="#000" />
-                </View>
-                <Text style={styles.doneTitle}>{exportResult.copied} tracks found on Spotify</Text>
-                {exportResult.notFound > 0 && (
-                  <Text style={styles.doneNotFound2}>
-                    {exportResult.notFound} {exportResult.notFound === 1 ? 'track' : 'tracks'} not found
-                  </Text>
-                )}
-                <TouchableOpacity
-                  style={styles.doneBtn}
-                  onPress={closeModal}
-                  accessibilityLabel="Done"
-                  accessibilityRole="button"
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.doneBtnText}>Done</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }

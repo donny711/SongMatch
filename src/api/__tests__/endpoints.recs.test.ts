@@ -1,5 +1,4 @@
 jest.mock('../../utils/constants', () => ({ MUSIC_PROXY_URL: 'https://proxy.test' }));
-jest.mock('../spotifyClient', () => ({ spotifyFetch: jest.fn() }));
 jest.mock('../appleMusicClient');
 import * as apple from '../appleMusicClient';
 import { getRecommendationsForSeeds } from '../endpoints';

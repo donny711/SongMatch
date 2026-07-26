@@ -12,7 +12,6 @@ import { router } from 'expo-router';
 import { useProfileStore } from '../src/store/profileStore';
 import { useDeckStore } from '../src/store/deckStore';
 import { MILESTONES, type Milestone } from '../src/data/milestones';
-import { SPOTIFY_PUBLIC } from '../src/utils/constants';
 import { COLORS, SPACING, RADIUS } from '../src/theme';
 
 // ── Category definitions ───────────────────────────────────────────────────
@@ -30,15 +29,6 @@ const CATEGORIES: Category[] = [
     color: '#A78BFA',
     icon: 'rocket',
     milestoneIds: ['ms_first_launch', 'ms_set_avatar', 'ms_set_username'],
-  },
-  {
-    label: 'Platforms',
-    color: '#E879F9',
-    icon: 'apps',
-    // Don't list tasks the user cannot complete: SoundCloud connect is
-    // disabled ("Soon"), and Spotify connect is gated by SPOTIFY_PUBLIC.
-    // Re-add ms_connect_soundcloud + ms_two_platforms when platforms go live.
-    milestoneIds: SPOTIFY_PUBLIC ? ['ms_connect_spotify'] : [],
   },
   {
     label: 'Songs',
@@ -75,10 +65,6 @@ function getMilestoneSubtitle(
     case 'first_launch':        return 'Open SongMatch for the first time';
     case 'set_avatar':          return 'Upload a profile picture';
     case 'set_username':        return 'Set your unique @username';
-    case 'platform_connect':
-      if (t.platform === 'spotify')    return 'Link your Spotify account';
-      if (t.platform === 'soundcloud') return 'Link your SoundCloud account';
-      return 'Link both Spotify and SoundCloud';
     case 'liked_count':
       return `Like ${t.count} songs  ·  ${Math.min(likedCount, t.count)}/${t.count}`;
     case 'streak_days':

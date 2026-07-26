@@ -1,91 +1,11 @@
-import { spotifyFetch } from './spotifyClient';
 import {
   searchAppleTracks, getArtistTopSongs, getSimilarArtistIds,
   getArtistIdForTrack, getAppleCharts,
 } from './appleMusicClient';
 import type {
-  SpotifyUser,
-  SpotifyPaginated,
-  SpotifyPlaylist,
-  SpotifyPlaylistTrackItem,
-  SpotifyTrack,
   Track,
   RecommendationCard,
 } from './types';
-
-// ── Spotify endpoints ─────────────────────────────────────────────────────────
-
-export const getMe = () => spotifyFetch<SpotifyUser>('/me');
-
-export const getMyPlaylists = (offset = 0) =>
-  spotifyFetch<SpotifyPaginated<SpotifyPlaylist>>(
-    `/me/playlists?limit=50&offset=${offset}`
-  );
-
-export const getPlaylistTracks = (playlistId: string, offset = 0) =>
-  spotifyFetch<SpotifyPaginated<SpotifyPlaylistTrackItem>>(
-    `/playlists/${playlistId}/tracks?limit=100&offset=${offset}`
-  );
-
-export const getMyTopTracks = () =>
-  spotifyFetch<SpotifyPaginated<SpotifyTrack>>(
-    '/me/top/tracks?limit=5&time_range=medium_term'
-  );
-
-export const searchTracks = (query: string) =>
-  spotifyFetch<{ tracks: SpotifyPaginated<SpotifyTrack> }>(
-    `/search?q=${encodeURIComponent(query)}&type=track&limit=5`
-  );
-
-export const addTrackToPlaylist = (playlistId: string, trackUri: string) =>
-  spotifyFetch<void>(`/playlists/${playlistId}/tracks`, {
-    method: 'POST',
-    body: JSON.stringify({ uris: [trackUri] }),
-  });
-
-export const saveTrackToLiked = (trackId: string) =>
-  spotifyFetch<void>(`/me/tracks?ids=${encodeURIComponent(trackId)}`, {
-    method: 'PUT',
-  });
-
-export const createPlaylist = (userId: string, name: string) =>
-  spotifyFetch<SpotifyPlaylist>(`/users/${userId}/playlists`, {
-    method: 'POST',
-    body: JSON.stringify({ name, public: true }),
-  });
-
-/** Search Spotify for a track and return its URI for saving to a playlist. */
-export async function findSpotifyTrackUri(title: string, artist: string): Promise<string | null> {
-  try {
-    const res = await searchTracks(`${title} ${artist}`);
-    return res.tracks.items[0]?.uri ?? null;
-  } catch {
-    return null;
-  }
-}
-
-
-/**
- * Resolve liked tracks to Spotify URIs (read-only search scope only).
- * Returns the URIs for clipboard/share — no write scope required.
- */
-export async function resolveTracksToSpotifyUris(
-  tracks: Array<{ title: string; artist: string }>,
-  onProgress: (done: number, total: number) => void,
-): Promise<{ uris: string[]; notFound: number }> {
-  const uris: string[] = [];
-  const BATCH = 5;
-  for (let i = 0; i < tracks.length; i += BATCH) {
-    const results = await Promise.all(
-      tracks.slice(i, i + BATCH).map(t => findSpotifyTrackUri(t.title, t.artist)),
-    );
-    for (const uri of results) {
-      if (uri) uris.push(uri);
-    }
-    onProgress(Math.min(i + BATCH, tracks.length), tracks.length);
-  }
-  return { uris, notFound: tracks.length - uris.length };
-}
 
 // ── Recommendation engine (Apple Music) ──────────────────────────────────────
 

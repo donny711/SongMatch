@@ -1,6 +1,5 @@
 export type MilestoneTrigger =
   | { type: 'first_launch' }
-  | { type: 'platform_connect'; platform: 'spotify' | 'soundcloud' | 'both' }
   | { type: 'liked_count'; count: number }
   | { type: 'streak_days'; days: number }
   | { type: 'set_avatar' }
@@ -24,25 +23,6 @@ export const MILESTONES: Milestone[] = [
     pointsReward: 100,
     badgeGrant: 'badge_early_adopter',
     triggerCondition: { type: 'first_launch' },
-  },
-  {
-    id: 'ms_connect_spotify',
-    label: 'Connected Spotify',
-    pointsReward: 400,
-    triggerCondition: { type: 'platform_connect', platform: 'spotify' },
-  },
-  {
-    id: 'ms_connect_soundcloud',
-    label: 'Connected SoundCloud',
-    pointsReward: 200,
-    triggerCondition: { type: 'platform_connect', platform: 'soundcloud' },
-  },
-  {
-    id: 'ms_two_platforms',
-    label: 'Music Everywhere',
-    pointsReward: 300,
-    badgeGrant: 'badge_double_platform',
-    triggerCondition: { type: 'platform_connect', platform: 'both' },
   },
   {
     id: 'ms_liked_10',

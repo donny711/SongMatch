@@ -388,7 +388,7 @@ export const SHOP_CATALOG: ShopItem[] = [
     id: 'badge_double_platform',
     type: 'badge',
     name: 'Everywhere',
-    description: 'Connected both Spotify and SoundCloud.',
+    description: 'A rare collector badge.',
     cost: 0,
     rarity: 'rare',
     animationType: 'static',

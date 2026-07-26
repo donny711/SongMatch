@@ -1,32 +1,3 @@
-import { makeRedirectUri } from 'expo-auth-session';
-
-// Spotify's Feb 2026 policy: dev mode = 5 allowlisted users; extended quota
-// needs a registered business with 250k+ MAU. Until then the Connect button
-// is hidden (an OAuth failure in front of App Review = rejection). Already-
-// connected accounts (owner/allowlist) keep working. Flip when eligible.
-export const SPOTIFY_PUBLIC = false;
-
-export const SPOTIFY_CLIENT_ID = process.env.EXPO_PUBLIC_SPOTIFY_CLIENT_ID ?? '';
-export const SPOTIFY_REDIRECT_URI = makeRedirectUri({ native: 'songmatch://callback' });
-
-// Request ONLY scopes with live call sites — unused scopes are the top
-// rejection reason in Spotify's extended-quota review.
-export const SPOTIFY_SCOPES = [
-  'user-read-private',           // /me — account display name for the profile screen
-  'playlist-read-private',       // playlist browser + playlist-seeded recommendations
-  'playlist-read-collaborative', // include collaborative playlists in the browser
-  'user-top-read',               // top tracks as recommendation seeds
-].join(' ');
-
-export const SPOTIFY_AUTH_URL = 'https://accounts.spotify.com/authorize';
-export const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token';
-export const SPOTIFY_API_BASE = 'https://api.spotify.com/v1';
-
-export const SOUNDCLOUD_CLIENT_ID = process.env.EXPO_PUBLIC_SOUNDCLOUD_CLIENT_ID ?? '';
-export const SOUNDCLOUD_CLIENT_SECRET = process.env.EXPO_PUBLIC_SOUNDCLOUD_CLIENT_SECRET ?? '';
-export const SOUNDCLOUD_REDIRECT_URI = makeRedirectUri();
-export const SOUNDCLOUD_TOKEN_URL = 'https://api.soundcloud.com/oauth2/token';
-
 // Dev-only fallback: production builds don't define this (the worker proxy
 // injects the key server-side); audd recognition goes through its own worker.
 export const LASTFM_API_KEY = process.env.EXPO_PUBLIC_LASTFM_API_KEY ?? '';

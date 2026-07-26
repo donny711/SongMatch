@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { RecommendationCard, SpotifyPlaylist, DeezerTrack } from '../api/types';
+import type { RecommendationCard, DeezerTrack } from '../api/types';
 import { syncLikedTrackToFirestore, removeLikedTrackFromFirestore, updateArtistIds } from '../firebase/profileService';
 import { profileRef } from './profileRef';
 
@@ -17,8 +17,6 @@ interface DeckState {
   onboardingArtists: string[];
   onboardingSongId: number | null;
   onboardingArtistTrackIds: string[];
-  sourcePlaylist: SpotifyPlaylist | null;
-  targetPlaylistId: string | null;
   seedTrack: { name: string; artist: string } | null;
   userId: string;
   setQueue: (cards: RecommendationCard[]) => void;
@@ -29,8 +27,6 @@ interface DeckState {
   addLikedTrack: (track: DeezerTrack) => void;
   removeLikedTrack: (id: number) => void;
   addSkippedTrack: (track: DeezerTrack) => void;
-  setSourcePlaylist: (playlist: SpotifyPlaylist | null) => void;
-  setTargetPlaylistId: (id: string | null) => void;
   setSeedTrack: (track: { name: string; artist: string } | null) => void;
   clearSeenTracks: () => void;
   clearHistory: () => void;
@@ -67,8 +63,6 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   onboardingArtists: [],
   onboardingSongId: null,
   onboardingArtistTrackIds: [],
-  sourcePlaylist: null,
-  targetPlaylistId: null,
   seedTrack: null,
   userId: 'anonymous',
   lastSwipedCard: null,
@@ -149,8 +143,6 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     AsyncStorage.setItem(seenKey(userId), JSON.stringify(seenTrackIds));
     AsyncStorage.setItem(artistSkipsKey(userId), JSON.stringify(artistSkipCounts));
   },
-  setSourcePlaylist: (playlist) => set({ sourcePlaylist: playlist }),
-  setTargetPlaylistId: (id) => set({ targetPlaylistId: id }),
   setSeedTrack: (track) => set({ seedTrack: track }),
   clearSeenTracks: () => {
     set({ seenTrackIds: [] });
