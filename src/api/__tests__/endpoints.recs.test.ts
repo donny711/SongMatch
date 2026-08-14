@@ -7,7 +7,7 @@ import type { Track } from '../types';
 function mk(id: number, name: string, artist: string, artistId: string): Track {
   return {
     id, title: name, artist: { id: Number(artistId), name },
-    album: { id: 0, title: '', cover_xl: 'art' }, preview: 'p', duration: 100, link: '',
+    album: { id: 0, title: '', coverArt: 'art' }, preview: 'p', duration: 100, link: '',
     artworkUrl: 'art', appleArtistId: artistId,
   };
 }

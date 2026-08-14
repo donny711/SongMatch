@@ -16,7 +16,7 @@ import { db } from './config';
 import { todayISO, yesterdayISO } from '../utils/localDate';
 import { MILESTONE_MAP } from '../data/milestones';
 import { SHOP_ITEMS_BY_ID } from '../data/shopCatalog';
-import type { DeezerTrack } from '../api/types';
+import type { Track } from '../api/types';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -54,7 +54,7 @@ export interface UserProfile {
   earnedMilestones: string[];
   ownedItems: string[];
   equippedItems: EquippedItems;
-  showcaseTracks: DeezerTrack[];
+  showcaseTracks: Track[];
   showcaseArtists: ShowcaseArtist[];
   isPrivate: boolean;
   followerCount: number;
@@ -238,7 +238,7 @@ export async function equipItem(
 
 export async function updateShowcase(
   uid: string,
-  tracks: DeezerTrack[],
+  tracks: Track[],
   artists: ShowcaseArtist[]
 ): Promise<void> {
   await updateDoc(userRef(uid), {
@@ -313,7 +313,7 @@ export async function claimUsername(
 
 // ── Social: liked track sync ───────────────────────────────────────────────
 
-export async function syncLikedTrackToFirestore(uid: string, track: DeezerTrack): Promise<void> {
+export async function syncLikedTrackToFirestore(uid: string, track: Track): Promise<void> {
   const trackRef = doc(db, 'likedTracks', uid, 'tracks', String(track.id));
   const likerRef = doc(db, 'songLikes', String(track.id), 'likers', uid);
 
@@ -403,7 +403,7 @@ export async function removeLikedTrackFromFirestore(uid: string, trackId: number
   });
 }
 
-export async function runLikedTracksMigration(uid: string, likedTracks: DeezerTrack[]): Promise<void> {
+export async function runLikedTracksMigration(uid: string, likedTracks: Track[]): Promise<void> {
   const snap = await getDoc(userRef(uid));
   if (!snap.exists()) return;
   const data = snap.data() as Record<string, unknown>;
@@ -470,7 +470,7 @@ export async function migrateSpotifyProfile(
   return true;
 }
 
-export async function updateArtistIds(uid: string, likedTracks: DeezerTrack[]): Promise<void> {
+export async function updateArtistIds(uid: string, likedTracks: Track[]): Promise<void> {
   const counts = new Map<number, number>();
   for (const track of likedTracks) {
     const id = track.artist.id;

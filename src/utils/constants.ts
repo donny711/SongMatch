@@ -1,11 +1,6 @@
-// Dev-only fallback: production builds don't define this (the worker proxy
-// injects the key server-side); audd recognition goes through its own worker.
-export const LASTFM_API_KEY = process.env.EXPO_PUBLIC_LASTFM_API_KEY ?? '';
 // Proxy URL is public by design (it ships in every JS bundle; all secrets stay
-// inside the worker) — same pattern as the Sentry DSN. Hardcoded default so a
-// missing CI env var can never silently ship a build with no proxy: build 54
-// did exactly that (empty var → no Apple artwork, Last.fm degraded to keyless
-// direct calls). The env var remains as an override for dev/staging workers.
+// inside the worker). Hardcoded default so a missing CI env var can never
+// silently ship a build with no proxy.
 export const MUSIC_PROXY_URL =
   process.env.EXPO_PUBLIC_MUSIC_PROXY_URL || 'https://songmatch-proxy.radupopa214.workers.dev';
 

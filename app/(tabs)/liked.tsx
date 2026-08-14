@@ -16,7 +16,7 @@ import { getSongLikerCount } from '../../src/firebase/socialService';
 import GradientText from '../../src/components/GradientText';
 import AppleArtwork from '../../src/components/AppleArtwork';
 import { COLORS, SPACING, RADIUS } from '../../src/theme';
-import type { DeezerTrack } from '../../src/api/types';
+import type { Track } from '../../src/api/types';
 import { lightTap } from '../../src/utils/haptics';
 import LottieEmptyState from '../../src/components/LottieEmptyState';
 const emptyLikedAnim = require('../../assets/lottie/empty-liked.json');
@@ -28,7 +28,7 @@ function formatDuration(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-function LikedTrackRow({ item, index, onRemove }: { item: DeezerTrack; index: number; onRemove: () => void }) {
+function LikedTrackRow({ item, index, onRemove }: { item: Track; index: number; onRemove: () => void }) {
   const [likerCount, setLikerCount] = useState(0);
 
   useEffect(() => {

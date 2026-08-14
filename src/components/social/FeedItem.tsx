@@ -19,7 +19,7 @@ import { searchAppleTracks } from '../../api/appleMusicClient';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import type { AudioPlayer } from 'expo-audio';
 import type { FeedItem as FeedItemData } from '../../firebase/socialService';
-import type { DeezerTrack } from '../../api/types';
+import type { Track } from '../../api/types';
 import { COLORS, SPACING, RADIUS } from '../../theme';
 
 interface Props {
@@ -159,11 +159,11 @@ export function FeedItem({ item }: Props) {
 
   const handleSwipe = () => {
     if (!liked) {
-      const track: DeezerTrack = {
+      const track: Track = {
         id: item.trackId,
         title: item.title,
         artist: { id: item.artistId, name: item.artistName },
-        album: { id: 0, title: '', cover_xl: resolvedCoverUrl ?? '' },
+        album: { id: 0, title: '', coverArt: resolvedCoverUrl ?? '' },
         preview: previewUrl ?? '',
         duration: 0,
         link: '',

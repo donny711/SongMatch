@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { RecommendationCard, DeezerTrack } from '../api/types';
+import type { RecommendationCard, Track } from '../api/types';
 import { syncLikedTrackToFirestore, removeLikedTrackFromFirestore, updateArtistIds } from '../firebase/profileService';
 import { profileRef } from './profileRef';
 
@@ -9,8 +9,8 @@ interface DeckState {
   likedCount: number;
   skippedCount: number;
   consecutiveSkips: number;
-  likedTracks: DeezerTrack[];
-  recentSkips: DeezerTrack[];
+  likedTracks: Track[];
+  recentSkips: Track[];
   seenTrackIds: number[];
   artistSkipCounts: Record<string, { count: number; ts: number }>;
   onboardingGenres: string[];
@@ -24,9 +24,9 @@ interface DeckState {
   shiftQueue: () => void;
   incrementLiked: () => void;
   incrementSkipped: () => void;
-  addLikedTrack: (track: DeezerTrack) => void;
+  addLikedTrack: (track: Track) => void;
   removeLikedTrack: (id: number) => void;
-  addSkippedTrack: (track: DeezerTrack) => void;
+  addSkippedTrack: (track: Track) => void;
   setSeedTrack: (track: { name: string; artist: string } | null) => void;
   clearSeenTracks: () => void;
   clearHistory: () => void;
@@ -228,8 +228,8 @@ export const useDeckStore = create<DeckState>((set, get) => ({
       if (!raw) return fallback;
       try { return JSON.parse(raw); } catch { return fallback; }
     }
-    const likedTracks: DeezerTrack[] = safeParse(likedRaw, []);
-    const recentSkips: DeezerTrack[] = safeParse(skipsRaw, []);
+    const likedTracks: Track[] = safeParse(likedRaw, []);
+    const recentSkips: Track[] = safeParse(skipsRaw, []);
     const seenTrackIds: number[] = safeParse(seenRaw, []);
     const onboardingGenres: string[] = safeParse(genresRaw, []);
     const onboardingArtists: string[] = safeParse(onboardingArtistsRaw, []);

@@ -20,7 +20,7 @@ import GradientText from '../src/components/GradientText';
 import AppleArtwork from '../src/components/AppleArtwork';
 import AppleArtistArtwork from '../src/components/AppleArtistArtwork';
 import { GENRE_ARTISTS, GENRE_COLORS, GENRES } from '../src/utils/genres';
-import type { DeezerTrack } from '../src/api/types';
+import type { Track } from '../src/api/types';
 import { db, auth } from '../src/firebase/config';
 import { recordReferralInstall, recordAffiliateInstall } from '../src/firebase/referralService';
 import { signUpWithEmail, logInWithEmail, resetPassword, checkUsernameAvailable } from '../src/firebase/authService';
@@ -49,10 +49,10 @@ export default function OnboardingScreen() {
   const usernameTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResult, setSearchResult] = useState<DeezerTrack | null>(null);
+  const [searchResult, setSearchResult] = useState<Track | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchEmpty, setSearchEmpty] = useState(false);
-  const [selectedSong, setSelectedSong] = useState<DeezerTrack | null>(null);
+  const [selectedSong, setSelectedSong] = useState<Track | null>(null);
   const [favoriteArtists, setFavoriteArtists] = useState<Array<{ name: string; picture: string }>>([]);
   const [artistQuery, setArtistQuery] = useState('');
   const [artistSearching, setArtistSearching] = useState(false);
@@ -170,7 +170,7 @@ export default function OnboardingScreen() {
     } catch { setCodeType(null); setVerifyStatus('invalid'); }
   };
 
-  const goToReferral = (song: DeezerTrack | null) => { setSelectedSong(song); setStep('referral'); };
+  const goToReferral = (song: Track | null) => { setSelectedSong(song); setStep('referral'); };
 
   const finish = async (referralCode?: string) => {
     setStep('loading');

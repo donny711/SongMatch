@@ -5,7 +5,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 }));
 
 import { resolveArtwork, resolveArtworkForTracks, buildArtworkUrl } from '../musicKitService';
-import type { DeezerTrack } from '../types';
+import type { Track } from '../types';
 
 const TEMPLATE = 'https://is1.mzstatic.com/image/thumb/abc/{w}x{h}bb.jpg';
 
@@ -17,10 +17,10 @@ function songBySearch(id: string, template: string) {
 }
 const empty = { ok: true, json: async () => ({ data: [], results: {} }) };
 
-function track(over: Partial<DeezerTrack> = {}): DeezerTrack {
+function track(over: Partial<Track> = {}): Track {
   return {
     id: 1, title: 'Song', artist: { id: 1, name: 'Artist' },
-    album: { id: 1, title: 'Alb', cover_xl: 'deezer-url' },
+    album: { id: 1, title: 'Alb', coverArt: 'fallback-url' },
     preview: 'p', duration: 100, link: '', ...over,
   };
 }

@@ -1,18 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { View, type StyleProp, type ImageStyle, type ViewStyle } from 'react-native';
 import { Image } from 'expo-image';
-import type { DeezerTrack } from '../api/types';
+import type { Track } from '../api/types';
 import { resolveArtwork } from '../api/musicKitService';
 
 interface Props {
-  track: DeezerTrack;
+  track: Track;
   style?: StyleProp<ImageStyle>;
 }
 
 /**
  * Renders licensed Apple Music artwork for a track. Prefers an already-resolved
  * `track.artworkUrl`; otherwise resolves it lazily via musicKitService (cached).
- * Never falls back to the unlicensed Deezer cover — shows a neutral placeholder
+ * Never falls back to the legacy cover URL — shows a neutral placeholder
  * while resolving or when there is no catalog match.
  */
 export default function AppleArtwork({ track, style }: Props) {

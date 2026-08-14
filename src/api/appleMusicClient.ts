@@ -32,7 +32,7 @@ export function mapAppleSong(song: AppleSong): Track {
     id: Number(song.id),
     title: a.name ?? '',
     artist: { id: Number(song.relationships?.artists?.data?.[0]?.id ?? 0), name: a.artistName ?? '' },
-    album: { id: 0, title: a.albumName ?? '', cover_xl: artUrl(a.artwork?.url) ?? '' },
+    album: { id: 0, title: a.albumName ?? '', coverArt: artUrl(a.artwork?.url) ?? '' },
     preview: a.previews?.[0]?.url ?? '',
     duration: a.durationInMillis ? Math.round(a.durationInMillis / 1000) : 0,
     link: a.url ?? '',

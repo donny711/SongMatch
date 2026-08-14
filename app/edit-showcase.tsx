@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useDeckStore } from '../src/store/deckStore';
 import { useProfileStore } from '../src/store/profileStore';
-import type { DeezerTrack } from '../src/api/types';
+import type { Track } from '../src/api/types';
 import type { ShowcaseArtist } from '../src/firebase/profileService';
 import AppleArtwork from '../src/components/AppleArtwork';
 import AppleArtistArtwork from '../src/components/AppleArtistArtwork';
@@ -26,7 +26,7 @@ type Tab = 'songs' | 'artists';
 
 // ── Derive unique artists from liked tracks ──────────────────────────────────
 
-function buildArtistList(likedTracks: DeezerTrack[]): ShowcaseArtist[] {
+function buildArtistList(likedTracks: Track[]): ShowcaseArtist[] {
   const seen = new Map<number, ShowcaseArtist>();
   for (const track of likedTracks) {
     if (!seen.has(track.artist.id)) {
@@ -34,7 +34,7 @@ function buildArtistList(likedTracks: DeezerTrack[]): ShowcaseArtist[] {
         id: track.artist.id,
         name: track.artist.name,
         // Vestigial (avatars now resolve Apple artist art by name); keep it
-        // non-Deezer so nothing unlicensed is ever persisted.
+        // Apple Music sourced.
         coverUrl: track.artworkUrl ?? '',
       });
     }
@@ -50,7 +50,7 @@ function SongRow({
   disabled,
   onToggle,
 }: {
-  track: DeezerTrack;
+  track: Track;
   selected: boolean;
   disabled: boolean;
   onToggle: () => void;
@@ -113,7 +113,7 @@ export default function EditShowcaseScreen() {
   const setShowcase = useProfileStore((s) => s.setShowcase);
 
   const [tab, setTab] = useState<Tab>('songs');
-  const [selectedSongs, setSelectedSongs] = useState<DeezerTrack[]>(currentSongs);
+  const [selectedSongs, setSelectedSongs] = useState<Track[]>(currentSongs);
   const [selectedArtists, setSelectedArtists] = useState<ShowcaseArtist[]>(currentArtists);
   const [saving, setSaving] = useState(false);
 
@@ -123,7 +123,7 @@ export default function EditShowcaseScreen() {
     JSON.stringify(selectedSongs.map((t) => t.id)) !== JSON.stringify(currentSongs.map((t) => t.id)) ||
     JSON.stringify(selectedArtists.map((a) => a.id)) !== JSON.stringify(currentArtists.map((a) => a.id));
 
-  const toggleSong = (track: DeezerTrack) => {
+  const toggleSong = (track: Track) => {
     setSelectedSongs((prev) => {
       const isSelected = prev.some((t) => t.id === track.id);
       if (isSelected) return prev.filter((t) => t.id !== track.id);

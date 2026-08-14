@@ -24,7 +24,7 @@ import { useToastStore } from './toastStore';
 import { registerProfileRef } from './profileRef';
 import { todayISO } from '../utils/localDate';
 import { MILESTONE_MAP } from '../data/milestones';
-import type { DeezerTrack } from '../api/types';
+import type { Track } from '../api/types';
 import { uploadProfileImage, uploadGifBackground, deleteProfileImage } from '../firebase/storageService';
 
 interface ProfileState {
@@ -42,7 +42,7 @@ interface ProfileState {
   earnedMilestones: string[];
   ownedItems: string[];
   equippedItems: EquippedItems;
-  showcaseTracks: DeezerTrack[];
+  showcaseTracks: Track[];
   showcaseArtists: ShowcaseArtist[];
   isPrivate: boolean;
   followerCount: number;
@@ -69,7 +69,7 @@ interface ProfileState {
   streakAnimFrom: number | null;
   clearStreakAnim: () => void;
   checkAndUpdateStreak: () => Promise<void>;
-  setShowcase: (tracks: DeezerTrack[], artists: ShowcaseArtist[]) => Promise<void>;
+  setShowcase: (tracks: Track[], artists: ShowcaseArtist[]) => Promise<void>;
   togglePrivate: () => Promise<void>;
   updateUsername: (username: string) => Promise<void>;
 }
@@ -156,7 +156,7 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       // One-time migration: sync existing liked tracks to Firestore
       try {
         const raw = await AsyncStorage.getItem(`sm_liked_${spotifyUserId ?? uid}`);
-        const likedTracks: DeezerTrack[] = raw ? JSON.parse(raw) : [];
+        const likedTracks: Track[] = raw ? JSON.parse(raw) : [];
         if (likedTracks.length > 0) {
           runLikedTracksMigration(uid, likedTracks).catch(() => {});
         }

@@ -12,7 +12,7 @@ interface Props {
 
 /**
  * Licensed Apple Music artist image, resolved by name (cached). Never renders a
- * Deezer image — when Apple has no artist match it shows a generated
+ * legacy image — when Apple has no artist match it shows a generated
  * initial-avatar (first letter of the name).
  */
 export default function AppleArtistArtwork({ name, style, initialSize = 18 }: Props) {

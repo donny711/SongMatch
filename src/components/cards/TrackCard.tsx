@@ -37,7 +37,7 @@ export default function TrackCard({ card, isTop = false }: Props) {
     // makes measureInWindow return zeros for optimized-away views
     <View ref={cardRef} style={styles.card} collapsable={false}>
       {/* Full-bleed album art — licensed Apple Music artwork only; never the
-          unlicensed Deezer cover. Uses the enriched track.artworkUrl when
+          Uses the enriched track.artworkUrl when
           present and otherwise resolves lazily (self-heals if enrichment was
           skipped/failed); unmatched tracks show the placeholder. */}
       <AppleArtwork track={track} style={styles.albumArt} />

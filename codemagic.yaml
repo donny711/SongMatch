@@ -22,7 +22,7 @@ workflows:
         script: |
           # Only vars the release build actually needs. EXPO_PUBLIC_* values are
           # inlined into the JS bundle and extractable from the IPA, so:
-          # no Last.fm key (prod uses the worker proxy, which injects it),
+          # prod uses the worker proxy for API keys,
           # no AudD token (its worker holds it), no SoundCloud secret (feature
           # gated), no dead AdMob/RevenueCat keys. Never cat this file — it
           # would print values into the build log.

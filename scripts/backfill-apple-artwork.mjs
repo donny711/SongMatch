@@ -1,10 +1,10 @@
 /**
- * One-time backfill: replace stored Deezer cover URLs with licensed Apple Music
+ * One-time backfill: replace stored cover URLs with Apple Music
  * artwork on all pre-migration Firestore data.
  *
  * Uses the Admin SDK (service account) so it bypasses the songLikes security
  * rules that deny client-side coverUrl drift. Matching mirrors the client's
- * musicKitService: ISRC-first (via the Deezer proxy), title+artist fallback,
+ * musicKitService: ISRC-first, title+artist fallback,
  * through the same Cloudflare Worker `/apple` proxy so results are cached.
  *
  * Prerequisites:
@@ -61,7 +61,7 @@ initializeApp({ credential: cert(serviceAccount) });
 const db = getFirestore();
 
 // ── Apple matching (mirrors src/api/musicKitService.ts) ─────────────────────
-const cache = new Map(); // deezer trackId -> { artworkUrl, appleMusicId }
+const cache = new Map(); // trackId -> { artworkUrl, appleMusicId }
 let apiCalls = 0;
 
 async function appleGet(path) {
@@ -75,9 +75,9 @@ async function appleGet(path) {
   }
 }
 
-async function deezerIsrc(id) {
+async function fetchIsrc(id) {
   try {
-    const r = await fetch(`${PROXY}/deezer/track/${id}`);
+    const r = await fetch(`${PROXY}/apple/v1/catalog/us/songs/${id}`);
     if (!r.ok) return null;
     const d = await r.json();
     return d.isrc || null;
@@ -92,7 +92,7 @@ async function resolveArtwork(trackId, title, artist) {
   if (cache.has(trackId)) return cache.get(trackId);
   let song = null;
 
-  const isrc = await deezerIsrc(trackId);
+  const isrc = await fetchIsrc(trackId);
   if (isrc) {
     const d = await appleGet(`/v1/catalog/${STOREFRONT}/songs?filter[isrc]=${encodeURIComponent(isrc)}&limit=1`);
     song = d?.data?.[0] ?? null;
@@ -172,5 +172,5 @@ await backfillLikedTracks();
 console.log(`  likedTracks: matched ${stats.likedTracks[0]}/${stats.likedTracks[1]}`);
 await backfillShowcases();
 console.log(`  showcases:   updated ${stats.showcase[0]}/${stats.showcase[1]} users`);
-console.log(`\n✅ Done. Apple/Deezer API calls: ${apiCalls}, unique tracks: ${cache.size}\n`);
+console.log(`\n✅ Done. Apple API calls: ${apiCalls}, unique tracks: ${cache.size}\n`);
 process.exit(0);

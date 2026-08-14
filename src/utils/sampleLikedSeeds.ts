@@ -1,4 +1,4 @@
-import type { DeezerTrack } from '../api/types';
+import type { Track } from '../api/types';
 
 /**
  * Randomly sample seeds directly from the user's liked tracks.
@@ -6,7 +6,7 @@ import type { DeezerTrack } from '../api/types';
  * current taste rather than all-time history.
  */
 export function sampleLikedSeeds(
-  likedTracks: DeezerTrack[],
+  likedTracks: Track[],
   count: number
 ): Array<{ name: string; artist: string }> {
   const pool = likedTracks.slice(0, 30); // focus on recent 30

@@ -34,7 +34,7 @@ import SwipeDeck, { SwipeDeckRef } from '../../src/components/SwipeDeck/SwipeDec
 import SnippetPlayer from '../../src/components/cards/SnippetPlayer';
 import GradientText from '../../src/components/GradientText';
 import { COLORS, SPACING, RADIUS, GLOW } from '../../src/theme';
-import type { DeezerTrack, RecommendationCard } from '../../src/api/types';
+import type { Track, RecommendationCard } from '../../src/api/types';
 
 type Stage = 'idle' | 'recording' | 'recognizing' | 'searching' | 'result' | 'error' | 'limitReached';
 
@@ -79,7 +79,7 @@ function SeedTrackCard({
   onSimilar,
   onBack,
 }: {
-  track: DeezerTrack;
+  track: Track;
   onSimilar: () => void;
   onBack: () => void;
 }) {
@@ -284,13 +284,13 @@ const seedStyles = StyleSheet.create({
 export default function HearScreen() {
   const [stage, setStage] = useState<Stage>('idle');
   const [searchQuery, setSearchQuery] = useState('');
-  const [results, setResults] = useState<DeezerTrack[]>([]);
-  const [seedTrack, setSeedTrack] = useState<DeezerTrack | null>(null);
+  const [results, setResults] = useState<Track[]>([]);
+  const [seedTrack, setSeedTrack] = useState<Track | null>(null);
   const [recQueue, setRecQueue] = useState<RecommendationCard[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [recsVisible, setRecsVisible] = useState(false);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
-  const [selectedTrack, setSelectedTrack] = useState<DeezerTrack | null>(null);
+  const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const recognizedRef = useRef<{ title: string; artist: string } | null>(null);
   const deckRef = useRef<SwipeDeckRef>(null);
   const searchInputRef = useRef<any>(null);
@@ -433,7 +433,7 @@ export default function HearScreen() {
     }
   };
 
-  const openRecs = async (track: DeezerTrack) => {
+  const openRecs = async (track: Track) => {
     setSeedTrack(track);
     const seed = recognizedRef.current ?? { title: track.title, artist: track.artist.name };
     setRecsLoading(true);

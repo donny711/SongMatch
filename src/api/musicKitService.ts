@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MUSIC_PROXY_URL } from '../utils/constants';
-import type { DeezerTrack } from './types';
+import type { Track } from './types';
 
 // Apple Music catalog is storefront-scoped; SongMatch queries the US storefront
 // (largest catalog, safest for ISRC/text matching). See migration design doc.
@@ -97,14 +97,14 @@ async function writeCache(id: number, val: Artwork): Promise<void> {
 // ── Public API ──────────────────────────────────────────────────────────────
 
 /**
- * Resolve a Deezer track to its licensed Apple Music artwork.
+ * Resolve a track to its Apple Music artwork.
  *
- * ISRC-first: fetches the ISRC from Deezer /track/{id} when the track doesn't
+ * ISRC-first: uses the track ISRC when available, otherwise
  * already carry one, matches the Apple catalog exactly, and only falls back to
  * a fuzzy title+artist search when no ISRC match exists. Results (including
  * misses) are cached so we never repeat a lookup for the same track.
  */
-export async function resolveArtwork(track: DeezerTrack): Promise<Artwork> {
+export async function resolveArtwork(track: Track): Promise<Artwork> {
   const cached = await readCache(track.id);
   if (cached) return cached;
 
@@ -186,9 +186,9 @@ export async function resolveArtistArtwork(name: string): Promise<string | null>
  * fire dozens of simultaneous lookups. Tracks with no catalog match are
  * returned unchanged (UI applies a placeholder).
  */
-export async function resolveArtworkForTracks(tracks: DeezerTrack[]): Promise<DeezerTrack[]> {
+export async function resolveArtworkForTracks(tracks: Track[]): Promise<Track[]> {
   const BATCH = 6;
-  const out: DeezerTrack[] = [];
+  const out: Track[] = [];
   for (let i = 0; i < tracks.length; i += BATCH) {
     const slice = tracks.slice(i, i + BATCH);
     const arts = await Promise.all(slice.map((t) => resolveArtwork(t).catch(() => EMPTY)));

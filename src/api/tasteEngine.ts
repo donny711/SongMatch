@@ -1,4 +1,4 @@
-import type { DeezerTrack } from './types';
+import type { Track } from './types';
 import { searchAppleTracks } from './appleMusicClient';
 import { GENRE_ARTISTS } from '../utils/genres';
 
@@ -66,8 +66,8 @@ async function genreSeed(
  *     are available the shift pivots to those declared preferences entirely.
  */
 export async function buildTasteSeeds(
-  likedTracks: DeezerTrack[],
-  recentSkips: DeezerTrack[],
+  likedTracks: Track[],
+  recentSkips: Track[],
   onboardingGenres: string[] = [],
   forceShift = false,
   filteredArtistKeys: Set<string> = new Set(),

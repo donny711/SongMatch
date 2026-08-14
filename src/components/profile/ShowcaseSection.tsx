@@ -11,7 +11,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import type { DeezerTrack } from '../../api/types';
+import type { Track } from '../../api/types';
 import type { ShowcaseArtist } from '../../firebase/profileService';
 import AppleArtistArtwork from '../AppleArtistArtwork';
 import { COLORS, SPACING, RADIUS } from '../../theme';
@@ -25,13 +25,13 @@ const SONG_CARD_H = Math.floor(SONG_CARD_W * 1.38);
 const ARTIST_SIZE = 58;
 
 interface Props {
-  songs: DeezerTrack[];
+  songs: Track[];
   artists: ShowcaseArtist[];
   accentColor: string;
   readOnly?: boolean;
 }
 
-function SongCard({ track }: { track: DeezerTrack }) {
+function SongCard({ track }: { track: Track }) {
   return (
     <View style={[styles.songCard, { width: SONG_CARD_W, height: SONG_CARD_H }]}>
       {/* Licensed Apple Music artwork only; backfill populates artworkUrl on
