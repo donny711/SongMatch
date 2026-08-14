@@ -1,7 +1,6 @@
 import * as admin from 'firebase-admin';
 import * as functions from 'firebase-functions';
 import { FieldValue } from 'firebase-admin/firestore';
-import * as crypto from 'crypto';
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -376,102 +375,6 @@ export const unfollowUser = region.https.onCall(
     return { success: true, wasFollowing: true };
   }
 );
-
-// ── API cache helpers ──────────────────────────────────────────────────────
-
-function cacheKey(input: string): string {
-  return crypto.createHash('md5').update(input).digest('hex');
-}
-
-async function getCache(key: string): Promise<unknown | null> {
-  const doc = await db.collection('_apiCache').doc(key).get();
-  if (!doc.exists) return null;
-  const { expiresAt, data } = doc.data()!;
-  if (expiresAt && expiresAt.toMillis() < Date.now()) return null;
-  return data;
-}
-
-async function setCache(key: string, data: unknown, ttlSeconds: number): Promise<void> {
-  const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
-  await db.collection('_apiCache').doc(key).set({ data, expiresAt, updatedAt: FieldValue.serverTimestamp() });
-}
-
-// ── lastfmProxy ────────────────────────────────────────────────────────────
-
-const LASTFM_TTL: Record<string, number> = {
-  'track.getsimilar':  86400,   // 24h
-  'artist.gettoptracks': 86400, // 24h
-  'artist.getsimilar': 172800,  // 48h
-  'track.gettoptags':  172800,  // 48h
-  'tag.gettoptracks':  86400,   // 24h
-};
-
-export const lastfmProxy = region.https.onCall(
-  async (data: { method: string; params: Record<string, string | number> }, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
-    const { method, params } = data;
-    if (!method) throw new functions.https.HttpsError('invalid-argument', 'method required');
-
-    const key = cacheKey(`lfm:${method}:${JSON.stringify(params)}`);
-    const cached = await getCache(key);
-    if (cached !== null) return cached;
-
-    const apiKey = process.env.LASTFM_API_KEY;
-    if (!apiKey) throw new functions.https.HttpsError('internal', 'Last.fm key not configured');
-
-    const qs = Object.entries(params)
-      .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-      .join('&');
-    const url = `https://ws.audioscrobbler.com/2.0/?method=${method}&api_key=${encodeURIComponent(apiKey)}&format=json&${qs}`;
-
-    const fetch = (await import('node-fetch')).default;
-    const res = await fetch(url);
-    const json = await res.json();
-
-    const ttl = LASTFM_TTL[method] ?? 86400;
-    await setCache(key, json, ttl);
-    return json;
-  }
-);
-
-// ── deezerProxy ────────────────────────────────────────────────────────────
-
-export const deezerProxy = region.https.onCall(
-  async (data: { action: 'search' | 'track' | 'chart'; query?: string; id?: number; limit?: number }, context) => {
-    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Login required');
-    const { action, query, id } = data;
-    const limit = Math.min(data.limit ?? 20, 50);
-    if (!action) throw new functions.https.HttpsError('invalid-argument', 'action required');
-
-    let url: string;
-    let ttl: number;
-
-    if (action === 'search') {
-      if (!query) throw new functions.https.HttpsError('invalid-argument', 'query required for search');
-      url = `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=${limit}`;
-      ttl = 21600; // 6h
-    } else if (action === 'track') {
-      if (!id) throw new functions.https.HttpsError('invalid-argument', 'id required for track');
-      url = `https://api.deezer.com/track/${id}`;
-      ttl = 604800; // 7 days
-    } else {
-      url = `https://api.deezer.com/chart/0/tracks?limit=${limit}`;
-      ttl = 3600; // 1h
-    }
-
-    const key = cacheKey(`deezer:${action}:${query ?? ''}:${id ?? ''}:${limit}`);
-    const cached = await getCache(key);
-    if (cached !== null) return cached;
-
-    const fetch = (await import('node-fetch')).default;
-    const res = await fetch(url);
-    const json = await res.json();
-
-    await setCache(key, json, ttl);
-    return json;
-  }
-);
-
 // ── onLikedTrackWrite — maintains users/{uid}.artistIds ───────────────────
 
 export const onLikedTrackWrite = functions

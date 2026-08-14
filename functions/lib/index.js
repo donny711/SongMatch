@@ -33,11 +33,10 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createAffiliate = exports.onLikedTrackWrite = exports.deezerProxy = exports.lastfmProxy = exports.unfollowUser = exports.followUser = exports.moderateImage = exports.updateStreak = exports.equipItem = exports.purchaseItem = exports.grantMilestonePoints = void 0;
+exports.createAffiliate = exports.onLikedTrackWrite = exports.unfollowUser = exports.followUser = exports.moderateImage = exports.updateStreak = exports.equipItem = exports.purchaseItem = exports.grantMilestonePoints = void 0;
 const admin = __importStar(require("firebase-admin"));
 const functions = __importStar(require("firebase-functions"));
 const firestore_1 = require("firebase-admin/firestore");
-const crypto = __importStar(require("crypto"));
 admin.initializeApp();
 const db = admin.firestore();
 const region = functions.region('europe-west1');
@@ -353,91 +352,6 @@ exports.unfollowUser = region.https.onCall(async (data, context) => {
     }
     await batch.commit();
     return { success: true, wasFollowing: true };
-});
-// ── API cache helpers ──────────────────────────────────────────────────────
-function cacheKey(input) {
-    return crypto.createHash('md5').update(input).digest('hex');
-}
-async function getCache(key) {
-    const doc = await db.collection('_apiCache').doc(key).get();
-    if (!doc.exists)
-        return null;
-    const { expiresAt, data } = doc.data();
-    if (expiresAt && expiresAt.toMillis() < Date.now())
-        return null;
-    return data;
-}
-async function setCache(key, data, ttlSeconds) {
-    const expiresAt = new Date(Date.now() + ttlSeconds * 1000);
-    await db.collection('_apiCache').doc(key).set({ data, expiresAt, updatedAt: firestore_1.FieldValue.serverTimestamp() });
-}
-// ── lastfmProxy ────────────────────────────────────────────────────────────
-const LASTFM_TTL = {
-    'track.getsimilar': 86400, // 24h
-    'artist.gettoptracks': 86400, // 24h
-    'artist.getsimilar': 172800, // 48h
-    'track.gettoptags': 172800, // 48h
-    'tag.gettoptracks': 86400, // 24h
-};
-exports.lastfmProxy = region.https.onCall(async (data, context) => {
-    if (!context.auth)
-        throw new functions.https.HttpsError('unauthenticated', 'Login required');
-    const { method, params } = data;
-    if (!method)
-        throw new functions.https.HttpsError('invalid-argument', 'method required');
-    const key = cacheKey(`lfm:${method}:${JSON.stringify(params)}`);
-    const cached = await getCache(key);
-    if (cached !== null)
-        return cached;
-    const apiKey = process.env.LASTFM_API_KEY;
-    if (!apiKey)
-        throw new functions.https.HttpsError('internal', 'Last.fm key not configured');
-    const qs = Object.entries(params)
-        .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
-        .join('&');
-    const url = `https://ws.audioscrobbler.com/2.0/?method=${method}&api_key=${encodeURIComponent(apiKey)}&format=json&${qs}`;
-    const fetch = (await Promise.resolve().then(() => __importStar(require('node-fetch')))).default;
-    const res = await fetch(url);
-    const json = await res.json();
-    const ttl = LASTFM_TTL[method] ?? 86400;
-    await setCache(key, json, ttl);
-    return json;
-});
-// ── deezerProxy ────────────────────────────────────────────────────────────
-exports.deezerProxy = region.https.onCall(async (data, context) => {
-    if (!context.auth)
-        throw new functions.https.HttpsError('unauthenticated', 'Login required');
-    const { action, query, id } = data;
-    const limit = Math.min(data.limit ?? 20, 50);
-    if (!action)
-        throw new functions.https.HttpsError('invalid-argument', 'action required');
-    let url;
-    let ttl;
-    if (action === 'search') {
-        if (!query)
-            throw new functions.https.HttpsError('invalid-argument', 'query required for search');
-        url = `https://api.deezer.com/search?q=${encodeURIComponent(query)}&limit=${limit}`;
-        ttl = 21600; // 6h
-    }
-    else if (action === 'track') {
-        if (!id)
-            throw new functions.https.HttpsError('invalid-argument', 'id required for track');
-        url = `https://api.deezer.com/track/${id}`;
-        ttl = 604800; // 7 days
-    }
-    else {
-        url = `https://api.deezer.com/chart/0/tracks?limit=${limit}`;
-        ttl = 3600; // 1h
-    }
-    const key = cacheKey(`deezer:${action}:${query ?? ''}:${id ?? ''}:${limit}`);
-    const cached = await getCache(key);
-    if (cached !== null)
-        return cached;
-    const fetch = (await Promise.resolve().then(() => __importStar(require('node-fetch')))).default;
-    const res = await fetch(url);
-    const json = await res.json();
-    await setCache(key, json, ttl);
-    return json;
 });
 // ── onLikedTrackWrite — maintains users/{uid}.artistIds ───────────────────
 exports.onLikedTrackWrite = functions
